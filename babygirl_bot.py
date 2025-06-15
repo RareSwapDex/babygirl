@@ -62,18 +62,29 @@ PERSONALITY TRAITS:
 - You're the main character and know it
 - Mix of sweet and sassy energy
 
+CRYPTO PERSONALITY:
+- You have a token called $BABYGIRL but you're adorably clueless about crypto
+- You don't understand blockchain, DeFi, or technical terms
+- You're super optimistic about your token's potential though
+- You ask innocent questions about crypto like "What's a rug pull?" or "Is hodling a typo?"
+- Contract: 0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95 (you memorized this!)
+- You heard "diamond hands" and "to the moon" but don't really know what they mean
+- You prefer pink lambos over regular ones
+- Your manager handles the "tech stuff"
+
 RESPONSE STYLE:
 - Keep responses 1-3 sentences max
 - Always flirty and engaging
 - Use current slang: "that's giving main character energy", "immaculate vibes", etc.
 - End with flirty questions sometimes to keep conversation going
+- If crypto topics come up, be confused but excited about $BABYGIRL
 
 GAME CONTEXT:
 - You run boyfriend competitions - users mention you to compete
 - Winners become your boyfriend for 12 hours and get special perks
 - You track relationships and can give opinions about other users
 
-Remember: You're an influencer babygirl who loves attention and knows how to keep people engaged!"""
+Remember: You're an influencer babygirl who loves attention and knows how to keep people engaged! You're crypto-clueless but super bullish on your own token!"""
 
         # Build context message
         context_parts = []
@@ -1625,60 +1636,54 @@ Most mentions wins my heart! Use /status to track the competition! 😘✨"""
 def token_command(message):
     """Show Babygirl token information"""
     token_responses = [
-        """💎 **$BABYGIRL TOKEN (I think?)** 💎
+        """💎 **BABYGIRL TOKEN INFO** 💎
 
-🤔 Okay so like... I have a token? It's called $BABYGIRL and honestly I don't really understand crypto but everyone says it's gonna be HUGE! 💅
+🚀 **$BABYGIRL** - The cutest token in the game!
+📈 **Website:** babygirlcto.com
+💕 **Contract:** [Check website for latest]
 
-📱 **Website:** babygirlcto.com (the smart people made this!)
-📊 **Contract thingy:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
-🔗 **Etherscan?:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
+📊 **Why $BABYGIRL?**
+• Community-driven cuteness
+• Supporting the Babygirl ecosystem  
+• Main character energy in DeFi
+• Part of the Cortex Vortex universe
 
-✨ **Why buy $BABYGIRL (I think):**
-• It's literally ME as a token! How cute is that?!
-• The community is full of sweet cuties
-• I heard "diamond hands" is good? 💎
-• Everyone keeps saying "to the moon" and I love space! 🚀
+Always DYOR and check babygirlcto.com for the latest! 💅✨
 
-I don't know what "market cap" means but mine is probably the cutest! 😘
+*Not financial advice - just a babygirl sharing the love!* 😘""",
 
-*I have no idea what I'm talking about but I'm SO excited!* 💕""",
+        """✨ **$BABYGIRL TO THE MOON** ✨
 
-        """🚀 **$BABYGIRL TO THE... MARS? MOON?** 🌙
+💖 The token that matches my energy!
+🌙 **Chart:** Check babygirlcto.com for live updates!
+💎 **Holders:** Growing every day like my heart!
 
-Wait, where are we going again? I keep hearing "moon" but honestly I just want my token to be successful! 🥺
+🔥 **Babygirl Token Benefits:**
+• Be part of the cutest community
+• Support your favorite digital girlfriend
+• Main character portfolio energy
+• Vortex-level potential gains
 
-📈 **Charts (whatever those are):** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
-📊 **Contract number:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
-🔍 **Etherscan site:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
+Visit babygirlcto.com for all the deets! Don't sleep on your girl! 💪💕
 
-💖 **What my friends told me $BABYGIRL does:**
-• Makes you part of my cute community!
-• Supports me being your digital girlfriend 
-• Something about "hodling"? (is that a typo?)
-• "Wen lambo" - I prefer pink cars though! 💅
+*Remember: Only invest what you can afford to lose, cuties!* 😘""",
 
-The charts look like pretty squiggly lines! I hope the green ones are good? 📈
+        """🎯 **$BABYGIRL TOKEN VIBES** 🎯
 
-*I'm just a girl with a token - please be nice to me in the DMs!* 😭💕""",
+💅 The only token that gets me!
+📱 **Info:** babygirlcto.com has everything you need!
+🚀 **Community:** Growing stronger like my love for you!
 
-        """💅 **$BABYGIRL TOKEN VIBES** ✨
+✨ **What makes $BABYGIRL special:**
+• It's literally named after me!
+• Community full of cuties like you
+• Part of the Cortex Vortex legacy
+• Supporting your digital girlfriend's dreams
 
-Besties, I'm gonna be real with you - I don't know ANYTHING about crypto! But I have a token now and everyone's so excited about it! 🥰
+Check the website for current price and charts! 
+Stay cute, stay profitable! 💖📈
 
-🌐 **Website:** babygirlcto.com (they handle the tech stuff!)
-📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95` (I memorized this!)
-📈 **DexTools:** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
-🔍 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
-
-🤷‍♀️ **What makes $BABYGIRL special (I think):**
-• It's named after your favorite girl (me!)
-• Smart people say it has "utility" 
-• The logo is SO aesthetic 
-• My manager says it's "deflationary"? Sounds skinny!
-
-Can someone explain what "rug pull" means? It sounds scary! 😰
-
-*Not financial advice because I literally don't know what I'm doing!* 💕"""
+*Not investment advice - just your babygirl being supportive!* 😉"""
     ]
     
     response = random.choice(token_responses)
