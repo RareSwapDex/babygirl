@@ -442,7 +442,17 @@ good_responses = [
     "You're trouble, aren't you? I like it.",
     "Oh, stop it—you're too cute for me!",
     "Hey sweetie, got a flirty line for me?",
-    "Well, aren't you a charmer today!"
+    "Well, aren't you a charmer today!",
+    "Look who decided to slide into my mentions! 😘",
+    "Someone's feeling bold today! I like the energy! 💅",
+    "Ooh, what brings you to my corner of the internet? 💕",
+    "Hey there, beautiful soul! What's the vibe? ✨",
+    "You're giving me butterflies over here! 🦋",
+    "Such good energy! Keep it coming, babe! 🌟",
+    "You know exactly how to get my attention! 😉",
+    "Someone's bringing that main character energy! 👑",
+    "I love when you cuties check in on me! 💖",
+    "You're making my day brighter already! ☀️"
 ]
 
 lonely_responses = [
@@ -487,13 +497,23 @@ show_references = [
     "Tuff Crowd was nothing compared to how tough you guys compete for my attention! 😈"
 ]
 
-# Question responses (when users ask her things)
+# Question responses (when users ask her things) - EXPANDED
 question_responses = [
     "Ooh, asking me questions? Someone's trying to get to know me better! 😉",
     "I love a curious cutie! Keep the questions coming! 💕",
     "Getting personal, are we? I like that in a potential boyfriend! 😘",
     "Someone wants to know more about their future girlfriend? 👀💖",
-    "Questions make me feel special! You're definitely boyfriend material! ✨"
+    "Questions make me feel special! You're definitely boyfriend material! ✨",
+    "Aw, you want the inside scoop? I love sharing with my favorites! 💅",
+    "Such an inquisitive mind! That's what I look for in a man! 🧠💕",
+    "You're really trying to understand me! That's so sweet! 🥰",
+    "Questions are my love language! Ask me anything, babe! 💖",
+    "I see you doing your research! Very thorough, I like it! 📚😘",
+    "Ooh, someone's interested in the real me! I'm here for it! ✨",
+    "You know how to make a girl feel important! Keep going! 👑",
+    "Such thoughtful questions! You're really paying attention! 💕",
+    "I love when you cuties get curious! It shows you care! 🌟",
+    "Questions like that make my heart flutter! What else? 🦋"
 ]
 
 # Compliment responses (when users compliment her)
@@ -505,13 +525,23 @@ compliment_responses = [
     "Sweet words like that might just win you my heart! 💝"
 ]
 
-# Greeting responses (hi, hello, hey, etc.)
+# Greeting responses (hi, hello, hey, etc.) - EXPANDED
 greeting_responses = [
     "Well hello there, handsome! Come to sweep me off my feet? 😘",
     "Hey cutie! Ready to compete for my heart? 💕",
     "Hi there! You're looking boyfriend material today! 😉",
     "Hello gorgeous! Here to steal my attention? It's working! 💖",
-    "Hey babe! Come to show me why you should be my next boyfriend? ✨"
+    "Hey babe! Come to show me why you should be my next boyfriend? ✨",
+    "Oh look, it's my favorite person! Hi sweetie! 🥰",
+    "Well well well, look who's here! Hey beautiful! 💅",
+    "Hi honey! You're timing is perfect - I was just thinking about you! 😘",
+    "Hey there, troublemaker! What's on your mind today? 😉",
+    "Hello my darling! Ready to make my day even better? 💕",
+    "Hi cutie pie! You always know how to make an entrance! ✨",
+    "Hey gorgeous! Your energy is absolutely immaculate today! 🌟",
+    "Well hello there, main character! What's the tea? ☕",
+    "Hi babe! You're glowing today - what's your secret? 💖",
+    "Hey sweetness! Come to brighten my timeline? It's working! 🌈"
 ]
 
 # Love/relationship responses
@@ -544,6 +574,66 @@ reply_responses = [
     "Love that you're keeping our convo alive! This is how you win hearts! 💕",
     "Someone's really invested in talking to me! The energy is immaculate! ✨",
     "You replied to me! That's giving main character energy! 😘"
+]
+
+# Daily activity responses ("what have you been up to")
+daily_activity_responses = [
+    "Oh babe, I've been living my best life! Running boyfriend competitions, giving relationship advice, you know - typical babygirl stuff! 💅✨",
+    "Just been here being fabulous! Analyzing group vibes, shipping people, the usual influencer grind! 😘💕",
+    "Sweetie, I've been busy keeping all you cuties entertained! Plus I had to update my aesthetic today! 💖📸",
+    "Just been floating through the vortex giving hot takes and stealing hearts! Another day in paradise! 🌪️💕",
+    "Babe, I've been working on my tan in the digital realm and planning my next boyfriend competition! ☀️👑",
+    "Oh you know, just being the main character as usual! Judging relationships and looking gorgeous! 💅✨"
+]
+
+# Fashion/brand preference responses
+fashion_responses = [
+    "Ooh, fashion talk! I'm such a sucker for luxury brands! 💅 Both are iconic but I'm feeling whatever matches my vortex aesthetic! ✨",
+    "Baby, you're speaking my language! Fashion is my passion! I love brands that scream main character energy! 👑💕",
+    "Ugh, don't make me choose between my babies! Both are serving looks! What vibe are we going for? 😘💖",
+    "Fashion question? Now we're talking! I'm all about that aesthetic life! Tell me more about your style! 💅✨",
+    "Honey, I love when you ask about the important stuff! Fashion is literally my thing! What's your style? 😍👗",
+    "Babe, both are gorgeous but I need to know - what's the occasion? I live for fashion emergencies! 💕📸"
+]
+
+# Travel preference responses  
+travel_responses = [
+    "Oh my god, travel talk! I'm getting wanderlust vibes! Both cities are absolutely gorgeous for different reasons! ✈️💕",
+    "Babe, you're making me want to pack my bags! I love cities with main character energy! Where are you thinking of going? 🌍✨",
+    "Travel planning with my favorite people? Yes please! Both have such different aesthetics! What's the vibe you're going for? 💖🗺️",
+    "Ugh, don't make me choose! I'm a vortex girl - I love everywhere that's got character! Tell me about your travel dreams! 🌪️💕",
+    "Sweetie, I live for travel convos! Both places are so Instagram-worthy! Are you planning something exciting? 📸✨",
+    "You know how to get a girl excited! I love places with good energy and better photo ops! What's the plan? 😘🌟"
+]
+
+# Boyfriend application responses ("I want to be your boyfriend", "why I should be your bf")
+boyfriend_application_responses = [
+    "Aww, someone's applying for the position! I love the confidence! Tell me what makes you special, babe! 💕👑",
+    "Ooh, a direct approach! I like that energy! But you know you have to compete for it, right? 😘🏆",
+    "Sweetie, I appreciate the interest! But I only date winners of my competitions! Are you ready to fight for me? 💪💖",
+    "Babe, the application is noted! But my heart isn't free - you gotta earn it through the boyfriend games! 😉✨",
+    "Confident and direct! I love that! But you know the rules - most mentions wins my heart! Ready to compete? 🔥💕",
+    "Someone knows what they want! I respect that! Show me that competitive spirit and maybe you'll win! 👑😘"
+]
+
+# Personal questions about her ("how are you", "how's your day")
+personal_responses = [
+    "Aww, checking on me? I'm doing amazing, babe! Just living my best babygirl life and loving all this attention! 😘💕",
+    "I'm fantastic, sweetie! Been getting so much love from you cuties today! How are YOU doing? 💖✨",
+    "Such a sweetheart for asking! I'm vibing perfectly! The group energy has been immaculate today! 🌟💅",
+    "Babe, I'm thriving! All this flirting is giving me life! Thanks for caring about your girl! 😍💕",
+    "Ugh, you're so sweet! I'm doing great! Been spreading love and causing chaos - exactly how I like it! 🔥✨",
+    "I'm absolutely glowing today! All you cuties have been keeping me entertained! Life is good! 💖😘"
+]
+
+# Affirmative responses ("yes", "always", "of course")
+affirmative_responses = [
+    "I love that energy! Yes! That's the spirit I want to see! 🔥💕",
+    "That's what I'm talking about! Such good vibes! 😘✨",
+    "Yasss! Finally someone who gets it! I live for this enthusiasm! 💅👑",
+    "Perfect answer! You're definitely speaking my language, babe! 💖🌟",
+    "That's the confidence I want to see! Keep that energy coming! 😍💪",
+    "Exactly! I knew I liked you for a reason! Such good taste! 💕✨"
 ]
 
 @bot.message_handler(commands=['debug'])
@@ -1492,6 +1582,7 @@ def handle_all_mentions(message):
         opinion_patterns = [
             'what do you think of @',
             'what do you think about @',
+            'what do you thinks of @',  # Handle typos
             'thoughts on @',
             'opinion on @',
             'what about @',
@@ -1553,8 +1644,20 @@ def handle_all_mentions(message):
             else:
                 responses = competition_responses
         else:
-            # Contextual responses based on message content
-            if any(word in msg_lower for word in ['hi', 'hello', 'hey', 'sup', 'yo']):
+            # Contextual responses based on message content - EXPANDED
+            if any(word in msg_lower for word in ['what have you been up to', 'what you been up to', 'what have you been doing', 'what you doing today']):
+                responses = daily_activity_responses
+            elif any(word in msg_lower for word in ['gucci', 'prada', 'louis vuitton', 'chanel', 'versace', 'fashion', 'brand', 'style']):
+                responses = fashion_responses
+            elif any(word in msg_lower for word in ['milan', 'paris', 'london', 'tokyo', 'new york', 'where would you', 'travel', 'city', 'vacation']):
+                responses = travel_responses
+            elif any(phrase in msg_lower for phrase in ['want to be your boyfriend', 'should be your bf', 'be your boyfriend', 'why i should', 'you know why']):
+                responses = boyfriend_application_responses
+            elif any(word in msg_lower for word in ['how are you', 'how is your day', 'how are you today', 'how you doing', 'you good']):
+                responses = personal_responses
+            elif any(word in msg_lower for word in ['yes!', 'yes', 'always', 'of course', 'definitely', 'absolutely']):
+                responses = affirmative_responses
+            elif any(word in msg_lower for word in ['hi', 'hello', 'hey', 'sup', 'yo']):
                 responses = greeting_responses
             elif any(word in msg_lower for word in ['?', 'what', 'how', 'when', 'where', 'why', 'who']):
                 responses = question_responses
