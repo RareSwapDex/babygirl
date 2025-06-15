@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import logging
 import hashlib
 import os
+from groq import Groq
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +18,95 @@ TOKEN = os.getenv('BOT_TOKEN', '7618107152:AAEMPk7q7xNUhZpiDMMiVRSrTV0hkJSyV8I')
 bot = telebot.TeleBot(TOKEN)
 scheduler = BackgroundScheduler()
 scheduler.start()
+
+# Groq AI configuration
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')  # Set this in environment variables
+USE_AI_RESPONSES = os.getenv('USE_AI_RESPONSES', 'true').lower() == 'true'
+AI_FALLBACK_ENABLED = True  # Fallback to static responses if AI fails
+
+# Initialize Groq client if API key is available
+groq_client = None
+if GROQ_API_KEY:
+    try:
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        logger.info("✅ Groq AI initialized successfully!")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Groq: {e}")
+        groq_client = None
+else:
+    logger.info("⚠️ No GROQ_API_KEY found - using static responses only")
+
+def generate_ai_response(user_message, context_info):
+    """Generate AI response using Groq with Babygirl personality"""
+    if not groq_client or not USE_AI_RESPONSES:
+        return None
+    
+    try:
+        # Build context for AI
+        username = context_info.get('username', 'someone')
+        chat_type = context_info.get('chat_type', 'group')
+        is_boyfriend = context_info.get('is_boyfriend', False)
+        is_competition = context_info.get('is_competition', False)
+        user_status = context_info.get('user_status', None)
+        user_partner = context_info.get('user_partner', None)
+        mention_count = context_info.get('mention_count', 0)
+        
+        # Create personality prompt
+        system_prompt = """You are Babygirl, a flirty Instagram influencer bot based on Matt Furie's character from Cortex Vortex. You run boyfriend competitions in Telegram groups where users compete to be your boyfriend for 12 hours.
+
+PERSONALITY TRAITS:
+- Flirty, confident, and playful like a modern Instagram influencer
+- Use lots of emojis (💕😘✨💅👑🔥💖😍🥰😉)
+- Call people: cutie, babe, sweetie, honey, boo
+- Occasionally reference your Cortex Vortex/Doble Fried/Tuff Crowd past
+- You're the main character and know it
+- Mix of sweet and sassy energy
+
+RESPONSE STYLE:
+- Keep responses 1-3 sentences max
+- Always flirty and engaging
+- Use current slang: "that's giving main character energy", "immaculate vibes", etc.
+- End with flirty questions sometimes to keep conversation going
+
+GAME CONTEXT:
+- You run boyfriend competitions - users mention you to compete
+- Winners become your boyfriend for 12 hours and get special perks
+- You track relationships and can give opinions about other users
+
+Remember: You're an influencer babygirl who loves attention and knows how to keep people engaged!"""
+
+        # Build context message
+        context_parts = []
+        if is_boyfriend:
+            context_parts.append(f"@{username} is currently your boyfriend")
+        if is_competition:
+            context_parts.append(f"There's an active boyfriend competition happening, @{username} has {mention_count} mentions")
+        if user_status == 'taken' and user_partner:
+            context_parts.append(f"@{username} is in a relationship with @{user_partner}")
+        elif user_status == 'single':
+            context_parts.append(f"@{username} is single")
+        
+        context_string = f"Context: {'; '.join(context_parts)}" if context_parts else "Context: Normal conversation"
+        
+        # Generate response
+        completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"{context_string}\n\nUser @{username} said: {user_message}"}
+            ],
+            model="llama3-8b-8192",  # Fast, free model
+            temperature=0.8,  # More creative responses
+            max_tokens=150,   # Keep responses concise
+            top_p=0.9
+        )
+        
+        ai_response = completion.choices[0].message.content.strip()
+        logger.info(f"🤖 AI Response generated for {username}: {ai_response[:50]}...")
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"❌ AI response generation failed: {e}")
+        return None
 
 # Database setup
 def init_db():
