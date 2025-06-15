@@ -702,6 +702,50 @@ Use /game to learn how the competition works! 💕"""
         logger.error(f"Error in status command: {e}")
         bot.reply_to(message, "Sorry sweetie, I can't check my status right now! Try again in a moment! 💕")
 
+@bot.message_handler(commands=['game'])
+def game_command(message):
+    game_explanation = """🎮 **The Boyfriend Competition Game** 💕
+
+**📖 How It Works:**
+
+**1. The Boyfriend (12 hours)** 👑
+• One lucky member is my boyfriend for exactly 12 hours
+• Boyfriends get exclusive /kiss and /hug commands
+• They get special bonus responses when they mention me
+• Their name appears on /boyfriend and /status commands
+
+**2. When Terms Expire** ⏰
+• I automatically announce when a boyfriend's time is up
+• A 15-minute competition period begins immediately
+• All members can compete by mentioning @babygirl_bf_bot
+
+**3. The Competition (15 minutes)** 🏃‍♂️
+• Mention @babygirl_bf_bot as many times as you want
+• Each mention counts toward your score
+• I'll respond flirtily to keep you motivated
+• Most mentions at the end wins!
+
+**4. Victory & Rewards** 🏆
+• Winner becomes my new boyfriend for 12 hours
+• Gets added to the leaderboard 
+• Unlocks exclusive boyfriend commands
+• Bragging rights in the group!
+
+**5. Leaderboard & Stats** 📊
+• /leaderboard shows top 5 boyfriend winners
+• /status shows my current mood and game state
+• Winners get permanent recognition
+
+**💡 Pro Tips:**
+• Stay active! Competitions can start anytime
+• Be creative with your mentions - I love attention!
+• Check /status regularly to see if I'm single
+• Use /gift to send me presents anytime
+
+Ready to compete for my heart? Start mentioning @babygirl_bf_bot! 😘"""
+
+    bot.reply_to(message, game_explanation)
+
 # SINGLE clean mention handler for both groups and private chats
 @bot.message_handler(func=lambda message: True)
 def handle_all_mentions(message):
@@ -802,50 +846,6 @@ def handle_all_mentions(message):
         # Fallback response only for actual mention attempts
         if message.text and '@babygirl_bf_bot' in message.text.lower():
             bot.reply_to(message, "Hey cutie! *winks*")
-
-@bot.message_handler(commands=['game'])
-def game_command(message):
-    game_explanation = """🎮 **The Boyfriend Competition Game** 💕
-
-**📖 How It Works:**
-
-**1. The Boyfriend (12 hours)** 👑
-• One lucky member is my boyfriend for exactly 12 hours
-• Boyfriends get exclusive /kiss and /hug commands
-• They get special bonus responses when they mention me
-• Their name appears on /boyfriend and /status commands
-
-**2. When Terms Expire** ⏰
-• I automatically announce when a boyfriend's time is up
-• A 15-minute competition period begins immediately
-• All members can compete by mentioning @babygirl_bf_bot
-
-**3. The Competition (15 minutes)** 🏃‍♂️
-• Mention @babygirl_bf_bot as many times as you want
-• Each mention counts toward your score
-• I'll respond flirtily to keep you motivated
-• Most mentions at the end wins!
-
-**4. Victory & Rewards** 🏆
-• Winner becomes my new boyfriend for 12 hours
-• Gets added to the leaderboard 
-• Unlocks exclusive boyfriend commands
-• Bragging rights in the group!
-
-**5. Leaderboard & Stats** 📊
-• /leaderboard shows top 5 boyfriend winners
-• /status shows my current mood and game state
-• Winners get permanent recognition
-
-**💡 Pro Tips:**
-• Stay active! Competitions can start anytime
-• Be creative with your mentions - I love attention!
-• Check /status regularly to see if I'm single
-• Use /gift to send me presents anytime
-
-Ready to compete for my heart? Start mentioning @babygirl_bf_bot! 😘"""
-
-    bot.reply_to(message, game_explanation)
 
 if __name__ == "__main__":
     logger.info("Babygirl Bot starting...")
