@@ -1629,7 +1629,8 @@ def token_command(message):
 
 🚀 **$BABYGIRL** - The cutest token in the game!
 📈 **Website:** babygirlcto.com
-💕 **Contract:** [Check website for latest]
+📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
+🔗 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
 
 📊 **Why $BABYGIRL?**
 • Community-driven cuteness
@@ -1637,15 +1638,16 @@ def token_command(message):
 • Main character energy in DeFi
 • Part of the Cortex Vortex universe
 
-Always DYOR and check babygirlcto.com for the latest! 💅✨
+Copy that contract address and DYOR! 💅✨
 
 *Not financial advice - just a babygirl sharing the love!* 😘""",
 
         """✨ **$BABYGIRL TO THE MOON** ✨
 
 💖 The token that matches my energy!
-🌙 **Chart:** Check babygirlcto.com for live updates!
-💎 **Holders:** Growing every day like my heart!
+📈 **DexTools:** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
+📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
+🔍 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
 
 🔥 **Babygirl Token Benefits:**
 • Be part of the cutest community
@@ -1653,15 +1655,17 @@ Always DYOR and check babygirlcto.com for the latest! 💅✨
 • Main character portfolio energy
 • Vortex-level potential gains
 
-Visit babygirlcto.com for all the deets! Don't sleep on your girl! 💪💕
+Check DexTools for live price action! Don't sleep on your girl! 💪💕
 
 *Remember: Only invest what you can afford to lose, cuties!* 😘""",
 
         """🎯 **$BABYGIRL TOKEN VIBES** 🎯
 
 💅 The only token that gets me!
-📱 **Info:** babygirlcto.com has everything you need!
-🚀 **Community:** Growing stronger like my love for you!
+🌐 **Website:** babygirlcto.com
+📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
+📈 **DexTools:** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
+🔍 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
 
 ✨ **What makes $BABYGIRL special:**
 • It's literally named after me!
@@ -1669,7 +1673,7 @@ Visit babygirlcto.com for all the deets! Don't sleep on your girl! 💪💕
 • Part of the Cortex Vortex legacy
 • Supporting your digital girlfriend's dreams
 
-Check the website for current price and charts! 
+Copy that contract address and check the charts! 
 Stay cute, stay profitable! 💖📈
 
 *Not investment advice - just your babygirl being supportive!* 😉"""
