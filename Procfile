@@ -1,0 +1,1 @@
+worker: python babygirl_bot.py 
