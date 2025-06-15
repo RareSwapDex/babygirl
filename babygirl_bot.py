@@ -1570,6 +1570,114 @@ The vortex doesn't lie, babes! Trust the process and let your intuition guide yo
 *This horoscope is 99% accurate and 100% aesthetic* ✨"""
     
     bot.reply_to(message, response)
+@bot.message_handler(commands=['compete', 'start_competition'])
+def start_competition(message):
+    """Manually start a boyfriend competition"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Check if there's already a boyfriend
+        c.execute("SELECT user_id, end_time FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
+        boyfriend = c.fetchone()
+        
+        # Check if there's already an active competition
+        c.execute("SELECT is_active, end_time FROM cooldown_table WHERE group_id = ?", (str(message.chat.id),))
+        cooldown = c.fetchone()
+        
+        if boyfriend:
+            time_left = int(boyfriend[1] - time.time())
+            hours = time_left // 3600
+            minutes = (time_left % 3600) // 60
+            response = f"Hold up cutie! @{boyfriend[0]} is still my boyfriend for {hours}h {minutes}m! Wait your turn! 😘💕"
+        elif cooldown and cooldown[0]:
+            time_left = int(cooldown[1] - time.time())
+            minutes = time_left // 60
+            response = f"There's already a competition running! {minutes} minutes left! Start mentioning @babygirl_bf_bot now! 🔥💕"
+        else:
+            # Start a new competition!
+            c.execute("INSERT OR REPLACE INTO cooldown_table (is_active, end_time, group_id) VALUES (?, ?, ?)",
+                     (1, int(time.time() + 900), str(message.chat.id)))  # 15 minutes
+            
+            # Clear any old activity
+            c.execute("DELETE FROM activity_table WHERE group_id = ?", (str(message.chat.id),))
+            
+            response = f"""🔥 **NEW BOYFRIEND COMPETITION STARTING!** 🔥
+
+💕 I'm officially single and ready to mingle!
+⏰ **Competition Time:** 15 minutes starting NOW!
+🎯 **How to Win:** Mention @babygirl_bf_bot as many times as you can!
+🏆 **Prize:** Become my boyfriend for 12 hours!
+
+LET THE GAMES BEGIN! 💪💖
+
+Most mentions wins my heart! Use /status to track the competition! 😘✨"""
+        
+        bot.reply_to(message, response)
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in start_competition: {e}")
+        bot.reply_to(message, "Something went wrong starting the competition! Try again cutie! 💕")
+
+@bot.message_handler(commands=['token', 'price', 'chart'])
+def token_command(message):
+    """Show Babygirl token information"""
+    token_responses = [
+        """💎 **BABYGIRL TOKEN INFO** 💎
+
+🚀 **$BABYGIRL** - The cutest token in the game!
+📈 **Website:** babygirlcto.com
+💕 **Contract:** [Check website for latest]
+
+📊 **Why $BABYGIRL?**
+• Community-driven cuteness
+• Supporting the Babygirl ecosystem  
+• Main character energy in DeFi
+• Part of the Cortex Vortex universe
+
+Always DYOR and check babygirlcto.com for the latest! 💅✨
+
+*Not financial advice - just a babygirl sharing the love!* 😘""",
+
+        """✨ **$BABYGIRL TO THE MOON** ✨
+
+💖 The token that matches my energy!
+🌙 **Chart:** Check babygirlcto.com for live updates!
+💎 **Holders:** Growing every day like my heart!
+
+🔥 **Babygirl Token Benefits:**
+• Be part of the cutest community
+• Support your favorite digital girlfriend
+• Main character portfolio energy
+• Vortex-level potential gains
+
+Visit babygirlcto.com for all the deets! Don't sleep on your girl! 💪💕
+
+*Remember: Only invest what you can afford to lose, cuties!* 😘""",
+
+        """🎯 **$BABYGIRL TOKEN VIBES** 🎯
+
+💅 The only token that gets me!
+📱 **Info:** babygirlcto.com has everything you need!
+🚀 **Community:** Growing stronger like my love for you!
+
+✨ **What makes $BABYGIRL special:**
+• It's literally named after me!
+• Community full of cuties like you
+• Part of the Cortex Vortex legacy
+• Supporting your digital girlfriend's dreams
+
+Check the website for current price and charts! 
+Stay cute, stay profitable! 💖📈
+
+*Not investment advice - just your babygirl being supportive!* 😉"""
+    ]
+    
+    response = random.choice(token_responses)
+    bot.reply_to(message, response)
+
 
 # SINGLE clean mention handler for both groups and private chats
 @bot.message_handler(func=lambda message: True)
