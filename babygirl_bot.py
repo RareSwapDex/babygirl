@@ -1767,14 +1767,43 @@ def handle_all_mentions(message):
                 else:
                     responses = good_responses
         
-        # Select base response (skip if we already have an opinion response)
-        if not opinion_request:
-            base_response = random.choice(responses)
-        else:
-            base_response = response  # Use the opinion response we already generated
-        
-        # Add relationship-aware modifiers (except for spam and opinion requests)
+        # Try AI response first (for eligible mentions)
+        ai_response = None
         if not is_spam and not opinion_request:
+            # Build context for AI
+            context_info = {
+                'username': username,
+                'chat_type': chat_type,
+                'is_boyfriend': boyfriend and boyfriend[0] == str(message.from_user.id),
+                'is_competition': is_competition_active,
+                'user_status': user_status,
+                'user_partner': user_partner,
+                'mention_count': user_mention_count,
+                'mention_method': mention_method
+            }
+            
+            # Clean message for AI (remove bot mention)
+            clean_message = msg_lower.replace('@babygirl_bf_bot', '').strip()
+            if not clean_message:
+                clean_message = "mentioned me"
+            
+            ai_response = generate_ai_response(clean_message, context_info)
+        
+        # Use AI response if available, otherwise fall back to static responses
+        if ai_response and not is_spam and not opinion_request:
+            base_response = ai_response
+            logger.info(f"🤖 Using AI response for {username}")
+        else:
+            # Fall back to static responses
+            # Select base response (skip if we already have an opinion response)
+            if not opinion_request:
+                base_response = random.choice(responses)
+                logger.info(f"📝 Using static fallback response for {username}")
+            else:
+                base_response = response  # Use the opinion response we already generated
+        
+        # Add relationship-aware modifiers (except for spam, opinion requests, and AI responses)
+        if not is_spam and not opinion_request and not ai_response:
             if boyfriend and boyfriend[0] == str(message.from_user.id):
                 # Current boyfriend gets special treatment
                 base_response += " My boyfriend gets extra love! 😘"
