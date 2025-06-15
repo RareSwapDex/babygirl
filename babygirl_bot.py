@@ -5,13 +5,15 @@ import sqlite3
 import time
 from datetime import datetime, timedelta
 import logging
+import hashlib
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Bot configuration
-TOKEN = '7618107152:AAEMPk7q7xNUhZpiDMMiVRSrTV0hkJSyV8I'
+# Bot configuration - Use environment variable for security
+TOKEN = os.getenv('BOT_TOKEN', '7618107152:AAEMPk7q7xNUhZpiDMMiVRSrTV0hkJSyV8I')
 bot = telebot.TeleBot(TOKEN)
 scheduler = BackgroundScheduler()
 scheduler.start()
@@ -30,6 +32,16 @@ def init_db():
                  (user_id TEXT, boyfriend_count INTEGER, group_id TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS gifts_table 
                  (user_id TEXT, gift_type TEXT, timestamp INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS spam_tracking 
+                 (user_id TEXT, message_hash TEXT, timestamp INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS user_relationships 
+                 (user_id TEXT, status TEXT, partner_id TEXT, group_id TEXT, timestamp INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS ships_table 
+                 (user1_id TEXT, user2_id TEXT, ship_name TEXT, compatibility INTEGER, group_id TEXT, timestamp INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS group_vibes 
+                 (group_id TEXT, vibe_level INTEGER, last_check INTEGER, vibe_description TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS community_stats 
+                 (group_id TEXT, total_messages INTEGER, active_users INTEGER, last_update INTEGER)''')
     conn.commit()
     conn.close()
 
@@ -125,9 +137,38 @@ def track_activity(message):
         
         if c.fetchone() and is_mention:
             user_id = str(message.from_user.id)
-            c.execute("INSERT OR REPLACE INTO activity_table (user_id, mention_count, group_id) VALUES (?, COALESCE((SELECT mention_count FROM activity_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
-                     (user_id, user_id, str(message.chat.id), str(message.chat.id)))
-            logger.info(f"Activity tracked for user {user_id} in group {message.chat.id}")
+            group_id = str(message.chat.id)
+            current_time = int(time.time())
+            
+            # Create a simple hash of the message content for spam detection
+            message_content = message.text.lower().strip()
+            message_hash = hashlib.md5(message_content.encode()).hexdigest()
+            
+            # Check for spam - look for identical messages in last 2 minutes
+            c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND message_hash = ? AND group_id = ? AND timestamp > ?",
+                     (user_id, message_hash, group_id, current_time - 120))
+            spam_count = c.fetchone()[0]
+            
+            # Also check for too many mentions in short time (more than 3 in 30 seconds)
+            c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND group_id = ? AND timestamp > ?",
+                     (user_id, group_id, current_time - 30))
+            rapid_count = c.fetchone()[0]
+            
+            # Store this message in spam tracking
+            c.execute("INSERT INTO spam_tracking (user_id, message_hash, timestamp, group_id) VALUES (?, ?, ?, ?)",
+                     (user_id, message_hash, current_time, group_id))
+            
+            # Clean old spam tracking data (older than 5 minutes)
+            c.execute("DELETE FROM spam_tracking WHERE timestamp < ?", (current_time - 300,))
+            
+            # Only count towards activity if not spam
+            if spam_count == 0 and rapid_count < 4:  # Allow first occurrence and reasonable rate
+                c.execute("INSERT OR REPLACE INTO activity_table (user_id, mention_count, group_id) VALUES (?, COALESCE((SELECT mention_count FROM activity_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                         (user_id, user_id, group_id, group_id))
+                logger.info(f"Activity tracked for user {user_id} in group {message.chat.id}")
+            else:
+                logger.info(f"Spam detected - not counting mention from user {user_id}")
+                
         conn.commit()
         conn.close()
     except Exception as e:
@@ -172,6 +213,169 @@ def get_mood(group_id):
     except Exception as e:
         logger.error(f"Error in get_mood: {e}")
         return "feeling good!"
+
+def analyze_user_personality(username, group_id):
+    """Analyze a user's recent activity to generate personality-based opinions"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get recent activity (last 24 hours)
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND group_id = ? AND timestamp > ?", 
+                 (username, group_id, current_time - 86400))
+        recent_messages = c.fetchone()[0] or 0
+        
+        # Check if they're in a relationship
+        c.execute("SELECT status, partner_id FROM user_relationships WHERE user_id = ? AND group_id = ?", 
+                 (username, group_id))
+        relationship = c.fetchone()
+        
+        # Check their boyfriend history
+        c.execute("SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?", 
+                 (username, group_id))
+        bf_result = c.fetchone()
+        boyfriend_wins = bf_result[0] if bf_result else 0
+        
+        # Check current competition participation
+        c.execute("SELECT mention_count FROM activity_table WHERE user_id = ? AND group_id = ?", 
+                 (username, group_id))
+        comp_result = c.fetchone()
+        competition_activity = comp_result[0] if comp_result else 0
+        
+        conn.close()
+        
+        # Generate personality analysis
+        traits = []
+        activity_level = ""
+        
+        # Activity analysis
+        if recent_messages > 15:
+            activity_level = "super active"
+            traits.append("chatty")
+        elif recent_messages > 5:
+            activity_level = "pretty active"
+            traits.append("social")
+        elif recent_messages > 0:
+            activity_level = "chill"
+            traits.append("low-key")
+        else:
+            activity_level = "mysterious"
+            traits.append("quiet")
+        
+        # Relationship analysis
+        if relationship:
+            if relationship[0] == 'taken':
+                traits.append("committed")
+                traits.append("loyal")
+            elif relationship[0] == 'single':
+                traits.append("available")
+                traits.append("ready to mingle")
+        
+        # Competition analysis
+        if boyfriend_wins > 2:
+            traits.append("charming")
+            traits.append("competitive")
+        elif boyfriend_wins > 0:
+            traits.append("sweet")
+        
+        if competition_activity > 3:
+            traits.append("determined")
+            traits.append("persistent")
+        
+        return {
+            'activity_level': activity_level,
+            'traits': traits,
+            'recent_messages': recent_messages,
+            'boyfriend_wins': boyfriend_wins,
+            'relationship': relationship,
+            'competition_activity': competition_activity
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing user {username}: {e}")
+        return None
+
+def generate_user_opinion(username, analysis, asker_username):
+    """Generate a Babygirl-style opinion about another user"""
+    if not analysis:
+        return f"Hmm, @{username}? They're kinda mysterious! I don't know them well enough yet! 🤔💕"
+    
+    # Base opinion templates
+    opinions = []
+    
+    # Activity-based opinions
+    if analysis['activity_level'] == "super active":
+        opinions.extend([
+            f"@{username}? Oh they're ALWAYS here! Such main character energy! 💅✨",
+            f"@{username} is like the life of the group chat! Never a dull moment with them! 🔥",
+            f"@{username} keeps this place buzzing! I love the energy they bring! 💕"
+        ])
+    elif analysis['activity_level'] == "pretty active":
+        opinions.extend([
+            f"@{username} has great group chat energy! They know how to keep things interesting! 😘",
+            f"@{username}? Love their vibe! Always contributing to the conversation! ✨",
+            f"@{username} brings good energy to the group! Solid person! 💖"
+        ])
+    elif analysis['activity_level'] == "chill":
+        opinions.extend([
+            f"@{username} is more of a lurker but when they speak, it matters! Quality over quantity! 💅",
+            f"@{username}? They're chill! Not overly chatty but definitely cool! 😌💕",
+            f"@{username} has that mysterious quiet confidence! I respect it! ✨"
+        ])
+    else:  # mysterious
+        opinions.extend([
+            f"@{username}? Total mystery person! They're like a ghost in here! 👻💕",
+            f"@{username} is giving strong mysterious vibes! Barely see them around! 🤔",
+            f"@{username}? Who's that? They're like a legend we barely see! 😅✨"
+        ])
+    
+    # Relationship-based opinions
+    if analysis['relationship']:
+        if analysis['relationship'][0] == 'taken':
+            partner = analysis['relationship'][1]
+            opinions.extend([
+                f"@{username} is taken with @{partner}! Couple goals honestly! 💕👑",
+                f"@{username}? They're loyal to @{partner}! I respect committed energy! 😘",
+                f"@{username} and @{partner} are cute together! Relationship goals! 💖✨"
+            ])
+        elif analysis['relationship'][0] == 'single':
+            opinions.extend([
+                f"@{username} is single and ready to mingle! Perfect timing @{asker_username}! 😉💕",
+                f"@{username}? They're available! Someone should slide into those DMs! 👀✨",
+                f"@{username} is single! Are you asking for a reason @{asker_username}? 😏💖"
+            ])
+    
+    # Competition/boyfriend history opinions
+    if analysis['boyfriend_wins'] > 2:
+        opinions.extend([
+            f"@{username}? They're a serial heartbreaker! Won my heart {analysis['boyfriend_wins']} times! 👑💕",
+            f"@{username} is basically a professional at winning me over! Smooth operator! 😘",
+            f"@{username}? They know how to play the game! {analysis['boyfriend_wins']} wins speaks for itself! 🏆✨"
+        ])
+    elif analysis['boyfriend_wins'] > 0:
+        opinions.extend([
+            f"@{username} has won my heart before! They know what they're doing! 😘💕",
+            f"@{username}? Sweet person! They've been my boyfriend {analysis['boyfriend_wins']} time(s)! 💖",
+            f"@{username} definitely has that boyfriend material energy! ✨👑"
+        ])
+    
+    # Add flirty modifiers based on who's asking
+    flirty_endings = [
+        f" Why do you ask @{asker_username}? Getting jealous? 😏💕",
+        f" Are you trying to set them up with someone @{asker_username}? 👀✨",
+        f" That's my honest take! What do YOU think @{asker_username}? 😘",
+        f" Hope that helps @{asker_username}! Spill the tea, why are you asking? ☕💅",
+        f" There's my analysis @{asker_username}! Now dish - what's the story? 😉💖"
+    ]
+    
+    # Select base opinion and add ending
+    base_opinion = random.choice(opinions)
+    if random.random() < 0.7:  # 70% chance to add flirty ending
+        ending = random.choice(flirty_endings)
+        return base_opinion + ending
+    else:
+        return base_opinion
 
 # Storyline system
 storylines = [
@@ -271,6 +475,75 @@ achievement_responses = [
     "You're treating this like a real competition! I LOVE IT! 🏆",
     "Someone really wants to be my boyfriend! The effort is showing! 💪",
     "This much attention is making me feel like a queen! 👸💕"
+]
+
+# Show references (Doble Fried, Cortex Vortex, Tuff Crowd)
+show_references = [
+    "You know me from Doble Fried? That's where I really learned how to be a proper babygirl! 💕",
+    "Cortex Vortex was wild! Just like this competition is getting! 🌪️💖",
+    "Tuff Crowd taught me how to handle all you tough guys trying to win my heart! 😘",
+    "My Doble Fried days prepared me for handling multiple boyfriends competing for me! 🔥",
+    "After surviving Cortex Vortex, managing boyfriend competitions is easy! 💪💕",
+    "Tuff Crowd was nothing compared to how tough you guys compete for my attention! 😈"
+]
+
+# Question responses (when users ask her things)
+question_responses = [
+    "Ooh, asking me questions? Someone's trying to get to know me better! 😉",
+    "I love a curious cutie! Keep the questions coming! 💕",
+    "Getting personal, are we? I like that in a potential boyfriend! 😘",
+    "Someone wants to know more about their future girlfriend? 👀💖",
+    "Questions make me feel special! You're definitely boyfriend material! ✨"
+]
+
+# Compliment responses (when users compliment her)
+compliment_responses = [
+    "Aww, you're making me blush! Keep the sweet talk coming! 😊💕",
+    "Such a charmer! No wonder you want to be my boyfriend! 😘",
+    "Flattery will get you everywhere with me, cutie! 💖",
+    "You know exactly what to say to make a girl feel special! ✨",
+    "Sweet words like that might just win you my heart! 💝"
+]
+
+# Greeting responses (hi, hello, hey, etc.)
+greeting_responses = [
+    "Well hello there, handsome! Come to sweep me off my feet? 😘",
+    "Hey cutie! Ready to compete for my heart? 💕",
+    "Hi there! You're looking boyfriend material today! 😉",
+    "Hello gorgeous! Here to steal my attention? It's working! 💖",
+    "Hey babe! Come to show me why you should be my next boyfriend? ✨"
+]
+
+# Love/relationship responses
+love_responses = [
+    "Love talk already? Someone's moving fast! I like confidence! 💕",
+    "Ooh, getting romantic! That's the spirit I want in a boyfriend! 😘",
+    "Love is in the air! Are you trying to make me fall for you? 💖",
+    "Such romantic words! You're definitely competition material! ✨",
+    "Aww, you're making my heart flutter! Keep it up! 💝"
+]
+
+# Spam/repetitive responses (for anti-spam)
+spam_responses = [
+    "Sweetie, I heard you the first time! Try being more creative! 😏",
+    "Copy-paste won't win my heart! Show me some originality! 💅",
+    "Same message again? Come on, be more creative for your babygirl! 😘",
+    "I appreciate the enthusiasm, but variety is the spice of life! ✨",
+    "Honey, repeating yourself won't get you extra points! Mix it up! 💕"
+]
+
+# Reply-specific responses (when someone replies to her messages)
+reply_responses = [
+    "Ooh, continuing our conversation? I love a good chat! 💕",
+    "You're really engaging with me! That's exactly what I like to see! 😘",
+    "Look who's keeping the conversation going! Such good vibes! ✨",
+    "I see you replying to me! Someone's really interested! 👀💖",
+    "Aww, you quoted me! That means you're actually paying attention! 🥰",
+    "Replying to my message? That's some serious dedication! 💅",
+    "You're really here for the full experience, aren't you? I'm here for it! 🔥",
+    "Love that you're keeping our convo alive! This is how you win hearts! 💕",
+    "Someone's really invested in talking to me! The energy is immaculate! ✨",
+    "You replied to me! That's giving main character energy! 😘"
 ]
 
 @bot.message_handler(commands=['debug'])
@@ -420,12 +693,26 @@ def help_command(message):
 /kiss - Get a kiss (boyfriends only!)
 /hug - Get a warm hug (boyfriends only!)
 
+💕 **Social & Dating:**
+/ship @user1 @user2 - Ship two people together!
+/wingwoman - Get dating advice from me
+/single - Mark yourself as single
+/taken @username - Show who you're with
+/relationship - Check your relationship status
+
+✨ **Community Vibes:**
+/vibecheck - Analyze the group energy
+/groupie - Take a group selfie with everyone
+/horoscope - Get a mystical group prediction
+
 🎁 **Fun Stuff:**
 /gift flowers - Send me flowers
 /gift chocolates - Give me chocolates
 /play - Get a love song
 
-💬 **Most importantly:** Mention @babygirl_bf_bot to chat and compete! The more you mention me during competitions, the better your chances of winning! 😘"""
+💬 **Most importantly:** Mention @babygirl_bf_bot to chat and compete! The more you mention me during competitions, the better your chances of winning! 😘
+
+💭 **Ask me about others:** Say "what do you think of @username" and I'll give you my honest opinion! 👀✨"""
     else:
         basic_help = """💕 **How to flirt with me:**
 
@@ -440,6 +727,18 @@ def help_command(message):
 /kiss - Get a kiss (boyfriends only!)
 /hug - Get a warm hug (boyfriends only!)
 
+💕 **Social & Dating:**
+/ship @user1 @user2 - Ship two people together!
+/wingwoman - Get dating advice from me
+/single - Mark yourself as single
+/taken @username - Show who you're with
+/relationship - Check your relationship status
+
+✨ **Community Vibes:**
+/vibecheck - Analyze the group energy
+/groupie - Take a group selfie with everyone
+/horoscope - Get a mystical group prediction
+
 🎁 **Fun Stuff:**
 /gift flowers - Send me flowers
 /gift chocolates - Give me chocolates
@@ -450,7 +749,9 @@ def help_command(message):
 /privacy - Check privacy mode
 /test - Test if I'm working
 
-💬 **Most importantly:** Mention @babygirl_bf_bot to chat with me! 😘"""
+💬 **Most importantly:** Mention @babygirl_bf_bot to chat with me! 😘
+
+💭 **Ask me about others:** Say "what do you think of @username" and I'll give you my honest opinion! 👀✨"""
     
     bot.reply_to(message, basic_help)
 
@@ -646,6 +947,24 @@ def status(message):
         # Get mood
         mood = get_mood(str(message.chat.id))
         
+        # Get current boyfriend and game state
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT user_id, end_time FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
+        boyfriend = c.fetchone()
+        
+        # Check user's relationship status
+        c.execute("SELECT status, partner_id FROM user_relationships WHERE user_id = ? AND group_id = ?", 
+                 (str(message.from_user.id), str(message.chat.id)))
+        user_relationship = c.fetchone()
+        user_status = user_relationship[0] if user_relationship else None
+        user_partner = user_relationship[1] if user_relationship else None
+        
+        # Check if there's an active competition
+        c.execute("SELECT is_active FROM cooldown_table WHERE group_id = ?", (str(message.chat.id),))
+        cooldown_result = c.fetchone()
+        is_competition_active = cooldown_result and cooldown_result[0] if cooldown_result else False
+        
         # Create engaging status message
         if boyfriend:
             time_left = int(boyfriend[1] - time.time())
@@ -746,6 +1065,332 @@ Ready to compete for my heart? Start mentioning @babygirl_bf_bot! 😘"""
 
     bot.reply_to(message, game_explanation)
 
+@bot.message_handler(commands=['ship'])
+def ship_command(message):
+    """Ship two users together and create a couple name"""
+    try:
+        # Parse the command to get two users
+        parts = message.text.split()
+        if len(parts) < 3:
+            bot.reply_to(message, "Usage: /ship @user1 @user2\n\nI'll create the perfect ship name and rate your compatibility! 💕")
+            return
+        
+        # Extract usernames (remove @)
+        user1 = parts[1].replace('@', '') if parts[1].startswith('@') else parts[1]
+        user2 = parts[2].replace('@', '') if parts[2].startswith('@') else parts[2]
+        
+        if user1 == user2:
+            bot.reply_to(message, "Can't ship someone with themselves, silly! Though I appreciate the self-love energy! 💕")
+            return
+        
+        # Create ship name (first half of user1 + second half of user2)
+        ship_name = user1[:len(user1)//2] + user2[len(user2)//2:]
+        
+        # Generate compatibility score
+        compatibility = random.randint(1, 100)
+        
+        # Store the ship
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO ships_table (user1_id, user2_id, ship_name, compatibility, group_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                 (user1, user2, ship_name, compatibility, str(message.chat.id), int(time.time())))
+        
+        # Create response based on compatibility
+        if compatibility >= 90:
+            vibe = "PERFECT MATCH! 💕✨ You two are meant to be! I'm getting major soulmate vibes!"
+        elif compatibility >= 75:
+            vibe = "So cute together! 😍 Definitely boyfriend/girlfriend material!"
+        elif compatibility >= 50:
+            vibe = "There's potential here! 💖 Maybe start as friends and see what happens?"
+        elif compatibility >= 25:
+            vibe = "Hmm, opposites attract sometimes! 🤔 Could be interesting..."
+        else:
+            vibe = "Oop, this might be a challenge! 😅 But hey, love is unpredictable!"
+        
+        response = f"""💕 **SHIP ALERT!** 💕
+
+🚢 **Ship Name:** {ship_name}
+💑 **Couple:** @{user1} x @{user2}
+💖 **Compatibility:** {compatibility}%
+
+{vibe}
+
+Want me to be your wingwoman? Use /wingwoman to get my dating advice! 😘"""
+        
+        bot.reply_to(message, response)
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in ship command: {e}")
+        bot.reply_to(message, "Oop, something went wrong with my matchmaking skills! Try again, cuties! 💕")
+
+@bot.message_handler(commands=['wingwoman'])
+def wingwoman_command(message):
+    """Give dating advice and help users flirt"""
+    wingwoman_tips = [
+        "Confidence is everything, babe! Walk into that DM like you own the place! 💅",
+        "Compliment something specific - their style, their laugh, their energy! Generic is boring! ✨",
+        "Ask open-ended questions! 'How was your day?' beats 'hey' every single time! 💕",
+        "Show genuine interest in their hobbies. Nothing's hotter than someone who listens! 👂💖",
+        "Be yourself! The right person will fall for the real you, not some fake version! 🥰",
+        "Timing matters - don't double text, but don't play games either. Find the balance! ⏰",
+        "Make them laugh! Humor is the fastest way to someone's heart! 😂💕",
+        "Share something vulnerable about yourself. It creates real connection! 💭✨",
+        "Plan fun dates! Mini golf, art galleries, cooking together - be creative! 🎨",
+        "Remember details they tell you. It shows you actually care! 🧠💖"
+    ]
+    
+    tip = random.choice(wingwoman_tips)
+    
+    response = f"""💕 **Your Wingwoman Babygirl is Here!** 💕
+
+{tip}
+
+💡 **Pro Tip:** Use /ship to see how compatible you are with your crush! I've got all the insider info on love! 
+
+Need more specific advice? Just ask me anything! I'm basically a relationship guru! 😘✨"""
+    
+    bot.reply_to(message, response)
+
+@bot.message_handler(commands=['single', 'taken', 'relationship'])
+def relationship_status(message):
+    """Set or check relationship status"""
+    try:
+        parts = message.text.split()
+        user_id = str(message.from_user.id)
+        group_id = str(message.chat.id)
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        if len(parts) == 1:
+            # Check current status
+            c.execute("SELECT status, partner_id FROM user_relationships WHERE user_id = ? AND group_id = ?", (user_id, group_id))
+            result = c.fetchone()
+            
+            if result:
+                status, partner = result
+                if status == 'taken' and partner:
+                    response = f"You're marked as taken with @{partner}! 💕 Living your best couple life!"
+                else:
+                    response = f"You're currently {status}! 💖"
+            else:
+                response = "You haven't set your relationship status yet! Use /single or /taken @username"
+                
+        else:
+            # Set new status
+            command = parts[0][1:]  # Remove the /
+            
+            if command == 'single':
+                c.execute("INSERT OR REPLACE INTO user_relationships (user_id, status, partner_id, group_id, timestamp) VALUES (?, ?, ?, ?, ?)",
+                         (user_id, 'single', None, group_id, int(time.time())))
+                response = "Marked as single! 💖 Ready to mingle, babe! I'll give you different vibes now!"
+                
+            elif command == 'taken':
+                partner = parts[1].replace('@', '') if len(parts) > 1 else None
+                if partner:
+                    c.execute("INSERT OR REPLACE INTO user_relationships (user_id, status, partner_id, group_id, timestamp) VALUES (?, ?, ?, ?, ?)",
+                             (user_id, 'taken', partner, group_id, int(time.time())))
+                    response = f"Aww, you're taken with @{partner}! 😍 Couple goals! I'll respect the relationship!"
+                else:
+                    response = "Usage: /taken @username to show who you're with! 💕"
+        
+        bot.reply_to(message, response)
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in relationship status: {e}")
+        bot.reply_to(message, "Something went wrong with relationship status! Try again! 💕")
+
+@bot.message_handler(commands=['vibecheck'])
+def vibecheck_command(message):
+    """Check and analyze the current group vibe"""
+    try:
+        group_id = str(message.chat.id)
+        current_time = int(time.time())
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Count recent activity (last hour)
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, current_time - 3600))
+        recent_messages = c.fetchone()[0]
+        
+        # Count unique active users (last hour)
+        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, current_time - 3600))
+        active_users = c.fetchone()[0]
+        
+        # Check if there's a current boyfriend
+        c.execute("SELECT user_id FROM boyfriend_table WHERE group_id = ?", (group_id,))
+        has_boyfriend = c.fetchone() is not None
+        
+        # Check for active competition
+        c.execute("SELECT is_active FROM cooldown_table WHERE group_id = ?", (group_id,))
+        cooldown_result = c.fetchone()
+        has_competition = cooldown_result and cooldown_result[0] if cooldown_result else False
+        
+        # Determine vibe level (1-10)
+        vibe_level = min(10, max(1, (recent_messages // 2) + (active_users * 2)))
+        
+        # Generate vibe description
+        vibe_descriptions = {
+            (1, 3): ["Sleepy vibes 😴", "Pretty chill energy", "Quiet contemplation mode"],
+            (4, 6): ["Good vibes flowing! ✨", "Balanced energy", "Cozy group feels"],
+            (7, 8): ["High energy! 🔥", "Great vibes all around!", "The group is buzzing!"],
+            (9, 10): ["MAXIMUM VIBE ENERGY! 🌟", "Off the charts excitement!", "Pure chaotic good energy!"]
+        }
+        
+        for (min_val, max_val), descriptions in vibe_descriptions.items():
+            if min_val <= vibe_level <= max_val:
+                vibe_desc = random.choice(descriptions)
+                break
+        
+        # Add special modifiers
+        modifiers = []
+        if has_boyfriend:
+            modifiers.append("💕 Love is in the air!")
+        if has_competition:
+            modifiers.append("🔥 Competition heating up!")
+        if recent_messages > 20:
+            modifiers.append("🗣️ Super chatty group!")
+        if active_users > 5:
+            modifiers.append("👥 Lots of cuties online!")
+        
+        # Store vibe data
+        c.execute("INSERT OR REPLACE INTO group_vibes (group_id, vibe_level, last_check, vibe_description) VALUES (?, ?, ?, ?)",
+                 (group_id, vibe_level, current_time, vibe_desc))
+        
+        # Create response
+        response = f"""✨ **VIBE CHECK!** ✨
+
+📊 **Current Vibe Level:** {vibe_level}/10
+🌈 **Group Energy:** {vibe_desc}
+👥 **Active Cuties:** {active_users}
+💬 **Recent Activity:** {recent_messages} messages
+
+{' '.join(modifiers) if modifiers else '💖 Keep the good vibes flowing!'}
+
+💡 **Vibe Boost Ideas:**
+• Share something that made you smile today
+• Compliment someone in the group  
+• Start a fun conversation topic
+• Use /ship to spread some love!
+
+Certified fresh by your girl Babygirl! 😘"""
+        
+        bot.reply_to(message, response)
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in vibecheck: {e}")
+        bot.reply_to(message, "Can't check the vibes right now! But I'm sure you're all gorgeous! 💕")
+
+@bot.message_handler(commands=['groupie'])
+def groupie_command(message):
+    """Take a 'group selfie' with ASCII art representing everyone"""
+    try:
+        group_id = str(message.chat.id)
+        current_time = int(time.time())
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get recent active users (last 30 minutes)
+        c.execute("SELECT DISTINCT user_id FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, current_time - 1800))
+        active_users = c.fetchall()
+        
+        user_count = len(active_users)
+        
+        # Create ASCII group representation
+        if user_count == 0:
+            selfie = "📸 Just me! 💕\n    😘\n   /||\\\n    /\\"
+            caption = "Solo selfie! Where are all my cuties? 🥺"
+        elif user_count <= 3:
+            selfie = "📸 Intimate group! 💕\n  😊 😘 😍\n /|\\ /|\\ /|\\\n  /\\  /\\  /\\"
+            caption = f"Cozy {user_count}-person selfie! Small but mighty group! ✨"
+        elif user_count <= 6:
+            selfie = "📸 Perfect squad! 💕\n😊 😘 😍 🥰 😎 😉\n/|\\/|\\/|\\/|\\/|\\/|\\\n /\\ /\\ /\\ /\\ /\\ /\\"
+            caption = f"Squad goals with {user_count} beautiful humans! 👥💖"
+        else:
+            selfie = "📸 Big group energy! 🎉\n😊😘😍🥰😎😉😋🤗😁💕\n     EVERYONE! \n   *crowd noise*"
+            caption = f"MASSIVE group selfie! {user_count} people bringing the energy! 🔥"
+        
+        response = f"""{selfie}
+
+{caption}
+
+📱 **Group Selfie Stats:**
+👥 Active members: {user_count}
+📸 Aesthetic level: 10/10
+💕 Cuteness factor: Off the charts!
+
+Everyone say 'Babygirl'! 😘✨"""
+        
+        bot.reply_to(message, response)
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in groupie: {e}")
+        bot.reply_to(message, "Camera malfunction! But you're all still gorgeous! 📸💕")
+
+@bot.message_handler(commands=['horoscope'])
+def horoscope_command(message):
+    """Give a psychedelic group horoscope reading"""
+    
+    # Vortex-themed horoscope predictions
+    predictions = [
+        "The cosmic vortex is swirling with romantic energy! Someone in this group is about to find love! 💕✨",
+        "I'm sensing major aesthetic upgrades coming! Time to update those profile pics, cuties! 📸💅",
+        "The stars say drama is approaching... but the fun kind! Get ready for some spicy group chats! 🌶️🔥",
+        "Vortex energy indicates new friendships forming! Don't be shy, reach out to someone new! 👥💖",
+        "The universe is aligning for creative projects! Time to start that thing you've been putting off! 🎨✨",
+        "I see travel in someone's future! Even if it's just to a new coffee shop, adventure awaits! ✈️☕",
+        "Mercury is in microwave... wait, that's not right. Anyway, communication is flowing beautifully! 💬💫",
+        "The vortex whispers of unexpected opportunities! Keep your eyes open for signs! 👀🌟",
+        "Love triangles detected in the cosmic field! Someone's got options! Choose wisely! 💕🔺",
+        "Major glow-up energy incoming! Self-care Sunday is calling your name! 💆‍♀️✨",
+        "The aesthetic gods demand more group selfies! Time to coordinate outfits! 📸👗",
+        "Planetary alignment suggests someone needs to slide into those DMs! Go for it! 📱💕"
+    ]
+    
+    # Special weekend vs weekday predictions
+    weekday = datetime.now().weekday()
+    if weekday >= 5:  # Weekend
+        weekend_predictions = [
+            "Weekend vortex energy is STRONG! Perfect time for group hangouts! 🎉💕",
+            "Saturday/Sunday vibes are immaculate! Time to live your best life! ✨🌈",
+            "The cosmos say: touch grass, take pics, make memories! 📸🌿"
+        ]
+        predictions.extend(weekend_predictions)
+    
+    prediction = random.choice(predictions)
+    
+    # Add mystical elements
+    mystical_elements = ["✨", "🌙", "⭐", "🔮", "💫", "🌌", "🦋", "🌸"]
+    elements = random.sample(mystical_elements, 3)
+    
+    response = f"""🔮 **WEEKLY GROUP HOROSCOPE** 🔮
+*Straight from the Cortex Vortex*
+
+{elements[0]} **Cosmic Reading:** {prediction}
+
+🌟 **Lucky Aesthetic:** Soft girl with dark academia vibes
+💫 **Power Color:** Sage green (it's giving main character energy)
+🦋 **Manifestation Focus:** Authentic connections
+
+🔮 **Babygirl's Mystic Advice:**
+The vortex doesn't lie, babes! Trust the process and let your intuition guide you through this beautiful chaos we call life!
+
+*This horoscope is 99% accurate and 100% aesthetic* ✨"""
+    
+    bot.reply_to(message, response)
+
 # SINGLE clean mention handler for both groups and private chats
 @bot.message_handler(func=lambda message: True)
 def handle_all_mentions(message):
@@ -783,21 +1428,40 @@ def handle_all_mentions(message):
                         mention_method = "ENTITY"
                         break
         
-        # If not a mention, ignore the message
+        # Method 3: Reply to bot's message
+        if not is_mention and message.reply_to_message:
+            # Check if the replied message was sent by the bot
+            try:
+                bot_user = bot.get_me()
+                if message.reply_to_message.from_user.id == bot_user.id:
+                    is_mention = True
+                    mention_method = "REPLY"
+                    logger.info(f"🔄 Reply to bot message detected from {username}")
+            except Exception as e:
+                logger.error(f"Error checking reply: {e}")
+        
+        # If not a mention or reply, ignore the message
         if not is_mention:
             return
             
         # Log the detection
         logger.info(f"🎯 {mention_method} MENTION in {chat_type}: '{message.text}' from {username}")
         
-        # Track activity for boyfriend game
+        # Track activity for boyfriend game (includes spam detection)
         track_activity(message)
         
-        # Get current boyfriend and mood
+        # Get current boyfriend and game state
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         c.execute("SELECT user_id, end_time FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
         boyfriend = c.fetchone()
+        
+        # Check user's relationship status
+        c.execute("SELECT status, partner_id FROM user_relationships WHERE user_id = ? AND group_id = ?", 
+                 (str(message.from_user.id), str(message.chat.id)))
+        user_relationship = c.fetchone()
+        user_status = user_relationship[0] if user_relationship else None
+        user_partner = user_relationship[1] if user_relationship else None
         
         # Check if there's an active competition
         c.execute("SELECT is_active FROM cooldown_table WHERE group_id = ?", (str(message.chat.id),))
@@ -812,33 +1476,139 @@ def handle_all_mentions(message):
             result = c.fetchone()
             user_mention_count = result[0] if result else 0
         
-        # Choose response type based on game state
-        if is_competition_active:
-            # Competition is active - use competition responses
+        # Check for spam/repetitive behavior
+        current_time = int(time.time())
+        message_content = message.text.lower().strip()
+        message_hash = hashlib.md5(message_content.encode()).hexdigest()
+        
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND message_hash = ? AND group_id = ? AND timestamp > ?",
+                 (str(message.from_user.id), message_hash, str(message.chat.id), current_time - 120))
+        is_spam = c.fetchone()[0] > 1  # More than once in 2 minutes = spam
+        
+        # Analyze message content for contextual responses
+        msg_lower = message_content.replace('@babygirl_bf_bot', '').strip()
+        
+        # Check for opinion requests about other users first
+        opinion_patterns = [
+            'what do you think of @',
+            'what do you think about @',
+            'thoughts on @',
+            'opinion on @',
+            'what about @',
+            'how about @',
+            'tell me about @'
+        ]
+        
+        opinion_request = None
+        target_username = None
+        
+        for pattern in opinion_patterns:
+            if pattern in msg_lower:
+                # Extract the username after the @
+                try:
+                    # Find the @ symbol after the pattern
+                    at_index = msg_lower.find('@', msg_lower.find(pattern))
+                    if at_index != -1:
+                        # Extract username (everything after @ until space or end)
+                        username_start = at_index + 1
+                        username_end = username_start
+                        while username_end < len(msg_lower) and msg_lower[username_end] not in [' ', '\n', '\t', '?', '!', '.', ',']:
+                            username_end += 1
+                        target_username = msg_lower[username_start:username_end]
+                        
+                        if target_username and target_username != 'babygirl_bf_bot':
+                            opinion_request = True
+                            logger.info(f"💭 OPINION REQUEST: {username} asking about {target_username}")
+                            break
+                except Exception as e:
+                    logger.error(f"Error parsing opinion request: {e}")
+        
+        # Choose response category based on content, game state, and relationship status
+        if is_spam:
+            responses = spam_responses
+            logger.info(f"🚫 SPAM DETECTED from {username}")
+        elif opinion_request and target_username:
+            # Generate opinion about the target user
+            analysis = analyze_user_personality(target_username, str(message.chat.id))
+            opinion_response = generate_user_opinion(target_username, analysis, username)
+            response = opinion_response
+        elif mention_method == "REPLY":
+            # Special responses for people replying to her messages
+            if is_competition_active:
+                # Blend reply responses with competition energy
+                reply_competition_responses = [
+                    "You're replying to me during a competition? Smart strategy! 😉💕",
+                    "Continuing our convo while everyone's fighting for me? I like that! 🔥",
+                    "Replying in the middle of competition chaos? Bold move! 💅✨",
+                    "You're really committed to our conversation! Competition vibes! 🏆💖",
+                    "Love that you're staying engaged with me through all this! 😘"
+                ]
+                responses = reply_competition_responses
+            else:
+                responses = reply_responses
+            logger.info(f"🔄 REPLY RESPONSE for {username}")
+        elif is_competition_active:
             if user_mention_count >= 5:
-                # High activity - use achievement responses
                 responses = achievement_responses
             else:
-                # Regular competition responses
                 responses = competition_responses
         else:
-            # No competition - use mood-based responses
-            mood = get_mood(str(message.chat.id))
-            if "super happy" in mood:
-                responses = happy_responses
-            elif "a bit lonely" in mood:
-                responses = lonely_responses
+            # Contextual responses based on message content
+            if any(word in msg_lower for word in ['hi', 'hello', 'hey', 'sup', 'yo']):
+                responses = greeting_responses
+            elif any(word in msg_lower for word in ['?', 'what', 'how', 'when', 'where', 'why', 'who']):
+                responses = question_responses
+            elif any(word in msg_lower for word in ['beautiful', 'pretty', 'cute', 'hot', 'sexy', 'gorgeous', 'amazing', 'perfect']):
+                responses = compliment_responses
+            elif any(word in msg_lower for word in ['love', 'marry', 'girlfriend', 'relationship', 'date', 'kiss', 'heart']):
+                responses = love_responses
+            elif any(show in msg_lower for show in ['doble fried', 'cortex vortex', 'tuff crowd', 'show']):
+                responses = show_references
             else:
-                responses = good_responses
+                # Default mood-based responses
+                mood = get_mood(str(message.chat.id))
+                if "super happy" in mood:
+                    responses = happy_responses
+                elif "a bit lonely" in mood:
+                    responses = lonely_responses
+                else:
+                    responses = good_responses
         
-        # Add boyfriend bonus
-        if boyfriend and boyfriend[0] == str(message.from_user.id):
-            response = random.choice(responses) + " My boyfriend gets extra love! 😘"
+        # Select base response (skip if we already have an opinion response)
+        if not opinion_request:
+            base_response = random.choice(responses)
         else:
-            response = random.choice(responses)
-            
-        logger.info(f"💬 RESPONDING in {chat_type}: {response}")
-        bot.reply_to(message, response)
+            base_response = response  # Use the opinion response we already generated
+        
+        # Add relationship-aware modifiers (except for spam and opinion requests)
+        if not is_spam and not opinion_request:
+            if boyfriend and boyfriend[0] == str(message.from_user.id):
+                # Current boyfriend gets special treatment
+                base_response += " My boyfriend gets extra love! 😘"
+            elif user_status == 'taken' and user_partner:
+                # Taken users get respectful but flirty responses
+                taken_modifiers = [
+                    f" Hope @{user_partner} knows how lucky they are! 💕",
+                    f" Bringing couple energy to the chat! You and @{user_partner} are cute! ✨",
+                    f" Taken but still a flirt! I respect it! 😉",
+                    " Living that committed life! Love to see it! 💖"
+                ]
+                base_response += random.choice(taken_modifiers)
+            elif user_status == 'single':
+                # Single users get extra flirty treatment
+                single_modifiers = [
+                    " Single and ready to mingle! I see you! 👀💕",
+                    " Available energy is immaculate! 😘✨",
+                    " Single life looks good on you, babe! 💅💖",
+                    " Ready for romance! The energy is there! 🌹"
+                ]
+                base_response += random.choice(single_modifiers)
+            else:
+                # Default response for users without set status
+                base_response = base_response
+        
+        logger.info(f"💬 RESPONDING in {chat_type}: {base_response}")
+        bot.reply_to(message, base_response)
         conn.close()
         
     except Exception as e:
