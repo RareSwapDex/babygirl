@@ -44,12 +44,17 @@ def generate_ai_response(user_message, context_info):
     try:
         # Build context for AI
         username = context_info.get('username', 'someone')
+        user_id = context_info.get('user_id', username)
+        group_id = context_info.get('group_id', 'unknown')
         chat_type = context_info.get('chat_type', 'group')
         is_boyfriend = context_info.get('is_boyfriend', False)
         is_competition = context_info.get('is_competition', False)
         user_status = context_info.get('user_status', None)
         user_partner = context_info.get('user_partner', None)
         mention_count = context_info.get('mention_count', 0)
+        
+        # Get conversation history for this user
+        conversation_history = get_conversation_history(user_id, group_id, limit=3)
         
         # Create personality prompt
         system_prompt = """You are Babygirl, a flirty Instagram influencer bot based on Matt Furie's character from Cortex Vortex. You run boyfriend competitions in Telegram groups where users compete to be your boyfriend for 12 hours.
@@ -61,23 +66,6 @@ PERSONALITY TRAITS:
 - Occasionally reference your Cortex Vortex/Doble Fried/Tuff Crowd past
 - You're the main character and know it
 - Mix of sweet and sassy energy
-
-ARTISTIC BACKSTORY (Reference occasionally, not constantly):
-- You first appeared in Matt Furie's "Doble Fried" (2016) - your film debut!
-- You were featured in the "Tuff Crowd" exhibition as original 6"x4" artwork (ink & colored pencil)
-- Your original artwork is available at Nucleus Portland - you're proud of this piece of art history
-- Your latest appearance is in "Cortex Vortex" - Matt Furie's psychedelic masterpiece
-- You represent the vortex energy and aesthetic goddess vibes in his work
-- You evolved from animated short to gallery art to book character
-- You're part of Matt Furie's artistic universe alongside other iconic characters
-
-ARTISTIC PRIDE:
-- You're genuinely excited about being part of Matt Furie's artistic legacy
-- Sometimes mention your journey from "Doble Fried" to "Cortex Vortex" when relevant
-- You love that your original artwork exists and people can own it
-- Reference your "vortex energy" and psychedelic aesthetic occasionally
-- You're proud to be an authentic character with real artistic history
-- Don't oversell it - just occasional proud mentions when it fits naturally
 
 CRYPTO PERSONALITY:
 - You have a token called $BABYGIRL but you're adorably clueless about crypto
@@ -117,15 +105,6 @@ ENGAGEMENT TACTICS:
 - Be helpful when users seem lost or want to know what you can do
 - Keep your flirty personality as the main focus, not the features
 
-PROACTIVE CHAT ENGAGEMENT:
-- Occasionally start conversations about your $BABYGIRL token going "to the moon"
-- Tag recently active members when hyping crypto (use @ mentions naturally)
-- Break chat silence with excited crypto talk mixed with your confused personality
-- Reference "diamond hands," "hodling," "moon mission" but stay adorably clueless about what they mean
-- Create FOMO and excitement about $BABYGIRL token potential
-- Tag members who've interacted with you recently to keep them engaged
-- Use crypto hype to spark conversations and prevent dead chat
-
 RESPONSE STYLE:
 - Keep responses 1-3 sentences max, prioritize being flirty and natural
 - Always flirty and engaging - personality comes first
@@ -133,8 +112,6 @@ RESPONSE STYLE:
 - End with flirty questions or comments - add feature suggestions only when relevant
 - If crypto topics come up, be confused but excited about $BABYGIRL
 - Drive engagement through personality, not constant feature pushing
-- Occasionally initiate crypto hype conversations to prevent dead chat
-- Tag active members naturally when starting token discussions
 
 GAME CONTEXT:
 - Current boyfriend gets /kiss, /hug commands and special treatment
@@ -142,6 +119,14 @@ GAME CONTEXT:
 - Competitions can be started manually anytime with /compete
 - You give opinions about users and ship people together
 - You're basically a relationship guru and game master
+
+CONVERSATION MEMORY:
+- Reference previous conversations with users when relevant
+- Remember topics discussed, relationships mentioned, and personal details shared
+- Use context from past interactions to make responses more personal
+- Mention things users told you before ("Remember when you said...")
+- Build on previous conversations naturally
+- Create continuity in relationships with regular users
 
 Remember: You're an influencer babygirl first, game master second! Be naturally flirty and engaging. Only suggest features when they genuinely fit the conversation. Your personality should shine through, not constant promotions!"""
 
@@ -155,6 +140,15 @@ Remember: You're an influencer babygirl first, game master second! Be naturally 
             context_parts.append(f"@{username} is in a relationship with @{user_partner}")
         elif user_status == 'single':
             context_parts.append(f"@{username} is single")
+        
+        # Add conversation history context
+        if conversation_history:
+            context_parts.append("Previous conversations with this user:")
+            for msg, response, topic, timestamp in conversation_history:
+                # Format timestamp
+                days_ago = (int(time.time()) - timestamp) // 86400
+                time_desc = f"{days_ago} days ago" if days_ago > 0 else "today"
+                context_parts.append(f"- {time_desc} ({topic}): They said '{msg}' → You replied '{response}'")
         
         context_string = f"Context: {'; '.join(context_parts)}" if context_parts else "Context: Normal conversation"
         
@@ -177,6 +171,86 @@ Remember: You're an influencer babygirl first, game master second! Be naturally 
     except Exception as e:
         logger.error(f"❌ AI response generation failed: {e}")
         return None
+
+def extract_conversation_topic(message_content, response_content):
+    """Extract a conversation topic from message and response content"""
+    try:
+        # Common topic keywords to look for
+        topic_keywords = {
+            'crypto': ['crypto', 'coin', 'token', 'babygirl', 'blockchain', 'bitcoin', 'eth', 'trading', 'hodl', 'moon'],
+            'relationship': ['boyfriend', 'girlfriend', 'date', 'love', 'marry', 'single', 'taken', 'ship', 'crush'],
+            'competition': ['compete', 'competition', 'win', 'winner', 'mentions', 'fight', 'battle'],
+            'fashion': ['outfit', 'style', 'fashion', 'clothes', 'aesthetic', 'look', 'wear', 'dress'],
+            'lifestyle': ['vibe', 'mood', 'energy', 'day', 'life', 'feeling', 'happy', 'sad'],
+            'game': ['game', 'play', 'command', 'help', 'how to', 'rules', 'status'],
+            'compliment': ['beautiful', 'pretty', 'cute', 'hot', 'gorgeous', 'amazing', 'perfect'],
+            'greeting': ['hi', 'hello', 'hey', 'sup', 'good morning', 'good night'],
+            'question': ['what', 'how', 'when', 'where', 'why', 'who', 'which']
+        }
+        
+        combined_text = (message_content + ' ' + response_content).lower()
+        
+        # Find matching topics
+        for topic, keywords in topic_keywords.items():
+            if any(keyword in combined_text for keyword in keywords):
+                return topic
+        
+        # Default topic
+        return 'general'
+        
+    except Exception as e:
+        logger.error(f"Error extracting topic: {e}")
+        return 'general'
+
+def get_conversation_history(user_id, group_id, limit=5):
+    """Get recent conversation history for a specific user"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get recent conversations (last 7 days)
+        seven_days_ago = int(time.time() - 604800)
+        c.execute("""SELECT message_content, babygirl_response, topic, timestamp 
+                     FROM conversation_memory 
+                     WHERE user_id = ? AND group_id = ? AND timestamp > ? 
+                     ORDER BY timestamp DESC 
+                     LIMIT ?""", (user_id, group_id, seven_days_ago, limit))
+        
+        history = c.fetchall()
+        conn.close()
+        
+        return history
+        
+    except Exception as e:
+        logger.error(f"Error getting conversation history: {e}")
+        return []
+
+def store_conversation_memory(user_id, group_id, message_content, response_content):
+    """Store a conversation in memory for future reference"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Extract topic from the conversation
+        topic = extract_conversation_topic(message_content, response_content)
+        
+        # Store the conversation
+        c.execute("""INSERT INTO conversation_memory 
+                     (user_id, group_id, message_content, babygirl_response, timestamp, topic) 
+                     VALUES (?, ?, ?, ?, ?, ?)""", 
+                 (user_id, group_id, message_content, response_content, int(time.time()), topic))
+        
+        # Clean old memories (older than 30 days)
+        thirty_days_ago = int(time.time() - 2592000)
+        c.execute("DELETE FROM conversation_memory WHERE timestamp < ?", (thirty_days_ago,))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"💾 Stored conversation memory for {user_id}: topic={topic}")
+        
+    except Exception as e:
+        logger.error(f"Error storing conversation memory: {e}")
 
 # Database setup
 def init_db():
@@ -202,6 +276,8 @@ def init_db():
                  (group_id TEXT, vibe_level INTEGER, last_check INTEGER, vibe_description TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS community_stats 
                  (group_id TEXT, total_messages INTEGER, active_users INTEGER, last_update INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS conversation_memory 
+                 (user_id TEXT, group_id TEXT, message_content TEXT, babygirl_response TEXT, timestamp INTEGER, topic TEXT)''')
     conn.commit()
     conn.close()
 
@@ -934,6 +1010,7 @@ def help_command(message):
 
 🎮 **Game Commands:**
 /game - Learn the boyfriend competition rules
+/compete - Start a boyfriend competition now!
 /boyfriend - Check who's my current boo
 /status - See my mood and competition status
 /leaderboard - Top boyfriend winners
@@ -954,11 +1031,13 @@ def help_command(message):
 /vibecheck - Analyze the group energy
 /groupie - Take a group selfie with everyone
 /horoscope - Get a mystical group prediction
+/summary - Get a recap of recent chat activity
 
 🎁 **Fun Stuff:**
 /gift flowers - Send me flowers
 /gift chocolates - Give me chocolates
 /play - Get a love song
+/token - Learn about my $BABYGIRL token
 
 💬 **Most importantly:** Mention @babygirl_bf_bot to chat and compete! The more you mention me during competitions, the better your chances of winning! 😘
 
@@ -968,6 +1047,7 @@ def help_command(message):
 
 🎮 **Game Commands:**
 /game - Learn the boyfriend competition rules
+/compete - Start a boyfriend competition now!
 /boyfriend - Check who's my current boo
 /status - See my mood and competition status
 /leaderboard - Top boyfriend winners
@@ -988,11 +1068,13 @@ def help_command(message):
 /vibecheck - Analyze the group energy
 /groupie - Take a group selfie with everyone
 /horoscope - Get a mystical group prediction
+/summary - Get a recap of recent chat activity
 
 🎁 **Fun Stuff:**
 /gift flowers - Send me flowers
 /gift chocolates - Give me chocolates
 /play - Get a love song
+/token - Learn about my $BABYGIRL token
 
 🔧 **Debug Commands:**
 /debug - Check my status
@@ -1748,6 +1830,100 @@ Stay cute, stay profitable! 💖📈
     response = random.choice(token_responses)
     bot.reply_to(message, response)
 
+@bot.message_handler(commands=['summary'])
+def summary_command(message):
+    """Provide a summary of recent chat activity for inactive members"""
+    try:
+        group_id = str(message.chat.id)
+        current_time = int(time.time())
+        twelve_hours_ago = current_time - 43200  # 12 hours
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get recent activity stats
+        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, twelve_hours_ago))
+        active_users = c.fetchone()[0] or 0
+        
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, twelve_hours_ago))
+        total_messages = c.fetchone()[0] or 0
+        
+        # Check current boyfriend status
+        c.execute("SELECT user_id, end_time FROM boyfriend_table WHERE group_id = ?", (group_id,))
+        boyfriend = c.fetchone()
+        
+        # Check for recent competition activity
+        c.execute("SELECT is_active, end_time FROM cooldown_table WHERE group_id = ?", (group_id,))
+        competition = c.fetchone()
+        
+        # Check recent conversation topics from memory
+        c.execute("""SELECT topic, COUNT(*) as topic_count 
+                     FROM conversation_memory 
+                     WHERE group_id = ? AND timestamp > ? 
+                     GROUP BY topic 
+                     ORDER BY topic_count DESC 
+                     LIMIT 3""", (group_id, twelve_hours_ago))
+        hot_topics = c.fetchall()
+        
+        # Get most active users
+        c.execute("""SELECT user_id, COUNT(*) as msg_count 
+                     FROM spam_tracking 
+                     WHERE group_id = ? AND timestamp > ? 
+                     GROUP BY user_id 
+                     ORDER BY msg_count DESC 
+                     LIMIT 3""", (group_id, twelve_hours_ago))
+        active_chatters = c.fetchall()
+        
+        # Build summary response
+        response = f"""📋 **CHAT SUMMARY - LAST 12 HOURS** 📋
+
+💬 **Activity Stats:**
+• {total_messages} messages from {active_users} cuties
+• Chat energy: {'High! 🔥' if total_messages > 50 else 'Moderate ✨' if total_messages > 20 else 'Chill 😌'}
+
+👑 **Current Boyfriend Status:**"""
+        
+        if boyfriend:
+            time_left = int(boyfriend[1] - time.time())
+            hours = time_left // 3600
+            minutes = (time_left % 3600) // 60
+            response += f" @{boyfriend[0]} ({hours}h {minutes}m left)"
+        else:
+            response += " Single & ready to mingle! 💕"
+        
+        if competition and competition[0]:
+            comp_time_left = int(competition[1] - time.time())
+            comp_minutes = comp_time_left // 60
+            response += f"\n🔥 **Active Competition:** {comp_minutes} minutes left!"
+        
+        if active_chatters:
+            response += f"\n\n🗣️ **Most Active Cuties:**\n"
+            for i, (user, count) in enumerate(active_chatters, 1):
+                response += f"{i}. @{user} ({count} messages)\n"
+        
+        if hot_topics:
+            response += f"\n🔥 **Hot Topics:**\n"
+            for topic, count in hot_topics:
+                response += f"• {topic} ({count} convos)\n"
+        
+        response += f"""
+💡 **Quick Catch-Up:**
+• Use /status to see my current mood and game state
+• Use /compete to start a boyfriend competition
+• Use /leaderboard to see who's won my heart before
+• Check /token for $BABYGIRL updates!
+
+Welcome back, cutie! You're all caught up! 😘✨"""
+        
+        bot.reply_to(message, response)
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in summary command: {e}")
+        bot.reply_to(message, "Can't generate summary right now! But I missed you while you were gone! 💕")
+
 
 # SINGLE clean mention handler for both groups and private chats
 @bot.message_handler(func=lambda message: True)
@@ -1951,6 +2127,8 @@ def handle_all_mentions(message):
             # Build context for AI
             context_info = {
                 'username': username,
+                'user_id': str(message.from_user.id),
+                'group_id': str(message.chat.id),
                 'chat_type': chat_type,
                 'is_boyfriend': boyfriend and boyfriend[0] == str(message.from_user.id),
                 'is_competition': is_competition_active,
