@@ -316,7 +316,10 @@ def start(message):
 
 @bot.message_handler(commands=['help'])
 def help_command(message):
-    bot.reply_to(message, """Here's how to flirt with me:
+    # Check if this is a group or private chat
+    is_group = message.chat.type in ['group', 'supergroup']
+    
+    basic_help = """Here's how to flirt with me:
 💕 **Basic Commands:**
 /start - Say hi!
 /help - This list
@@ -326,12 +329,19 @@ def help_command(message):
 /leaderboard - Top flirts
 /gift - Send me something sweet!
 
+Just mention @babygirl_bf_bot to chat with me! 😘"""
+    
+    # Add debug commands only for private chats
+    if not is_group:
+        debug_help = """
+
 🔧 **Debug Commands:**
 /debug - Check my status
 /privacy - Check privacy mode
-/test - Test if I'm working
-
-Just mention @babygirl_bf_bot to chat with me! 😘""")
+/test - Test if I'm working"""
+        basic_help += debug_help
+    
+    bot.reply_to(message, basic_help)
 
 @bot.message_handler(commands=['boyfriend'])
 def boyfriend(message):
