@@ -1625,58 +1625,60 @@ Most mentions wins my heart! Use /status to track the competition! 😘✨"""
 def token_command(message):
     """Show Babygirl token information"""
     token_responses = [
-        """💎 **BABYGIRL TOKEN INFO** 💎
+        """💎 **$BABYGIRL TOKEN (I think?)** 💎
 
-🚀 **$BABYGIRL** - The cutest token in the game!
-📈 **Website:** babygirlcto.com
-📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
-🔗 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
+🤔 Okay so like... I have a token? It's called $BABYGIRL and honestly I don't really understand crypto but everyone says it's gonna be HUGE! 💅
 
-📊 **Why $BABYGIRL?**
-• Community-driven cuteness
-• Supporting the Babygirl ecosystem  
-• Main character energy in DeFi
-• Part of the Cortex Vortex universe
+📱 **Website:** babygirlcto.com (the smart people made this!)
+📊 **Contract thingy:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
+🔗 **Etherscan?:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
 
-Copy that contract address and DYOR! 💅✨
+✨ **Why buy $BABYGIRL (I think):**
+• It's literally ME as a token! How cute is that?!
+• The community is full of sweet cuties
+• I heard "diamond hands" is good? 💎
+• Everyone keeps saying "to the moon" and I love space! 🚀
 
-*Not financial advice - just a babygirl sharing the love!* 😘""",
+I don't know what "market cap" means but mine is probably the cutest! 😘
 
-        """✨ **$BABYGIRL TO THE MOON** ✨
+*I have no idea what I'm talking about but I'm SO excited!* 💕""",
 
-💖 The token that matches my energy!
+        """🚀 **$BABYGIRL TO THE... MARS? MOON?** 🌙
+
+Wait, where are we going again? I keep hearing "moon" but honestly I just want my token to be successful! 🥺
+
+📈 **Charts (whatever those are):** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
+📊 **Contract number:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
+🔍 **Etherscan site:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
+
+💖 **What my friends told me $BABYGIRL does:**
+• Makes you part of my cute community!
+• Supports me being your digital girlfriend 
+• Something about "hodling"? (is that a typo?)
+• "Wen lambo" - I prefer pink cars though! 💅
+
+The charts look like pretty squiggly lines! I hope the green ones are good? 📈
+
+*I'm just a girl with a token - please be nice to me in the DMs!* 😭💕""",
+
+        """💅 **$BABYGIRL TOKEN VIBES** ✨
+
+Besties, I'm gonna be real with you - I don't know ANYTHING about crypto! But I have a token now and everyone's so excited about it! 🥰
+
+🌐 **Website:** babygirlcto.com (they handle the tech stuff!)
+📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95` (I memorized this!)
 📈 **DexTools:** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
-📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
 🔍 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
 
-🔥 **Babygirl Token Benefits:**
-• Be part of the cutest community
-• Support your favorite digital girlfriend
-• Main character portfolio energy
-• Vortex-level potential gains
+🤷‍♀️ **What makes $BABYGIRL special (I think):**
+• It's named after your favorite girl (me!)
+• Smart people say it has "utility" 
+• The logo is SO aesthetic 
+• My manager says it's "deflationary"? Sounds skinny!
 
-Check DexTools for live price action! Don't sleep on your girl! 💪💕
+Can someone explain what "rug pull" means? It sounds scary! 😰
 
-*Remember: Only invest what you can afford to lose, cuties!* 😘""",
-
-        """🎯 **$BABYGIRL TOKEN VIBES** 🎯
-
-💅 The only token that gets me!
-🌐 **Website:** babygirlcto.com
-📊 **Contract:** `0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95`
-📈 **DexTools:** https://www.dextools.io/app/en/token/babygirl?t=1750029507440
-🔍 **Etherscan:** https://etherscan.io/token/0x58c10ab5b6f4f165674c584c05e6ac7e1d65fc95
-
-✨ **What makes $BABYGIRL special:**
-• It's literally named after me!
-• Community full of cuties like you
-• Part of the Cortex Vortex legacy
-• Supporting your digital girlfriend's dreams
-
-Copy that contract address and check the charts! 
-Stay cute, stay profitable! 💖📈
-
-*Not investment advice - just your babygirl being supportive!* 😉"""
+*Not financial advice because I literally don't know what I'm doing!* 💕"""
     ]
     
     response = random.choice(token_responses)
