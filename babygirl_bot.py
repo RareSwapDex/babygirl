@@ -990,7 +990,11 @@ def generate_proactive_ai_response(scenario, group_id, recent_users):
 
 
 def check_proactive_engagement(bot):
-    """Monitor groups for dead chat or lack of mentions and send proactive messages with follow-up logic"""
+    """Monitor groups for dead chat or lack of mentions and send proactive messages with follow-up logic
+    
+    ALL GROUPS TREATED EQUALLY - No special handling for any specific groups
+    Timings: 1 hour no activity → revival, 30 minutes for new groups, 1 hour being ignored
+    """
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
@@ -1034,18 +1038,18 @@ def check_proactive_engagement(bot):
         for group_id in all_group_ids:
             try:
                 # FIXED LOGIC: Check bot mentions/activity (what we can actually see)
-                one_hour_ago = current_time - 3600
-                two_hours_ago = current_time - 7200
-                six_hours_ago = current_time - 21600  # 6 hours
+                thirty_min_ago = current_time - 1800   # 30 minutes
+                one_hour_ago = current_time - 3600     # 1 hour  
+                six_hours_ago = current_time - 21600   # 6 hours
                 
-                # Check recent bot mentions/interactions in last 2 hours
+                # Check recent bot mentions/interactions in last 1 hour (reduced from 2 hours)
                 c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                         (group_id, two_hours_ago))
+                         (group_id, one_hour_ago))
                 recent_bot_activity = c.fetchone()[0] or 0
                 
-                # Check recent conversation memory (bot responses) in last 2 hours 
+                # Check recent conversation memory (bot responses) in last 1 hour (reduced from 2 hours)
                 c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", 
-                         (group_id, two_hours_ago))
+                         (group_id, one_hour_ago))
                 recent_bot_responses = c.fetchone()[0] or 0
                 
                 # Total recent bot activity
@@ -1084,9 +1088,9 @@ def check_proactive_engagement(bot):
                 
                 # CRITICAL FIX: More aggressive proactive detection
                 
-                # SCENARIO 1: No bot activity for 1+ hours (reduced from 2+ hours)
+                # SCENARIO 1: No bot activity for 1+ hours
                 if total_recent_activity == 0 and total_historical_activity > 0:
-                    logger.info(f"💀 No bot activity in group {group_id} for 2+ hours - triggering revival")
+                    logger.info(f"💀 No bot activity in group {group_id} for 1+ hours - triggering revival")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
                 # SCENARIO 2: Very low activity for extended period (reduced threshold)
@@ -1112,11 +1116,15 @@ def check_proactive_engagement(bot):
                         reset_proactive_state(group_id, 'both')
                         logger.info(f"🔄 Reset proactive state for {group_id} - recent activity detected")
                 
-                # SCENARIO 6: New groups get a proactive message after 30 minutes (reduced from 1 hour)
+                # SCENARIO 6: Being ignored - group has general activity but no bot mentions for 1+ hours
+                # Note: This would require detecting general group activity, which we can't easily do
+                # For now, we'll rely on users to mention the bot to trigger activity tracking
+                
+                # SCENARIO 7: New groups get a proactive message after 30 minutes
                 elif total_historical_activity <= 1:
                     c.execute("SELECT MIN(timestamp) FROM spam_tracking WHERE group_id = ?", (group_id,))
                     first_activity = c.fetchone()[0]
-                    if first_activity and (current_time - first_activity) >= 1800:  # 30 minutes (reduced from 1 hour)
+                    if first_activity and (current_time - first_activity) >= 1800:  # 30 minutes
                         logger.info(f"🆕 New group {group_id} - sending initial proactive engagement")
                         handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
@@ -1157,7 +1165,7 @@ def get_proactive_state(group_id):
                 'dead_chat_interval': 3600,  # 1 hour default
                 'ignored_active': False,
                 'ignored_last_sent': 0,
-                'ignored_interval': 7200   # 2 hours default
+                'ignored_interval': 3600   # 1 hour default (reduced from 2 hours)
             }
         
         conn.close()
@@ -1170,7 +1178,7 @@ def get_proactive_state(group_id):
             'dead_chat_interval': 3600,
             'ignored_active': False,
             'ignored_last_sent': 0,
-            'ignored_interval': 7200
+            'ignored_interval': 3600  # 1 hour (reduced from 2 hours)
         }
 
 def handle_dead_chat_scenario(bot, group_id, recent_users, current_time, proactive_state):
@@ -1210,7 +1218,7 @@ def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive
         if not proactive_state['ignored_active']:
             # First ignored message
             should_send_message = True
-            new_interval = 7200  # 2 hours
+            new_interval = 3600  # 1 hour (reduced from 2 hours)
         else:
             # Check if it's time for a follow-up
             time_since_last = current_time - proactive_state['ignored_last_sent']
@@ -1243,7 +1251,7 @@ def update_proactive_state(group_id, scenario, timestamp, interval):
                          VALUES (?, 1, ?, ?, 
                                 COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
                                 COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 7200))""", 
+                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 3600))""", 
                       (group_id, timestamp, interval, group_id, group_id, group_id))
         else:  # ignored
             c.execute("""INSERT OR REPLACE INTO proactive_state 
@@ -1272,7 +1280,7 @@ def reset_proactive_state(group_id, scenario):
             # Reset both scenarios
             c.execute("""UPDATE proactive_state 
                          SET dead_chat_active = 0, dead_chat_interval = 3600,
-                             ignored_active = 0, ignored_interval = 7200
+                             ignored_active = 0, ignored_interval = 3600
                          WHERE group_id = ?""", (group_id,))
         elif scenario == 'dead_chat':
             c.execute("""UPDATE proactive_state 
@@ -1280,7 +1288,7 @@ def reset_proactive_state(group_id, scenario):
                          WHERE group_id = ?""", (group_id,))
         elif scenario == 'ignored':
             c.execute("""UPDATE proactive_state 
-                         SET ignored_active = 0, ignored_interval = 7200
+                         SET ignored_active = 0, ignored_interval = 3600
                          WHERE group_id = ?""", (group_id,))
         
         conn.commit()
@@ -1479,7 +1487,7 @@ def generate_proactive_ai_response(scenario, group_id, recent_users):
         elif scenario == "dead_chat_followup":
             prompt_context = "You already tried to revive this dead chat but it's STILL silent! You're getting more dramatic and persistent. Be more emotional about the ongoing silence, show increasing concern/frustration, but keep it flirty and engaging."
         elif scenario == "being_ignored":
-            prompt_context = "The group has been actively chatting but nobody has mentioned you for 2+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+            prompt_context = "The group has been actively chatting but nobody has mentioned you for 1+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
         elif scenario == "being_ignored_followup":
             prompt_context = "You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality."
         
@@ -4346,11 +4354,12 @@ def force_proactive_command(message):
 • Will send follow-up messages with escalating frequency
 
 **🔥 Enhanced Detection Logic:**
-• No bot activity for 2+ hours → Revival message
+• No bot activity for 1+ hours → Revival message (reduced from 2+ hours)
 • Very quiet periods → Extended revival (more sensitive)
-• Time-based engagement every 3+ hours (reduced from 4)
+• Time-based engagement every 3+ hours
 • Bootstrap: Groups never sent proactive → Immediate engagement
-• New groups → Proactive after 30 minutes (reduced from 1 hour)
+• New groups → Proactive after 30 minutes
+• Being ignored detection → 1+ hours (reduced from 2+ hours)
 • Automatic reset when activity resumes
 
 **📊 Group Stats:**
