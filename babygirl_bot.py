@@ -1634,7 +1634,7 @@ def set_group_settings(group_id, admin_user_id, **settings):
                       project_narrative, project_features, project_goals, project_community_values,
                       custom_hype_phrases, project_unique_selling_points, project_roadmap_highlights,
                       custom_personality_traits, project_target_audience, setup_completed)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                   (group_id, admin_user_id, admin_user_id, int(time.time()),
                    settings.get('group_name'),
                    settings.get('custom_token_name'),
@@ -5149,12 +5149,12 @@ Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
 
 **🚀 How to Add Custom Stickers:**
 
-1. **Send me stickers** directly in this group chat
-2. **I'll automatically detect and save them** for use in responses
+1. **Get sticker file IDs** from stickers you want to add
+2. **Use `/stickers add CATEGORY STICKER_FILE_ID`** to add them manually
 3. **Use `/stickers view`** to see your collection
 4. **Use `/stickers frequency 15`** to set how often I send them (0-100%)
 
-**🎯 Sticker Categories:**
+**🎯 Available Categories:**
 • **general** - Normal responses and reactions
 • **crypto** - Token discussions and hype
 • **relationship** - Romance and dating topics
@@ -5167,14 +5167,61 @@ Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
 • Popular stickers get used more often
 • Analytics help optimize personality for your community
 
-**⚡ Pro Tip:** Send varied stickers to give me more personality options! The more variety, the better I can match your community's vibe! 🎭
+**⚡ Commands:**
+• `/stickers add general STICKER_FILE_ID` - Add a sticker to category
+• `/stickers view` - View your collection
+• `/stickers frequency 20` - Set usage frequency (0-100%)
 
-**🎮 Current Status:** Send me some stickers to get started!""")
+**🎮 Note:** Stickers are added manually through commands, not automatically from uploads.""")
                 return
                 
             action = parts[1]
             
-            if action == 'view':
+            if action == 'add':
+                if len(parts) < 4:
+                    bot.reply_to(message, """❌ **Format:** `/stickers add CATEGORY STICKER_FILE_ID`
+
+**Example:** `/stickers add general BAADBAAHAQADBAADNwAD7YTKFkYAAR...`
+
+**Categories:** general, crypto, relationship, competitive, happy, sad""")
+                    return
+                
+                category = parts[2]
+                sticker_file_id = parts[3]
+                
+                # Validate category
+                valid_categories = ['general', 'crypto', 'relationship', 'competitive', 'happy', 'sad']
+                if category not in valid_categories:
+                    bot.reply_to(message, f"❌ Invalid category! Use: {', '.join(valid_categories)}")
+                    return
+                
+                # Store the sticker
+                try:
+                    conn = sqlite3.connect('babygirl.db')
+                    c = conn.cursor()
+                    
+                    # Check if sticker already exists
+                    c.execute("SELECT sticker_file_id FROM custom_stickers WHERE group_id = ? AND sticker_file_id = ?", (group_id, sticker_file_id))
+                    exists = c.fetchone()
+                    
+                    if not exists:
+                        current_time = int(time.time())
+                        c.execute("INSERT INTO custom_stickers (group_id, sticker_file_id, sticker_category, added_by, added_date) VALUES (?, ?, ?, ?, ?)",
+                                 (group_id, sticker_file_id, category, user_id, current_time))
+                        conn.commit()
+                        
+                        bot.reply_to(message, f"✅ **Sticker Added Successfully!**\n\nCategory: {category}\nI'll start using this sticker in my {category} responses! 🎪")
+                        logger.info(f"🎪 Manually added sticker to {group_id}: category={category}")
+                    else:
+                        bot.reply_to(message, "❌ This sticker is already in my collection!")
+                    
+                    conn.close()
+                    
+                except Exception as e:
+                    logger.error(f"Error adding sticker: {e}")
+                    bot.reply_to(message, "❌ Failed to add sticker. Please check the sticker file ID.")
+                    
+            elif action == 'view':
                 # View current sticker configuration
                 try:
                     conn = sqlite3.connect('babygirl.db')
@@ -5256,64 +5303,25 @@ Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
 
 @bot.message_handler(content_types=['sticker'])
 def handle_sticker_uploads(message):
-    """Handle sticker uploads from admins to build custom sticker collection"""
+    """Handle sticker uploads - NO automatic processing, admins must use commands"""
     try:
+        # DO NOT automatically process stickers or respond to them
+        # Stickers should only be added through explicit commands like /stickers add
+        
+        # If we want to track stickers for potential manual review, we could log them
+        # but we should NOT automatically add them or respond to them
+        
         group_id = str(message.chat.id)
-        user_id = str(message.from_user.id)
         
-        # Only save stickers in groups
-        if message.chat.type not in ['group', 'supergroup']:
-            return
+        # Only log in groups, no responses
+        if message.chat.type in ['group', 'supergroup']:
+            logger.info(f"🎪 Sticker uploaded in group {group_id} - not auto-processed")
         
-        # Check if user is admin
-        try:
-            chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
-            if chat_member.status not in ['administrator', 'creator']:
-                return  # Silently ignore non-admin stickers
-        except:
-            return
-        
-        # Save the sticker
-        sticker_file_id = message.sticker.file_id
-        current_time = int(time.time())
-        
-        # Auto-categorize based on emoji (if available)
-        category = 'general'  # default
-        if message.sticker.emoji:
-            emoji = message.sticker.emoji
-            if emoji in ['🚀', '💎', '🌙', '📈', '💰', '🔥']:
-                category = 'crypto'
-            elif emoji in ['💕', '😘', '💖', '👫', '💏', '💋', '🤗', '😍', '🥰', '💝']:
-                category = 'relationship'
-            elif emoji in ['💪', '🏆', '⚡', '👑', '🎯', '💥', '🌟', '🥇', '⭐']:
-                category = 'competitive'
-            elif emoji in ['😊', '😄', '🥳', '🎉', '✨', '💫', '🌈', '☀️', '💝', '🎊']:
-                category = 'happy'
-            elif emoji in ['🥺', '💔', '😢', '😭', '💧', '🌧️', '😔', '💙', '😞', '💜']:
-                category = 'sad'
-        
-        # Store the sticker
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        
-        # Check if sticker already exists
-        c.execute("SELECT sticker_file_id FROM custom_stickers WHERE group_id = ? AND sticker_file_id = ?", (group_id, sticker_file_id))
-        exists = c.fetchone()
-        
-        if not exists:
-            c.execute("INSERT INTO custom_stickers (group_id, sticker_file_id, sticker_category, added_by, added_date) VALUES (?, ?, ?, ?, ?)",
-                     (group_id, sticker_file_id, category, user_id, current_time))
-            conn.commit()
-            
-            # Send confirmation
-            bot.reply_to(message, f"✅ **Sticker Added!** \n\nCategory: {category}\nI'll start using this in my responses! Send more stickers to expand my collection! 🎪")
-            
-            logger.info(f"🎪 Added sticker to {group_id}: category={category}")
-        
-        conn.close()
+        # DO NOT respond to sticker uploads automatically
+        # Users should use /stickers command for configuration
         
     except Exception as e:
-        logger.error(f"Error handling sticker upload: {e}")
+        logger.error(f"Error in sticker handler: {e}")
 
 if __name__ == "__main__":
     logger.info("🚀 Babygirl Bot starting...")
