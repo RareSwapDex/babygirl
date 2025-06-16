@@ -2491,7 +2491,39 @@ Can read all group messages: {'NO (Privacy Mode ON)' if not can_read_all else 'Y
 
 @bot.message_handler(commands=['test'])
 def test_command(message):
-    bot.reply_to(message, "Test command works! Now try: @babygirl_bf_bot hello")
+    try:
+        logger.info(f"🧪 TEST COMMAND received from {message.from_user.username or message.from_user.id} in {message.chat.type}")
+        
+        # Test basic functionality
+        test_info = f"""🧪 **Test Command Results:**
+
+**Chat Info:**
+• Type: {message.chat.type}
+• ID: {message.chat.id}
+• Title: {getattr(message.chat, 'title', 'N/A')}
+
+**User Info:**
+• ID: {message.from_user.id}
+• Username: {message.from_user.username or 'None'}
+
+**Bot Status:**
+✅ Commands are working!
+✅ Bot can send messages!
+
+**Next Steps:**
+• Try: `/setup` for configuration
+• Try: `/stickers` for sticker management
+• Try: @babygirl_bf_bot hello for mentions"""
+        
+        bot.reply_to(message, test_info)
+        logger.info(f"✅ Test command completed successfully for {message.from_user.username or message.from_user.id}")
+        
+    except Exception as e:
+        logger.error(f"❌ ERROR in test command: {e}")
+        try:
+            bot.reply_to(message, f"❌ Test failed: {e}")
+        except:
+            logger.error(f"❌ Could not even send test error message")
 
 @bot.message_handler(commands=['mention'])
 def mention_test(message):
@@ -4762,24 +4794,36 @@ The proactive engagement system is now fully active! 🚀💕"""
 def setup_command(message):
     """Allow group admins to configure custom token and settings"""
     try:
+        logger.info(f"🔧 SETUP COMMAND received from {message.from_user.username or message.from_user.id} in {message.chat.type}")
+        
         # Check if user is admin
         user_id = str(message.from_user.id)
         group_id = str(message.chat.id)
         
         # Only allow in groups
         if message.chat.type not in ['group', 'supergroup']:
+            logger.info(f"❌ Setup command used in {message.chat.type}, not group")
             bot.reply_to(message, "This command only works in groups! Add me to your group and try again.")
             return
             
         # Check if user is admin
         try:
+            logger.info(f"🔍 Checking admin status for user {user_id}")
             chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+            logger.info(f"📋 User status: {chat_member.status}")
             if chat_member.status not in ['administrator', 'creator']:
+                logger.info(f"❌ User {user_id} is not admin")
                 bot.reply_to(message, "Only group administrators can configure settings! 👑")
                 return
-        except:
-            bot.reply_to(message, "I need admin permissions to check your status. Please make me an admin first!")
-            return
+        except Exception as admin_check_error:
+            logger.error(f"❌ Admin check failed: {admin_check_error}")
+            # Try to send a response anyway
+            try:
+                bot.reply_to(message, f"⚠️ Could not verify admin status. Error: {admin_check_error}")
+                return
+            except Exception as reply_error:
+                logger.error(f"❌ Could not send admin check error reply: {reply_error}")
+                return
         
         # Parse setup command
         parts = message.text.split(maxsplit=1)
@@ -5166,8 +5210,17 @@ We're building the token integration system! Follow @babygirlerc for updates on 
 
 Use `/setup help` for all available options! 💕""")
     except Exception as e:
-        logger.error(f"Error in setup wizard: {e}")
-        bot.reply_to(message, "Setup wizard failed! Try again or use `/setup help`")
+        logger.error(f"❌ CRITICAL ERROR in setup wizard: {e}")
+        logger.error(f"❌ Setup error details: {type(e).__name__}: {str(e)}")
+        try:
+            bot.reply_to(message, f"❌ **Setup Error!**\n\nSomething went wrong: {e}\n\nTry again or use `/setup help`")
+        except Exception as reply_error:
+            logger.error(f"❌ Could not send setup error reply: {reply_error}")
+            # Try sending as regular message
+            try:
+                bot.send_message(message.chat.id, f"❌ Setup failed: {e}")
+            except Exception as send_error:
+                logger.error(f"❌ Could not send any setup error message: {send_error}")
 
 @bot.message_handler(commands=['examples'])
 def setup_examples_command(message):
@@ -5232,24 +5285,35 @@ Here are examples from successful community setups:
 def emojis_stickers_command(message):
     """Configure custom emojis and stickers for the group"""
     try:
+        logger.info(f"🎭 EMOJIS/STICKERS COMMAND received from {message.from_user.username or message.from_user.id} in {message.chat.type}")
+        
         # Check if user is admin
         user_id = str(message.from_user.id)
         group_id = str(message.chat.id)
         
         # Only allow in groups
         if message.chat.type not in ['group', 'supergroup']:
+            logger.info(f"❌ Emojis/stickers command used in {message.chat.type}, not group")
             bot.reply_to(message, "This command only works in groups! Add me to your group and try again.")
             return
             
         # Check if user is admin
         try:
+            logger.info(f"🔍 Checking admin status for emojis/stickers command")
             chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+            logger.info(f"📋 User status for emojis/stickers: {chat_member.status}")
             if chat_member.status not in ['administrator', 'creator']:
+                logger.info(f"❌ User {user_id} is not admin for emojis/stickers")
                 bot.reply_to(message, "Only group administrators can configure emojis and stickers! 👑")
                 return
-        except:
-            bot.reply_to(message, "I need admin permissions to check your status!")
-            return
+        except Exception as admin_check_error:
+            logger.error(f"❌ Admin check failed for emojis/stickers: {admin_check_error}")
+            try:
+                bot.reply_to(message, f"⚠️ Could not verify admin status for emojis/stickers. Error: {admin_check_error}")
+                return
+            except Exception as reply_error:
+                logger.error(f"❌ Could not send admin check error reply for emojis/stickers: {reply_error}")
+                return
         
         command = message.text.split()[0][1:]  # Remove the /
         parts = message.text.split(maxsplit=2)
@@ -5575,8 +5639,17 @@ Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
                 bot.reply_to(message, "❌ Unknown sticker command! Use `/stickers` to see available options.")
         
     except Exception as e:
-        logger.error(f"Error in emojis/stickers command: {e}")
-        bot.reply_to(message, "Configuration failed! Try again or contact support.")
+        logger.error(f"❌ CRITICAL ERROR in emojis/stickers command: {e}")
+        logger.error(f"❌ Emojis/stickers error details: {type(e).__name__}: {str(e)}")
+        try:
+            bot.reply_to(message, f"❌ **Emojis/Stickers Error!**\n\nSomething went wrong: {e}\n\nTry again or contact support.")
+        except Exception as reply_error:
+            logger.error(f"❌ Could not send emojis/stickers error reply: {reply_error}")
+            # Try sending as regular message
+            try:
+                bot.send_message(message.chat.id, f"❌ Emojis/stickers configuration failed: {e}")
+            except Exception as send_error:
+                logger.error(f"❌ Could not send any emojis/stickers error message: {send_error}")
 
 @bot.message_handler(content_types=['sticker'])
 def handle_sticker_uploads(message):
