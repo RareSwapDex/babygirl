@@ -1227,7 +1227,7 @@ def check_proactive_engagement(bot):
     """Monitor groups for dead chat or lack of mentions and send proactive messages with follow-up logic
     
     ALL GROUPS TREATED EQUALLY - No special handling for any specific groups
-    Timings: 1 hour no activity → revival, 30 minutes for new groups, 1 hour being ignored
+    Timings: 5 minutes no activity → revival, 5 minutes being ignored (TESTING MODE)
     """
     try:
         conn = sqlite3.connect('babygirl.db')
@@ -1281,17 +1281,17 @@ def check_proactive_engagement(bot):
         for group_id in all_group_ids:
             try:
                 # ADMIN LOGIC: Check ALL group messages since Babygirl is admin
-                thirty_min_ago = current_time - 1800   # 30 minutes (dead chat)
-                one_hour_ago = current_time - 3600     # 1 hour (being ignored)  
+                five_min_ago = current_time - 300      # 5 minutes (dead chat) - TESTING MODE
+                five_min_ago_ignored = current_time - 300  # 5 minutes (being ignored) - TESTING MODE  
                 
-                # DEAD CHAT: Check ALL group messages in last 30 minutes (any member messages)
+                # DEAD CHAT: Check ALL group messages in last 5 minutes (any member messages) - TESTING MODE
                 c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ?", 
-                         (group_id, thirty_min_ago))
+                         (group_id, five_min_ago))
                 all_recent_messages = c.fetchone()[0] or 0
                 
-                # BEING IGNORED: Check bot MENTIONS specifically in last 1 hour  
+                # BEING IGNORED: Check bot MENTIONS specifically in last 5 minutes - TESTING MODE
                 c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ? AND is_bot_mention = 1", 
-                         (group_id, one_hour_ago))
+                         (group_id, five_min_ago_ignored))
                 recent_bot_mentions = c.fetchone()[0] or 0
                 
                 # Check if group has historical message activity (to know if group is active)
@@ -1324,14 +1324,14 @@ def check_proactive_engagement(bot):
                 
                 # IMPROVED ADMIN-LEVEL SCENARIO DETECTION WITH BETTER TIMING:
                 
-                # SCENARIO 1: DEAD CHAT - No messages from ANY members for 30+ minutes
+                # SCENARIO 1: DEAD CHAT - No messages from ANY members for 5+ minutes (TESTING MODE)
                 if all_recent_messages == 0 and total_historical_messages > 0:
-                    logger.info(f"💀 DEAD CHAT DETECTED in group {group_id} - no messages from anyone for 30+ minutes")
+                    logger.info(f"💀 DEAD CHAT DETECTED in group {group_id} - no messages from anyone for 5+ minutes (TESTING)")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 2: BEING IGNORED - Group has messages but no bot mentions for 1+ hours
+                # SCENARIO 2: BEING IGNORED - Group has messages but no bot mentions for 5+ minutes (TESTING MODE)
                 elif all_recent_messages > 0 and recent_bot_mentions == 0 and total_historical_mentions > 0:
-                    logger.info(f"👀 BEING IGNORED DETECTED in group {group_id} - {all_recent_messages} messages but no bot mentions for 1+ hours")
+                    logger.info(f"👀 BEING IGNORED DETECTED in group {group_id} - {all_recent_messages} messages but no bot mentions for 5+ minutes (TESTING)")
                     handle_ignored_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
                 # SCENARIO 3: NEW GROUP - First time engagement after 20 minutes of any activity (reduced from 30)
@@ -1396,10 +1396,10 @@ def get_proactive_state(group_id):
             return {
                 'dead_chat_active': False,
                 'dead_chat_last_sent': 0,
-                'dead_chat_interval': 1800,  # 30 minutes default (reduced from 1 hour)
+                'dead_chat_interval': 300,  # 5 minutes for TESTING
                 'ignored_active': False,
                 'ignored_last_sent': 0,
-                'ignored_interval': 3600   # 1 hour default (reduced from 2 hours)
+                'ignored_interval': 300   # 5 minutes for TESTING
             }
         
         conn.close()
@@ -1409,10 +1409,10 @@ def get_proactive_state(group_id):
         return {
             'dead_chat_active': False,
             'dead_chat_last_sent': 0,
-            'dead_chat_interval': 1800,  # 30 minutes (reduced from 1 hour)
+            'dead_chat_interval': 300,  # 5 minutes for TESTING
             'ignored_active': False,
             'ignored_last_sent': 0,
-            'ignored_interval': 3600  # 1 hour (reduced from 2 hours)
+            'ignored_interval': 300  # 5 minutes for TESTING
         }
 
 def handle_dead_chat_scenario(bot, group_id, recent_users, current_time, proactive_state):
@@ -1424,15 +1424,15 @@ def handle_dead_chat_scenario(bot, group_id, recent_users, current_time, proacti
         if not proactive_state['dead_chat_active']:
             # First dead chat message
             should_send_message = True
-            new_interval = 1800  # 30 minutes (reduced from 1 hour)
+            new_interval = 300  # 5 minutes for TESTING
         else:
             # Check if it's time for a follow-up
             time_since_last = current_time - proactive_state['dead_chat_last_sent']
             if time_since_last >= proactive_state['dead_chat_interval']:
                 should_send_message = True
                 is_followup = True
-                # Reduce interval by 50%, minimum 15 minutes (900 seconds)
-                new_interval = max(900, proactive_state['dead_chat_interval'] // 2)
+                # Reduce interval by 50%, minimum 2 minutes (120 seconds) for TESTING
+                new_interval = max(120, proactive_state['dead_chat_interval'] // 2)
         
         if should_send_message:
             success = send_dead_chat_revival(bot, group_id, recent_users, is_followup)
@@ -1452,15 +1452,15 @@ def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive
         if not proactive_state['ignored_active']:
             # First ignored message
             should_send_message = True
-            new_interval = 3600  # 1 hour (reduced from 2 hours)
+            new_interval = 300  # 5 minutes for TESTING
         else:
             # Check if it's time for a follow-up
             time_since_last = current_time - proactive_state['ignored_last_sent']
             if time_since_last >= proactive_state['ignored_interval']:
                 should_send_message = True
                 is_followup = True
-                # Reduce interval by 50%, minimum 15 minutes (900 seconds)
-                new_interval = max(900, proactive_state['ignored_interval'] // 2)
+                # Reduce interval by 50%, minimum 2 minutes (120 seconds) for TESTING
+                new_interval = max(120, proactive_state['ignored_interval'] // 2)
         
         if should_send_message:
             success = send_attention_seeking_message(bot, group_id, recent_users, is_followup)
@@ -1485,7 +1485,7 @@ def update_proactive_state(group_id, scenario, timestamp, interval):
                          VALUES (?, 1, ?, ?, 
                                 COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
                                 COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 3600))""", 
+                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 300))""", 
                       (group_id, timestamp, interval, group_id, group_id, group_id))
         else:  # ignored
             c.execute("""INSERT OR REPLACE INTO proactive_state 
@@ -1494,7 +1494,7 @@ def update_proactive_state(group_id, scenario, timestamp, interval):
                          VALUES (?, 
                                 COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
                                 COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 1800),
+                                COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 300),
                                 1, ?, ?)""", 
                       (group_id, group_id, group_id, group_id, timestamp, interval))
         
@@ -1513,16 +1513,16 @@ def reset_proactive_state(group_id, scenario):
         if scenario == 'both':
             # Reset both scenarios
             c.execute("""UPDATE proactive_state 
-                         SET dead_chat_active = 0, dead_chat_interval = 1800,
-                             ignored_active = 0, ignored_interval = 3600
+                         SET dead_chat_active = 0, dead_chat_interval = 300,
+                             ignored_active = 0, ignored_interval = 300
                          WHERE group_id = ?""", (group_id,))
         elif scenario == 'dead_chat':
             c.execute("""UPDATE proactive_state 
-                         SET dead_chat_active = 0, dead_chat_interval = 1800
+                         SET dead_chat_active = 0, dead_chat_interval = 300
                          WHERE group_id = ?""", (group_id,))
         elif scenario == 'ignored':
             c.execute("""UPDATE proactive_state 
-                         SET ignored_active = 0, ignored_interval = 3600
+                         SET ignored_active = 0, ignored_interval = 300
                          WHERE group_id = ?""", (group_id,))
         
         conn.commit()
@@ -1717,11 +1717,11 @@ def generate_proactive_ai_response(scenario, group_id, recent_users):
     try:
         # Prepare context based on scenario
         if scenario == "dead_chat":
-            prompt_context = "The chat has been completely silent for over 30 minutes. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
+            prompt_context = "The chat has been completely silent for over 5 minutes. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
         elif scenario == "dead_chat_followup":
             prompt_context = "You already tried to revive this dead chat but it's STILL silent! You're getting more dramatic and persistent. Be more emotional about the ongoing silence, show increasing concern/frustration, but keep it flirty and engaging."
         elif scenario == "being_ignored":
-            prompt_context = "The group has been actively chatting but nobody has mentioned you for 1+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+            prompt_context = "The group has been actively chatting but nobody has mentioned you for 5+ minutes. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
         elif scenario == "being_ignored_followup":
             prompt_context = "You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality."
         
@@ -5785,51 +5785,101 @@ Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
 def handle_sticker_uploads(message):
     """Handle sticker uploads - ENHANCED for official $BABYGIRL pack detection"""
     try:
-        group_id = str(message.chat.id)
+        chat_id = str(message.chat.id)
         
         # Get sticker info
         sticker = message.sticker
         file_id = sticker.file_id
+        username = message.from_user.username or "unknown"
         
-        # ENHANCED LOGGING: Check if this is from the official $BABYGIRL pack
+        # ALWAYS log sticker details for debugging
+        logger.info(f"🎪 STICKER RECEIVED from {username} in {message.chat.type}")
+        logger.info(f"🎪 File ID: {file_id}")
+        logger.info(f"🎪 Emoji: {sticker.emoji}")
+        logger.info(f"🎪 Set Name: {sticker.set_name}")
+        logger.info(f"🎪 Chat Type: {message.chat.type}")
+        
+        # Check if this is from the official $BABYGIRL pack
         is_official_pack = False
         if sticker.set_name:
-            # Check for various possible pack name variations
+            # Check for various possible pack name variations (case insensitive)
             pack_name_upper = sticker.set_name.upper()
-            if any(keyword in pack_name_upper for keyword in ['BABYGIRL', 'BABYGIRLCOMMUNITY', '$BABYGIRL']):
+            official_keywords = ['BABYGIRL', 'BABYGIRLCOMMUNITY', '$BABYGIRL', 'WILLIAMSGAB']
+            
+            if any(keyword in pack_name_upper for keyword in official_keywords):
                 is_official_pack = True
                 logger.info(f"🎯 OFFICIAL $BABYGIRL STICKER DETECTED!")
-                logger.info(f"🎪 OFFICIAL STICKER FILE_ID: {file_id}")
-                logger.info(f"🎪 OFFICIAL STICKER EMOJI: {sticker.emoji}")
-                logger.info(f"🎪 OFFICIAL STICKER SET: {sticker.set_name}")
                 logger.info(f"🎪 === COPY THIS FILE_ID TO REPLACE PLACEHOLDER ===")
+                logger.info(f"🎪 OFFICIAL FILE_ID: {file_id}")
         
-        # Log all stickers for debugging
-        logger.info(f"🎪 Sticker received: file_id={file_id}, emoji={sticker.emoji}, set_name={sticker.set_name}")
-        
-        # If this is an official pack sticker, provide immediate feedback to admins
-        if is_official_pack and message.from_user.username and message.from_user.username.lower() in ['ryanmccallum1', 'admin']:
-            feedback_msg = f"""🎯 **OFFICIAL $BABYGIRL STICKER DETECTED!**
+        # ENHANCED: Respond to ALL stickers sent to help with debugging
+        if message.chat.type == 'private':
+            # In private chat, always provide detailed info
+            if is_official_pack:
+                response_msg = f"""🎯 **OFFICIAL $BABYGIRL STICKER DETECTED!**
+
+**✅ SUCCESS! This is from the official pack!**
 
 **File ID:** `{file_id}`
 **Emoji:** {sticker.emoji}
 **Pack:** {sticker.set_name}
 
 **🔧 To Use This Sticker:**
-Replace one of the PLACEHOLDER entries in the code with this file_id!
-
-**Current Status:** Logged in console for easy copying! 📝
+1. Copy this file ID: `{file_id}`
+2. Replace a PLACEHOLDER in the code with this ID
+3. Deploy the update
 
 **Quick Copy Format:**
-`"{file_id}",  # {sticker.emoji}`"""
+```
+"{file_id}",  # {sticker.emoji}
+```
+
+**Status:** ✅ Ready to integrate!"""
+            else:
+                response_msg = f"""🎪 **Sticker Detected**
+
+**File ID:** `{file_id}`
+**Emoji:** {sticker.emoji}
+**Pack:** {sticker.set_name or 'Unknown/Custom'}
+
+**⚠️ This doesn't appear to be from the official $BABYGIRL pack.**
+
+**Expected Pack:** BABYGIRLCOMMUNITY (by @williamsgab)
+**Pack URL:** https://t.me/addstickers/BABYGIRLCOMMUNITY
+
+**To get official stickers:**
+1. Add the official pack using the URL above
+2. Send stickers from that pack to me
+3. I'll detect them and provide the file IDs"""
             
-            bot.reply_to(message, feedback_msg)
-        
-        # For all other users and non-official stickers, do nothing
-        # Users should use /stickers add command for manual configuration
+            bot.reply_to(message, response_msg)
+            
+        elif message.chat.type in ['group', 'supergroup']:
+            # In groups, only respond if it's the official pack and user is admin
+            if is_official_pack:
+                try:
+                    chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+                    is_admin = chat_member.status in ['administrator', 'creator']
+                    
+                    if is_admin:
+                        admin_msg = f"""🎯 **Official $BABYGIRL Sticker Detected!**
+
+File ID: `{file_id}`
+
+This has been logged for the official pack integration! 📝"""
+                        bot.reply_to(message, admin_msg)
+                except:
+                    # If admin check fails, still log but don't respond
+                    pass
         
     except Exception as e:
-        logger.error(f"Error in sticker handler: {e}")
+        logger.error(f"❌ Error in sticker handler: {e}")
+        # Send error info to help debug
+        try:
+            if message.chat.type == 'private':
+                bot.reply_to(message, f"❌ Sticker processing error: {e}")
+        except:
+            pass
 
 if __name__ == "__main__":
     logger.info("🚀 Babygirl Bot starting...")
@@ -5842,15 +5892,15 @@ if __name__ == "__main__":
     scheduler.add_job(check_boyfriend_steal_opportunities, 'interval', minutes=5, args=[bot])  # New: boyfriend stealing mechanic
     scheduler.add_job(trigger_challenge, 'interval', minutes=5)
     scheduler.add_job(start_storyline, 'interval', days=3)
-    scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
+    scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=2)  # Check every 2 minutes for TESTING
     scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
     scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
     
-    # Schedule AGGRESSIVE immediate proactive check 10 seconds after startup
-    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=10))
+    # Schedule IMMEDIATE proactive check 5 seconds after startup for TESTING
+    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=5))
     
-    # Schedule follow-up check 5 minutes later to catch any groups that might need additional attention
-    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(minutes=5))
+    # Schedule follow-up check 2 minutes later for TESTING
+    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(minutes=2))
     
     # Start the scheduler
     logger.info("🚀 Starting scheduler...")
