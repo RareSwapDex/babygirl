@@ -2093,77 +2093,126 @@ def check_proactive_conversation_followups(bot):
 
 # CRITICAL FIX: Backdate proactive engagement states to trigger immediately when deployed
 def initialize_proactive_states():
-    """Initialize/backdate proactive states to ensure immediate engagement after deployment"""
+    """AGGRESSIVE initialization - find and reset ALL existing groups for immediate engagement"""
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         current_time = int(time.time())
         
-        # Get all groups from various tables 
+        # COMPREHENSIVE group discovery from ALL activity sources
         all_group_ids = set()
         
-        # Get groups from spam_tracking
-        c.execute("SELECT DISTINCT group_id FROM spam_tracking")
+        # PRIMARY: Get groups from all_group_messages (most reliable)
+        c.execute("SELECT DISTINCT group_id FROM all_group_messages")
         for (group_id,) in c.fetchall():
             all_group_ids.add(group_id)
         
-        # Get groups from conversation_memory  
-        c.execute("SELECT DISTINCT group_id FROM conversation_memory")
-        for (group_id,) in c.fetchall():
-            all_group_ids.add(group_id)
-            
-        # Get groups from boyfriend_table
-        c.execute("SELECT DISTINCT group_id FROM boyfriend_table")
-        for (group_id,) in c.fetchall():
-            all_group_ids.add(group_id)
+        # Get groups from ALL other activity tables to catch legacy groups
+        tables_to_check = [
+            'spam_tracking', 'conversation_memory', 'boyfriend_table', 
+            'cooldown_table', 'activity_table', 'leaderboard_table',
+            'gifts_table', 'user_relationships', 'ships_table',
+            'group_vibes', 'community_stats', 'proactive_state',
+            'group_settings', 'custom_stickers', 'custom_emojis'
+        ]
         
-        logger.info(f"🔄 Initializing proactive states for {len(all_group_ids)} groups")
+        for table in tables_to_check:
+            try:
+                c.execute(f"SELECT DISTINCT group_id FROM {table}")
+                for (group_id,) in c.fetchall():
+                    all_group_ids.add(group_id)
+            except Exception as e:
+                logger.warning(f"Could not check table {table}: {e}")
         
+        logger.info(f"🔄 AGGRESSIVE initialization for {len(all_group_ids)} groups")
+        
+        # RESET ALL GROUPS for immediate proactive engagement
         for group_id in all_group_ids:
             # Check if proactive state exists
-            c.execute("SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?", (group_id,))
+            c.execute("SELECT dead_chat_last_sent, ignored_last_sent FROM proactive_state WHERE group_id = ?", (group_id,))
             existing_state = c.fetchone()
+            
+            # AGGRESSIVE: Backdate ALL groups regardless of their current state
+            backdated_time = current_time - 3600  # 1 hour ago (reduced for faster trigger)
             
             if not existing_state:
                 # Create new state with backdated timestamp to trigger immediate action
-                backdated_time = current_time - 7200  # 2 hours ago to trigger dead chat detection
                 c.execute("""INSERT INTO proactive_state 
                              (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
                               ignored_active, ignored_last_sent, ignored_interval)
-                             VALUES (?, 0, ?, 3600, 0, ?, 7200)""", 
+                             VALUES (?, 0, ?, 1800, 0, ?, 3600)""", 
                          (group_id, backdated_time, backdated_time))
-                logger.info(f"🆕 Created backdated proactive state for group {group_id}")
+                logger.info(f"🆕 CREATED proactive state for group {group_id}")
             else:
-                # Update existing state if last sent was more than 4 hours ago
-                last_sent = existing_state[0] or 0
-                if current_time - last_sent > 14400:  # 4 hours
-                    # Backdate to trigger immediate action
-                    backdated_time = current_time - 7200
-                    c.execute("""UPDATE proactive_state 
-                                 SET dead_chat_last_sent = ?, dead_chat_active = 0
-                                 WHERE group_id = ?""", 
-                             (backdated_time, group_id))
-                    logger.info(f"🔄 Backdated proactive state for group {group_id}")
+                # AGGRESSIVE UPDATE: Reset ALL existing groups (no time check)
+                c.execute("""UPDATE proactive_state 
+                             SET dead_chat_last_sent = ?, dead_chat_active = 0,
+                                 ignored_last_sent = ?, ignored_active = 0,
+                                 dead_chat_interval = 1800, ignored_interval = 3600
+                             WHERE group_id = ?""", 
+                         (backdated_time, backdated_time, group_id))
+                logger.info(f"🔄 RESET proactive state for group {group_id}")
         
         conn.commit()
         conn.close()
-        logger.info("✅ Proactive state initialization complete")
+        logger.info(f"✅ AGGRESSIVE proactive initialization complete - {len(all_group_ids)} groups ready")
         
     except Exception as e:
-        logger.error(f"Error initializing proactive states: {e}")
+        logger.error(f"Error in aggressive proactive initialization: {e}")
 
 # CRITICAL FIX: Run initial proactive check immediately after startup
 def run_immediate_proactive_check():
-    """Run proactive engagement check immediately after startup"""
+    """AGGRESSIVE startup check - immediately engage all groups"""
     try:
-        logger.info("🚀 Running immediate proactive engagement check...")
+        logger.info("🚀 Running AGGRESSIVE immediate proactive engagement check...")
         check_proactive_engagement(bot)
         logger.info("✅ Immediate proactive check complete")
     except Exception as e:
         logger.error(f"Error in immediate proactive check: {e}")
 
-# Initialize proactive states on startup (call this at module level)
+def repair_existing_groups():
+    """Repair and bootstrap any groups that might be missing from proactive monitoring"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Find groups that have recent activity but might not be properly monitored
+        recent_time = current_time - 86400  # Last 24 hours
+        
+        # Get all groups with recent message activity
+        c.execute("SELECT DISTINCT group_id FROM all_group_messages WHERE timestamp > ?", (recent_time,))
+        active_groups = [row[0] for row in c.fetchall()]
+        
+        logger.info(f"🔧 Repairing {len(active_groups)} recently active groups")
+        
+        for group_id in active_groups:
+            # Ensure proactive state exists and is ready
+            c.execute("SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?", (group_id,))
+            state = c.fetchone()
+            
+            if not state:
+                # Group missing from proactive_state - add it
+                backdated_time = current_time - 3600  # 1 hour ago
+                c.execute("""INSERT INTO proactive_state 
+                             (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                              ignored_active, ignored_last_sent, ignored_interval)
+                             VALUES (?, 0, ?, 1800, 0, ?, 3600)""", 
+                         (group_id, backdated_time, backdated_time))
+                logger.info(f"🔧 REPAIRED missing proactive state for group {group_id}")
+            
+        conn.commit()
+        conn.close()
+        logger.info("✅ Group repair complete")
+        
+    except Exception as e:
+        logger.error(f"Error repairing existing groups: {e}")
+
+# STARTUP SEQUENCE: Initialize, repair, then prepare for immediate engagement
+logger.info("🎯 STARTUP: Running comprehensive group initialization...")
 initialize_proactive_states()
+repair_existing_groups()
+logger.info("🎯 STARTUP: All groups prepared for proactive engagement!")
 
 # Mood-based flirty responses
 happy_responses = [
@@ -5566,8 +5615,11 @@ if __name__ == "__main__":
     scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
     scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
     
-    # Schedule immediate proactive check 30 seconds after startup
-    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=30))
+    # Schedule AGGRESSIVE immediate proactive check 10 seconds after startup
+    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=10))
+    
+    # Schedule follow-up check 5 minutes later to catch any groups that might need additional attention
+    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(minutes=5))
     
     # Start the scheduler
     logger.info("🚀 Starting scheduler...")
