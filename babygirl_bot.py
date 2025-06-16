@@ -740,16 +740,10 @@ def check_proactive_engagement(bot):
                     c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ?", (group_id,))
                     total_messages = c.fetchone()[0] or 0
                     
-                    # Only proceed with dead chat detection if group has had some activity before
-                    # OR if it has conversation memory (bot has been used there)
-                    c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ?", (group_id,))
-                    total_memories = c.fetchone()[0] or 0
-                    
-                    if total_messages > 0 or total_memories > 0:
-                        logger.info(f"💀 Group {group_id} appears to be dead chat candidate (0 recent messages, has history)")
-                    else:
-                        logger.info(f"⏭️ Skipping group {group_id} - no historical activity yet")
-                        continue
+                    # REMOVED BOOTSTRAP RESTRICTION - Now monitors ALL groups regardless of history
+                    # This allows proactive engagement to work in brand new groups
+                    logger.info(f"💀 Group {group_id} appears to be dead chat candidate (0 recent messages)")
+                    # Continue to dead chat detection below
                 
                 # Get messages that don't mention bot (for ignored scenario)
                 c.execute("""SELECT COUNT(*) FROM spam_tracking 
