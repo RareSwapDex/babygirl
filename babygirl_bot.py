@@ -261,14 +261,14 @@ def init_db():
                  (group_id TEXT, total_messages INTEGER, active_users INTEGER, last_update INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS conversation_memory 
                  (user_id TEXT, group_id TEXT, message_content TEXT, babygirl_response TEXT, timestamp INTEGER, topic TEXT)''')
-    c.execute(\'\'\'CREATE TABLE IF NOT EXISTS proactive_state 
+    c.execute('''CREATE TABLE IF NOT EXISTS proactive_state 
                  (group_id TEXT PRIMARY KEY, 
                   dead_chat_active INTEGER DEFAULT 0,
                   dead_chat_last_sent INTEGER DEFAULT 0,
                   dead_chat_interval INTEGER DEFAULT 3600,
                   ignored_active INTEGER DEFAULT 0,
                   ignored_last_sent INTEGER DEFAULT 0,
-                  ignored_interval INTEGER DEFAULT 7200)\'\'\')
+                  ignored_interval INTEGER DEFAULT 7200)''')
     conn.commit()
     conn.close()
 
