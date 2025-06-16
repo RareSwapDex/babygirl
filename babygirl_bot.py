@@ -327,6 +327,11 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS all_group_messages
                  (message_id INTEGER, user_id TEXT, group_id TEXT, timestamp INTEGER, 
                   message_content TEXT, is_bot_mention INTEGER)''')
+    
+    # NEW TABLE for tracking sticker reply intervals
+    c.execute('''CREATE TABLE IF NOT EXISTS sticker_reply_tracking
+                 (group_id TEXT PRIMARY KEY, message_count INTEGER DEFAULT 0, 
+                  target_count INTEGER DEFAULT 0, last_sticker_time INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS user_relationships 
                  (user_id TEXT, status TEXT, partner_id TEXT, group_id TEXT, timestamp INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS ships_table 
@@ -571,6 +576,90 @@ def enhance_response_with_custom_content(base_response, group_id, context='gener
     except Exception as e:
         logger.error(f"Error enhancing response with custom content: {e}")
         return base_response, None
+
+def handle_random_sticker_reply(message):
+    """Handle random sticker replies at 3-10 message intervals"""
+    try:
+        group_id = str(message.chat.id)
+        chat_type = message.chat.type if hasattr(message.chat, 'type') else 'unknown'
+        
+        # Only process for groups
+        if chat_type not in ['group', 'supergroup']:
+            return
+        
+        # Skip if message is from the bot itself
+        try:
+            bot_user = bot.get_me()
+            if message.from_user.id == bot_user.id:
+                return
+        except:
+            pass
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get or create tracking record for this group
+        c.execute("SELECT message_count, target_count, last_sticker_time FROM sticker_reply_tracking WHERE group_id = ?", (group_id,))
+        result = c.fetchone()
+        
+        if result:
+            message_count, target_count, last_sticker_time = result
+        else:
+            # Initialize new group with random target between 3-10
+            target_count = random.randint(3, 10)
+            message_count = 0
+            last_sticker_time = 0
+            c.execute("INSERT INTO sticker_reply_tracking (group_id, message_count, target_count, last_sticker_time) VALUES (?, ?, ?, ?)",
+                     (group_id, message_count, target_count, last_sticker_time))
+        
+        # Increment message count
+        message_count += 1
+        
+        # Check if we've reached the target count
+        if message_count >= target_count:
+            # Check if group has custom stickers
+            c.execute("SELECT sticker_file_id FROM custom_stickers WHERE group_id = ? ORDER BY RANDOM() LIMIT 1", (group_id,))
+            sticker_result = c.fetchone()
+            
+            if sticker_result:
+                sticker_file_id = sticker_result[0]
+                
+                # Try to send the sticker as a reply to the current message
+                try:
+                    bot.send_sticker(message.chat.id, sticker_file_id, reply_to_message_id=message.message_id)
+                    logger.info(f"🎪 Sent random sticker reply in group {group_id} after {message_count} messages")
+                    
+                    # Update analytics
+                    c.execute("INSERT INTO sticker_analytics (group_id, sticker_file_id, sent_timestamp, context_type) VALUES (?, ?, ?, ?)",
+                             (group_id, sticker_file_id, current_time, 'random_reply'))
+                    
+                except Exception as e:
+                    logger.error(f"Error sending random sticker: {e}")
+                    # Don't reset counter if sending failed
+                    conn.commit()
+                    conn.close()
+                    return
+            else:
+                logger.info(f"🎪 No custom stickers available for group {group_id}")
+                # Still reset the counter even if no stickers available
+            
+            # Reset counter with new random target
+            new_target = random.randint(3, 10)
+            c.execute("UPDATE sticker_reply_tracking SET message_count = 0, target_count = ?, last_sticker_time = ? WHERE group_id = ?",
+                     (new_target, current_time, group_id))
+            
+            logger.info(f"🎪 Reset sticker counter for group {group_id}, next target: {new_target} messages")
+        else:
+            # Just update the message count
+            c.execute("UPDATE sticker_reply_tracking SET message_count = ? WHERE group_id = ?",
+                     (message_count, group_id))
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in handle_random_sticker_reply: {e}")
 
 def optimize_emoji_sticker_usage():
     """Optimize emoji and sticker selection based on engagement analytics"""
@@ -3875,6 +3964,9 @@ def handle_all_mentions(message):
                 
                 logger.info(f"📨 TRACKED MESSAGE: '{message.text[:50]}...' in {chat_type} from {username} (bot_mention: {is_bot_mention})")
                 
+                # NEW: Handle random sticker replies (3-10 message intervals)
+                handle_random_sticker_reply(message)
+                
             except Exception as e:
                 logger.error(f"Error tracking group message: {e}")
         
@@ -4476,10 +4568,12 @@ def setup_command(message):
 
 **🎯 Transform your group with custom token integration!**
 
-**📝 Quick Setup:**
-```
-/setup token YOURTOKEN YRT yourwebsite.com
-```
+**🛠️ Configuration Commands:**
+• `/setup token TOKENNAME SYMBOL website.com` - Configure your token
+• `/setup name "Your Community Name"` - Set group display name
+• `/setup revival 15` - Set chat revival frequency (minutes)  
+• `/setup competitions on` - Enable boyfriend competitions
+• `/setup welcome "message"` - Custom welcome for new members
 
 **✨ What this unlocks:**
 • I'll discuss YOUR token like I do $BABYGIRL in my core community!
@@ -4487,13 +4581,6 @@ def setup_command(message):
 • Custom responses about your project
 • Full chat revival with token promotion
 • Community-specific engagement
-
-**🛠️ Full Configuration:**
-• `/setup token TOKENNAME SYMBOL website.com` - Configure your token
-• `/setup name "Your Community Name"` - Set group display name
-• `/setup revival 15` - Set chat revival frequency (minutes)  
-• `/setup competitions on` - Enable boyfriend competitions
-• `/setup welcome "message"` - Custom welcome for new members
 
 **🚀 Ready to make me yours?** Use the commands above to get started!
 
@@ -4505,53 +4592,7 @@ def setup_command(message):
         # Parse the setup command
         setup_args = parts[1].strip()
         
-        if setup_args.startswith('quick '):
-            # Quick setup: /setup quick TOKENNAME SYMBOL website.com
-            quick_parts = setup_args[6:].strip().split()
-            if len(quick_parts) < 3:
-                bot.reply_to(message, """❌ **Quick setup requires 3 parameters:**
-
-**Format:** `/setup quick TOKENNAME SYMBOL website.com`
-
-**Example:** `/setup quick "Moon Token" MOON moon.finance`
-
-This will configure basic token settings and enable discussions! 🚀""")
-                return
-            
-            token_name = quick_parts[0].replace('"', '').replace("'", '')
-            token_symbol = quick_parts[1].upper()
-            website = quick_parts[2]
-            
-            # Set basic token configuration
-            success = set_group_settings(group_id, user_id,
-                                       custom_token_name=token_name,
-                                       custom_token_symbol=token_symbol,
-                                       custom_website=website,
-                                       token_discussions_enabled=True,
-                                       group_name=message.chat.title)
-            
-            if success:
-                response = f"""🎉 **QUICK SETUP COMPLETE!** 🎉
-
-🪙 **Your Token:** {token_name} (${token_symbol})
-🌐 **Website:** {website}
-✅ **Token Discussions:** ENABLED!
-
-**🚀 What's Active:**
-• I can now hype {token_name} in revival messages!
-• Custom token discussions when asked
-• All standard chat revival features
-
-**💡 Want More?** Use `/setup narrative "your story"` to add custom project details for even better AI responses!
-
-**🎯 Test it:** Try `/token` to see me discuss {token_name}!"""
-                
-                bot.reply_to(message, response)
-                logger.info(f"🚀 QUICK SETUP: {token_name} ({token_symbol}) for group {group_id}")
-            else:
-                bot.reply_to(message, "❌ Quick setup failed. Please try again!")
-                
-        elif setup_args.startswith('narrative '):
+        if setup_args.startswith('narrative '):
             # Project narrative
             narrative = setup_args[10:].strip().replace('"', '').replace("'", '')
             if len(narrative) < 20:
@@ -4845,12 +4886,7 @@ We're building the token integration system! Follow @babygirlerc for updates on 
             # Setup help
             bot.reply_to(message, """🆘 **SETUP HELP CENTER** 🆘
 
-**🚀 Quick Options:**
-• `/setup quick TOKEN SYMBOL website.com` - 2 minute setup
-• `/setup wizard` - Step-by-step guided setup
-• `/onboard` - Complete onboarding experience
-
-**🛠️ Individual Settings:**
+**🛠️ Configuration Commands:**
 • `/setup token TOKEN SYMBOL website.com` - Configure your token
 • `/setup narrative "story"` - Add project narrative
 • `/setup features "features"` - List key features  
@@ -4877,15 +4913,14 @@ We're building the token integration system! Follow @babygirlerc for updates on 
         else:
             bot.reply_to(message, """❌ **Unknown setup option!**
 
-**🚀 Quick Start:**
-• `/setup quick TOKENNAME SYMBOL website.com` - Fast 2-minute setup
-• `/setup wizard` - Guided step-by-step setup
+**🚀 Getting Started:**
+• `/setup token TOKENNAME SYMBOL website.com` - Configure your token
 • `/setup help` - Detailed help and options
 
-**📋 Or configure step by step:**
-• `/setup token TOKENNAME SYMBOL website.com`
+**📋 Step by step configuration:**
 • `/setup narrative "your story"`
 • `/setup features "key features"`
+• `/setup values "community values"`
 
 Use `/setup help` for all available options! 💕""")
     except Exception as e:
