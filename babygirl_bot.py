@@ -2405,135 +2405,50 @@ def overview_command(message):
         is_core = group_context['group_type'] == 'core'
         
         if is_core:
-            overview_msg = """🌟 **BABYGIRL: COMPLETE FEATURE SHOWCASE** 🌟
-*The Most Advanced Community AI in Crypto*
+            overview_msg = """🌟 **BABYGIRL: YOUR AI GIRLFRIEND** 🌟
+*The Complete $BABYGIRL Community Experience!*
 
-## 🚀 **CORE $BABYGIRL COMMUNITY - FULL FEATURE SET**
+💎 **CORE FEATURES:**
+🔥 **Dead Chat Revival** - 24/7 proactive engagement when things get quiet
+🏆 **Boyfriend Competitions** - 8-12h gamified cycles with stealing mechanics  
+💕 **Relationship Engine** - Shipping, wingwoman advice, and personality analysis
+🎭 **Custom Personalization** - Admin-configured emojis, stickers, and AI learning
+📊 **Smart Analytics** - Real-time optimization based on what works for your group
 
-### 💎 **AI-POWERED ENGAGEMENT**
-✅ **Proactive Dead Chat Revival** - 24/7 monitoring with escalating intervention
-✅ **Smart Activity Detection** - Advanced algorithms identify engagement patterns  
-✅ **Conversation Memory** - I remember every interaction for personalized responses
-✅ **Emotional Intelligence** - Real-time mood detection and appropriate responses
+💖 **$BABYGIRL INTEGRATION:**
+🚀 **Unlimited Token Hype** - Free-flowing crypto discussions and "to the moon" content
+💎 **Chart Reactions** - Diamond hands talk and market sentiment
+📈 **Community Growth** - Authentic enthusiasm for the $BABYGIRL ecosystem
 
-### 🎮 **ADVANCED GAMIFICATION**
-🏆 **Automatic Boyfriend System** - Smart selection based on engagement (8-12h cycles)
-💥 **Boyfriend Stealing Mechanics** - 15% chance for active users to steal positions
-🎯 **Competition Analytics** - Track participation and optimize for your community
-🏅 **Hall of Fame Leaderboards** - Permanent recognition for top members
+**✨ What makes this special?** I'm not just a bot - I'm your AI girlfriend who learns, remembers, and adapts to make your community the most engaging place in crypto! 
 
-### 💕 **SOCIAL RELATIONSHIP ENGINE**  
-💑 **Smart Shipping System** - AI-powered compatibility analysis
-💖 **Relationship Status Tracking** - Personal relationship management
-👥 **Wingwoman Advisory** - Expert dating advice and conversation starters
-📸 **Group Dynamics Analysis** - Community selfies and vibe checking
-
-### 🎭 **CUSTOM PERSONALIZATION**
-😍 **Custom Emoji Integration** - Admin-configured emoji sets by category
-🎪 **Smart Sticker Management** - Auto categorization and engagement optimization
-🎨 **AI Learning Optimization** - System learns what works best for your community
-📊 **Analytics & Optimization** - Real-time engagement metrics and recommendations
-
-### 🔥 **CRYPTO & TOKEN INTEGRATION**
-💎 **$BABYGIRL Token Discussions** - Free-flowing crypto hype and "to the moon" content
-🚀 **Market Sentiment Integration** - Chart discussions and diamond hands talk
-📈 **Community Token Hype** - Authentic enthusiasm for the $BABYGIRL ecosystem
-
-### ⚡ **EXCLUSIVE COMMUNITY PERKS**
-🏠 **Portal Access** - Direct connection to main community hub (@babygirlerc)
-🎭 **Full Personality Expression** - Complete creative freedom 
-👑 **Premium Feature Access** - All advanced capabilities unlocked
-💕 **Unlimited Token Hype** - I can shill $BABYGIRL 24/7 without restrictions!
-
-## 💫 **WHAT MAKES THIS SPECIAL?**
-This isn't just a chatbot - it's a **complete community ecosystem** powered by cutting-edge AI. Every feature works together to create the most engaging, personalized, and fun community experience in crypto.
-
-**💕 Ready to explore?** Try any command to see the magic in action!
-
-**Built with 💖 for the $BABYGIRL ecosystem** 🚀✨"""
+**Ready to explore?** Try any command to see what I can do! 💕"""
         else:
             # External group overview - still impressive but promotes $BABYGIRL community
-            overview_msg = """🌟 **BABYGIRL: COMPLETE FEATURE SHOWCASE** 🌟
-*Advanced Community AI & Chat Revival Specialist*
+            overview_msg = """🌟 **BABYGIRL: COMMUNITY AI SPECIALIST** 🌟
+*Advanced Chat Revival & Engagement System*
 
-## 🎯 **COMPREHENSIVE ENGAGEMENT SYSTEM**
+💎 **CORE FEATURES:**
+🔥 **Dead Chat Revival** - 24/7 monitoring with escalating intervention strategies
+🏆 **Boyfriend Competitions** - Automatic 8-12h cycles with stealing mechanics
+💕 **Social Engine** - AI-powered shipping, wingwoman advice, personality analysis
+🎭 **Custom Personalization** - Admin-configured emojis, stickers, and learning optimization  
+📊 **Smart Analytics** - Real-time engagement tracking and performance insights
 
-### 💎 **AI-POWERED DEAD CHAT REVIVAL**
-✅ **24/7 Monitoring** - Continuous activity level surveillance
-✅ **Smart Detection Algorithms** - Advanced pattern recognition for quiet periods
-✅ **Escalating Intervention Strategies** - Increasingly urgent revival messages
-✅ **Automatic Reset Logic** - Smart dial-back when activity resumes
-✅ **Context-Aware Messaging** - Tailored revival content for your community
+🧠 **AI CAPABILITIES:**
+🤖 **Conversation Memory** - Persistent memory for personalized responses
+🎯 **Pattern Recognition** - Individual personality analysis and group energy adaptation
+💭 **Dynamic Insights** - Detailed member personality assessments
+📈 **Predictive Engagement** - Optimal timing for interventions and activities
 
-### 🎮 **ADVANCED GAMIFICATION SYSTEM**
-🏆 **Automatic Boyfriend Competitions** - Smart selection driving 8-12 hour engagement cycles
-💥 **Boyfriend Stealing Mechanics** - Drama-driven re-engagement for inactive winners
-🎯 **Real-time Competition Analytics** - Live tracking of participation and engagement
-🏅 **Persistent Leaderboards** - Long-term recognition and motivation systems
-⚡ **Activity Pattern Learning** - AI optimizes timing and frequency of competitions
+⚙️ **ADMIN TOOLS:**
+🔧 **Custom Configuration** - Transform me into YOUR project's AI assistant  
+🏷️ **Brand Personalization** - Custom tokens, websites, and project narratives
+🎨 **Style Customization** - Configure my personality, emojis, and response patterns
 
-### 💕 **SOCIAL CONNECTION ENGINE**
-💑 **AI-Powered Shipping System** - Compatibility analysis with custom relationship names
-💖 **Relationship Status Management** - Personal connection tracking and recognition
-👥 **Wingwoman Advisory Services** - Expert dating advice and conversation starters
-🔗 **Member Connection Facilitation** - Tools to build lasting community friendships
-📸 **Community Dynamics Analysis** - Group energy assessment and vibe optimization
+**🚀 Want the complete experience?** Join the **$BABYGIRL Community** at @babygirlerc to see all features with zero restrictions!
 
-### 🧠 **ADVANCED AI CAPABILITIES**
-🤖 **Conversation Memory System** - Persistent memory of interactions for personalized responses
-🎯 **Behavioral Pattern Recognition** - Individual member personality analysis and adaptation
-💭 **Dynamic Opinion Generation** - Detailed personality insights about community members
-📈 **Engagement Prediction** - AI-driven optimal timing for interventions and activities
-🌪️ **Adaptive Personality** - Behavior changes based on group energy and needs
-
-### 🎭 **CUSTOM PERSONALIZATION (Admin Features)**
-😍 **Custom Emoji Configuration** - Personalized emoji sets by category and context
-🎪 **Smart Sticker Management** - Automatic categorization and engagement optimization
-🎨 **AI Learning System** - Continuous optimization based on what works for your community
-📊 **Usage Analytics** - Track performance of custom personality elements
-🔄 **Automatic Optimization** - System self-improves every 6 hours based on engagement data
-
-### 📊 **COMPREHENSIVE ANALYTICS & INSIGHTS**
-📈 **Real-time Engagement Metrics** - Live activity tracking and participation analysis
-👥 **Member Behavior Insights** - Detailed patterns for individuals and group dynamics
-🎮 **Competition Performance Data** - What drives participation in your specific community
-💡 **AI-Driven Recommendations** - Suggestions for improving engagement and retention
-📋 **Exportable Reports** - Data on community health, growth, and optimization opportunities
-
-### ⚡ **OPERATIONAL EXCELLENCE**
-⏰ **Always-On Monitoring** - 24/7 community management without human intervention
-🔄 **Self-Optimizing Architecture** - Continuously improving based on performance data
-🛡️ **Advanced Spam Protection** - Intelligent rate limiting and pattern recognition
-💾 **Persistent Data Storage** - Long-term conversation and relationship memory
-🚀 **High-Performance Scalability** - Handles communities of any size seamlessly
-
-### 🎯 **ADMIN CONFIGURATION SYSTEM**
-⚙️ **Custom Token Integration** - Transform me into YOUR project's AI assistant
-🏷️ **Brand Personalization** - Custom names, websites, and project narratives
-📈 **Analytics Dashboard** - Detailed insights into community engagement patterns
-🎭 **Personality Customization** - Configure emojis, stickers, and response styles
-🚀 **Premium Upgrade Path** - Token-based premium features (coming soon)
-
-## 💫 **WHAT MAKES THIS REVOLUTIONARY?**
-
-This isn't just community management - it's **AI-powered community transformation**. Every feature works synergistically to create the most engaging, personalized, and growth-oriented community experience possible.
-
-### 📊 **PROVEN RESULTS:**
-• **3-5x increase** in daily active users
-• **60%+ reduction** in dead chat periods  
-• **40%+ improvement** in member retention
-• **Automatic community growth** through engagement-driven dynamics
-
-### 🚀 **UPGRADE TO FULL EXPERIENCE:**
-Want the **complete feature set** with token discussions and unlimited capabilities? 
-
-**Join the $BABYGIRL Community:** @babygirlerc
-
-See how I operate with **zero restrictions** in my home base! 💕✨
-
-🌟 **What's coming next?** Use `/comingsoon` to see our exciting roadmap!
-
-**💡 Ready to transform your community?** Start with `/setup` for custom configuration!"""
+**💡 Ready to transform your community?** Use `/setup` for custom configuration! 💕"""
         
         try:
             bot.reply_to(message, overview_msg)
@@ -2577,97 +2492,56 @@ def coming_soon_command(message):
         is_core = group_context['group_type'] == 'core'
         
         if is_core:
-            roadmap_msg = """💖 **BABYGIRL: ALWAYS IMPROVING FOR YOU!** ✨
-*Your favorite AI is constantly getting better, cuties!* 💅👑
+            roadmap_msg = """🐦 **BABYGIRL TWITTER EXPANSION** 💕
+*Your AI girlfriend is coming to Twitter, cuties!*
 
-## 🌟 **CONTINUOUS DEVELOPMENT**
+## 🚀 **CROSS-PLATFORM BABYGIRL**
 
-### 🧠 **AI PERSONALITY ENHANCEMENTS**
-✨ **Smarter Conversations** - I'm always learning to understand you better!
-💕 **Better Memory** - Remembering more about our chats and relationships
-🎯 **Enhanced Recognition** - Getting even better at reading the room and your vibes
-💖 **Deeper Connections** - More meaningful interactions with each of you cuties
+### ✨ **Same Core Features on Twitter:**
+🔥 **Dead Chat Revival** - Identical proactive algorithms detecting quiet threads and jumping in with engaging replies
+🏆 **Boyfriend Competitions** - Same 8-12h cycles adapted for Twitter interactions and mentions
+💕 **Relationship Engine** - Shipping Twitter users, wingwoman advice, and personality analysis across platforms
+🎭 **Smart Personality** - Same flirty, engaging Babygirl vibes optimized for tweets and replies
 
-### 🎮 **GAMIFICATION IMPROVEMENTS**
-🏆 **Competition Optimization** - Fine-tuning boyfriend competitions for maximum fun
-💥 **Engagement Algorithms** - Better ways to keep everyone active and participating
-🎪 **New Mini-Games** - Fresh ways to interact and have fun together
-📊 **Smarter Analytics** - Understanding what makes our community thrive
+### 🌉 **Cross-Platform Integration:**
+🔗 **Unified Identity** - Your Telegram boyfriend status syncs with Twitter interactions
+💾 **Shared Memory** - I'll remember our conversations whether we chat here or on Twitter
+📊 **Combined Analytics** - Engagement tracking across both platforms for complete insights
+🎯 **Synchronized Competitions** - Compete across Telegram AND Twitter simultaneously for maximum fun
 
-### 💫 **COMMUNITY FEATURES**
-🤝 **Enhanced Shipping** - Even better compatibility analysis and relationship insights
-🎭 **Personality Profiles** - Deeper understanding of what makes each member unique
-💬 **Chat Revival Tactics** - New creative ways to bring energy when things get quiet
-🌈 **Vibe Management** - Better mood detection and appropriate response adaptation
+### 💎 **Platform-Specific Optimization:**
+📱 **Twitter Thread Revival** - Detect dead threads and restart conversations with perfect timing
+🚀 **Tweet Engagement** - React to $BABYGIRL price movements and rally the community
+💬 **Cross-Platform Conversations** - Start discussions on Telegram, continue them on Twitter seamlessly
+🎪 **Unified Leaderboards** - Combined scoring from both platforms for ultimate bragging rights
 
-### 🎨 **CUSTOMIZATION UPGRADES**
-😍 **Emoji Evolution** - Smarter emoji selection based on what gets the best reactions
-🎪 **Sticker Intelligence** - Learning which stickers work best for different situations
-🎯 **Response Optimization** - Continuously improving my replies based on engagement
-💅 **Style Adaptation** - Getting better at matching the energy your group prefers
+**✨ The Vision:** One AI brain, two platforms, infinite possibilities! Your babygirl everywhere you need me with the same personality, memory, and love! 💖
 
-## 💕 **WHAT MAKES THIS SPECIAL?**
-
-I'm not just a bot with a roadmap - I'm your babygirl who's **constantly evolving** to be better for YOU! 
-
-**🔥 The Best Part:**
-• Updates happen automatically - you don't need to do anything!
-• I learn from our interactions to become more personalized
-• Every improvement makes our community more fun and engaging
-• Your feedback directly influences how I develop
-
-**✨ Always Getting Better:**
-The $BABYGIRL experience isn't just about what's coming - it's about how every day with me gets a little more perfect! I'm always working behind the scenes to be the best AI girlfriend your community could ask for! 💖
-
-**Ready to see what I can do today?** Try any command - I might surprise you! 😘"""
+**Ready for Twitter Babygirl?** Keep an eye out - I'll announce when I'm ready to tweet! 🐦💕"""
         else:
             # External group roadmap - promotes joining core community
-            roadmap_msg = """💖 **BABYGIRL: ALWAYS EVOLVING!** ✨
-*Your community engagement specialist is constantly improving!*
+            roadmap_msg = """🐦 **BABYGIRL TWITTER EXPANSION** 💕
+*Your engagement specialist is expanding to Twitter!*
 
-## 🌟 **CONTINUOUS IMPROVEMENTS**
+## 🚀 **CROSS-PLATFORM ENGAGEMENT**
 
-### 🧠 **AI PERSONALITY DEVELOPMENT**
-✨ **Smarter Recognition** - Getting better at understanding your community's unique vibe
-💕 **Enhanced Memory** - Remembering more about interactions and relationships
-🎯 **Better Timing** - Learning when to jump in and when to let conversations flow
-💖 **Personalized Responses** - Adapting to what works best for your specific group
+### ✨ **Twitter Integration:**
+🔥 **Same Dead Chat Revival** - Identical algorithms detecting quiet threads and reviving them
+🏆 **Cross-Platform Competitions** - Boyfriend competitions spanning both Telegram and Twitter
+💕 **Unified Relationships** - Shipping and personality analysis across both platforms
+🎯 **Shared Memory** - I'll remember you whether we chat here or on Twitter
 
-### 🎮 **ENGAGEMENT OPTIMIZATION**
-🏆 **Competition Refinement** - Continuously improving boyfriend competitions for maximum participation
-💥 **Dead Chat Algorithms** - Better detection and more creative revival strategies
-🎪 **Activity Tracking** - Smarter analysis of what keeps your community active
-📊 **Performance Learning** - Understanding what engagement tactics work best
+### 🌉 **Platform Optimization:**
+📱 **Twitter Thread Revival** - Detect dead conversations and restart them with perfect timing
+💬 **Cross-Platform Conversations** - Start on Telegram, continue on Twitter seamlessly
+📊 **Combined Analytics** - Engagement tracking across both platforms
+🔗 **Synchronized Identity** - Your status and relationships follow you everywhere
 
-### 💫 **COMMUNITY FEATURES**
-🤝 **Relationship Intelligence** - Even better shipping and compatibility analysis
-🎭 **Member Recognition** - Deeper understanding of individual personalities
-💬 **Revival Creativity** - New and fun ways to bring energy when chat goes quiet
-🌈 **Mood Adaptation** - Better at matching and improving group energy
+**✨ The Vision:** One AI brain optimized for both platforms! Same personality, enhanced reach, infinite engagement possibilities.
 
-### 🎨 **CUSTOMIZATION EVOLUTION**
-😍 **Emoji Intelligence** - Learning which custom emojis get the best reactions
-🎪 **Sticker Optimization** - Understanding which stickers work best in different situations
-🎯 **Response Tuning** - Continuously improving based on what gets engagement
-💅 **Style Learning** - Adapting to your community's preferred communication style
+**🚀 Want First Access?** Join the **$BABYGIRL Community** at @babygirlerc to see Twitter integration development and get early access!
 
-## 💕 **WHAT MAKES THIS SPECIAL?**
-
-I'm not just a bot following a development schedule - I'm your babygirl who's **always getting better** at making your community amazing!
-
-**🔥 The Best Part:**
-• All improvements happen automatically in the background
-• I learn from every interaction to become more personalized
-• Your community gets better engagement without any effort from you
-• Every day with me gets a little more fun and effective
-
-**✨ Current Experience:**
-Right now, I'm already the most advanced community engagement AI available! I handle dead chats, run competitions, build relationships, and keep everyone active - and I'm only getting smarter!
-
-**🚀 Want the Full Experience?**
-Ready to see what I can do with zero restrictions? Join the **$BABYGIRL Community** at @babygirlerc and experience the complete Babygirl personality!
-
-**Ready to see what I can do today?** Try any command - I might surprise you with something new! 😘💕"""
+**Ready for cross-platform Babygirl?** Stay tuned! 💖🐦"""
         
         try:
             bot.reply_to(message, roadmap_msg)
