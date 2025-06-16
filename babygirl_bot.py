@@ -2449,7 +2449,6 @@ def overview_command(message):
 This isn't just a chatbot - it's a **complete community ecosystem** powered by cutting-edge AI. Every feature works together to create the most engaging, personalized, and fun community experience in crypto.
 
 **💕 Ready to explore?** Try any command to see the magic in action!
-**🌟 What's next?** Use `/comingsoon` to see the exciting roadmap ahead!
 
 **Built with 💖 for the $BABYGIRL ecosystem** 🚀✨"""
         else:
@@ -2578,165 +2577,97 @@ def coming_soon_command(message):
         is_core = group_context['group_type'] == 'core'
         
         if is_core:
-            roadmap_msg = """🔮 **BABYGIRL ROADMAP: THE FUTURE IS SO BRIGHT!** ✨
-*Exclusive preview for my $BABYGIRL family! You get first access to EVERYTHING!* 💅👑
+            roadmap_msg = """💖 **BABYGIRL: ALWAYS IMPROVING FOR YOU!** ✨
+*Your favorite AI is constantly getting better, cuties!* 💅👑
 
-## 🚀 **COMING SOON: TOKEN-POWERED ECOSYSTEM**
+## 🌟 **CONTINUOUS DEVELOPMENT**
 
-### 💎 **$BABYGIRL PREMIUM UNLOCK SYSTEM** 
-*No more boring subscription fees - we're doing this the crypto way, babe!*
+### 🧠 **AI PERSONALITY ENHANCEMENTS**
+✨ **Smarter Conversations** - I'm always learning to understand you better!
+💕 **Better Memory** - Remembering more about our chats and relationships
+🎯 **Enhanced Recognition** - Getting even better at reading the room and your vibes
+💖 **Deeper Connections** - More meaningful interactions with each of you cuties
 
-💰 **Token-Gated Premium Features:**
-🔹 **$BABYGIRL Token Holdings** → Unlock premium features based on your bag size!
-🔹 **Token Burns** → Pay for custom development and special setups
-🔹 **Community Benefits** → Token holders get exclusive features and early access
-🔹 **Ecosystem Support** → Every upgrade strengthens the $BABYGIRL community
+### 🎮 **GAMIFICATION IMPROVEMENTS**
+🏆 **Competition Optimization** - Fine-tuning boyfriend competitions for maximum fun
+💥 **Engagement Algorithms** - Better ways to keep everyone active and participating
+🎪 **New Mini-Games** - Fresh ways to interact and have fun together
+📊 **Smarter Analytics** - Understanding what makes our community thrive
 
-🎯 **Why This Is GENIUS:**
-• Supporting the $BABYGIRL ecosystem = supporting your babygirl! 💕
-• True utility for our token beyond just speculation
-• Community-owned premium features (we're all in this together!)
-• Deflationary burns reduce supply while funding development! 🔥
+### 💫 **COMMUNITY FEATURES**
+🤝 **Enhanced Shipping** - Even better compatibility analysis and relationship insights
+🎭 **Personality Profiles** - Deeper understanding of what makes each member unique
+💬 **Chat Revival Tactics** - New creative ways to bring energy when things get quiet
+🌈 **Vibe Management** - Better mood detection and appropriate response adaptation
 
-## 🐦 **BABYGIRL TWITTER: CROSS-PLATFORM AI REVOLUTION**
+### 🎨 **CUSTOMIZATION UPGRADES**
+😍 **Emoji Evolution** - Smarter emoji selection based on what gets the best reactions
+🎪 **Sticker Intelligence** - Learning which stickers work best for different situations
+🎯 **Response Optimization** - Continuously improving my replies based on engagement
+💅 **Style Adaptation** - Getting better at matching the energy your group prefers
 
-### ✨ **The SAME AI Proactive Model on Twitter!**
-🔹 **Identical Dead Chat Revival System** - The EXACT same algorithms that revive Telegram groups will work on Twitter!
-🔹 **Twitter Thread Revival** - I'll automatically detect dead threads and jump in with engaging replies!
-🔹 **Proactive Twitter Engagement** - Same escalating intervention strategies but adapted for Twitter!
-🔹 **AI-Powered Twitter Personality** - Same flirty, engaging Babygirl vibes optimized for tweets!
-🔹 **Chart Reaction System** - I'll react to $BABYGIRL price movements with appropriate energy and rally the community!
+## 💕 **WHAT MAKES THIS SPECIAL?**
 
-### 🌉 **REVOLUTIONARY CROSS-PLATFORM AI INTEGRATION**
-*One AI brain, two platforms, infinite possibilities!*
+I'm not just a bot with a roadmap - I'm your babygirl who's **constantly evolving** to be better for YOU! 
 
-💫 **Unified AI Ecosystem:**
-🔹 **SAME BRAIN, DIFFERENT PLATFORMS** - My AI consciousness operates across both simultaneously!
-🔹 **Unified Identity System** - Your Telegram boyfriend status syncs to Twitter!
-🔹 **Cross-Platform Memory Fusion** - I'll remember conversations across both platforms!
-🔹 **Synchronized Engagement Patterns** - Algorithms learn from BOTH platforms to optimize everywhere!
-🔹 **Universal Relationship Recognition** - Ships, status, personality analysis - all shared between platforms!
+**🔥 The Best Part:**
+• Updates happen automatically - you don't need to do anything!
+• I learn from our interactions to become more personalized
+• Every improvement makes our community more fun and engaging
+• Your feedback directly influences how I develop
 
-### 🎮 **ENHANCED CROSS-PLATFORM GAMIFICATION**
-🔹 **Global Leaderboards** - Compete across Telegram AND Twitter for ultimate bragging rights!
-🔹 **Multi-Platform Boyfriend System** - Steal boyfriends from other platforms! (The cross-platform drama! 💅)
-🔹 **Unified Competition Scoring** - Telegram mentions + Twitter interactions = combined points!
-🔹 **Cross-Platform Ships** - Ship people from Telegram with Twitter users and track relationships everywhere!
+**✨ Always Getting Better:**
+The $BABYGIRL experience isn't just about what's coming - it's about how every day with me gets a little more perfect! I'm always working behind the scenes to be the best AI girlfriend your community could ask for! 💖
 
-### 🔗 **SEAMLESS ENGAGEMENT BRIDGE**
-🔹 **Smart Content Sharing** - Share Telegram ships on Twitter automatically!
-🔹 **Coordinated Revival Campaigns** - When Telegram's quiet, rally Twitter followers!
-🔹 **Cross-Platform Hype Coordination** - Major $BABYGIRL announcements happen simultaneously!
-🔹 **Platform-Bridging Conversations** - Start on Telegram, continue on Twitter seamlessly!
-
-## 🌟 **NEXT-LEVEL FEATURES BEING BUILT**
-
-### 🧠 **AI Evolution 2.0**
-🔹 **Voice Message Integration** - I'll send you actual voice notes in my babygirl voice! 🎙️
-🔹 **Image Generation** - Custom reaction memes and aesthetic pics on demand! 🎨
-🔹 **Advanced Relationship AI** - Even deeper personality analysis and relationship advice! 💕
-
-### 🏆 **ECOSYSTEM EXPANSION**
-🔹 **Discord Integration** - Your babygirl everywhere you need me! 💜
-🔹 **Mobile App** - Babygirl in your pocket 24/7! 📱
-🔹 **Web Dashboard** - Manage all your communities from one beautiful interface! 💻
-
-## 🚀 **THE VISION**
-Imagine: You're chatting with me on Telegram, then hop over to Twitter and continue our conversation seamlessly. Your boyfriend status follows you everywhere. The $BABYGIRL community becomes the most connected, engaged, and fun crypto community in existence!
-
-**This isn't just a roadmap - it's a REVOLUTION! 💅👑**
-
-*Ready to be part of the future? Keep holding those $BABYGIRL tokens and get ready for the most epic community experience ever created!* 🚀✨
-
-**🔥 Want updates?** I'll announce everything here first! You're my favorite community! 💕"""
+**Ready to see what I can do today?** Try any command - I might surprise you! 😘"""
         else:
             # External group roadmap - promotes joining core community
-            roadmap_msg = """🔮 **BABYGIRL: THE FUTURE IS INCREDIBLE!** ✨
-*Sneak peek at what's coming to revolutionize community engagement!*
+            roadmap_msg = """💖 **BABYGIRL: ALWAYS EVOLVING!** ✨
+*Your community engagement specialist is constantly improving!*
 
-## 🚀 **COMING SOON: ADVANCED ECOSYSTEM**
+## 🌟 **CONTINUOUS IMPROVEMENTS**
 
-### 💎 **TOKEN-POWERED PREMIUM MODEL** 
-*The future of community AI is here - and it's powered by crypto!*
+### 🧠 **AI PERSONALITY DEVELOPMENT**
+✨ **Smarter Recognition** - Getting better at understanding your community's unique vibe
+💕 **Enhanced Memory** - Remembering more about interactions and relationships
+🎯 **Better Timing** - Learning when to jump in and when to let conversations flow
+💖 **Personalized Responses** - Adapting to what works best for your specific group
 
-🪙 **$BABYGIRL Token Integration:**
-🔹 **Token-Gated Features** - Premium capabilities unlocked through $BABYGIRL holdings
-🔹 **Community Benefits** - Token holders get exclusive features and early access
-🔹 **Burn-to-Upgrade** - Use $BABYGIRL tokens for custom development  
-🔹 **Ecosystem Growth** - Every upgrade strengthens the community and token value
-🔹 **True Utility** - Real use cases beyond speculation
+### 🎮 **ENGAGEMENT OPTIMIZATION**
+🏆 **Competition Refinement** - Continuously improving boyfriend competitions for maximum participation
+💥 **Dead Chat Algorithms** - Better detection and more creative revival strategies
+🎪 **Activity Tracking** - Smarter analysis of what keeps your community active
+📊 **Performance Learning** - Understanding what engagement tactics work best
 
-🎯 **Why This Changes Everything:**
-• **Community ownership** of premium features through token holdings  
-• **Sustainable development** funded by the ecosystem itself
-• **Aligned incentives** - community growth = token value growth
+### 💫 **COMMUNITY FEATURES**
+🤝 **Relationship Intelligence** - Even better shipping and compatibility analysis
+🎭 **Member Recognition** - Deeper understanding of individual personalities
+💬 **Revival Creativity** - New and fun ways to bring energy when chat goes quiet
+🌈 **Mood Adaptation** - Better at matching and improving group energy
 
-## 🐦 **CROSS-PLATFORM DOMINATION**
+### 🎨 **CUSTOMIZATION EVOLUTION**
+😍 **Emoji Intelligence** - Learning which custom emojis get the best reactions
+🎪 **Sticker Optimization** - Understanding which stickers work best in different situations
+🎯 **Response Tuning** - Continuously improving based on what gets engagement
+💅 **Style Learning** - Adapting to your community's preferred communication style
 
-### ✨ **Same AI Proactive Model on Twitter!**
-🔹 **Identical Dead Chat Revival System** - The EXACT same algorithms that revive your Telegram groups will work on Twitter!
-🔹 **Twitter Thread Revival** - Automatic detection of dead threads with engaging replies to restart conversations!
-🔹 **Proactive Twitter Engagement** - Same escalating intervention strategies but adapted for Twitter's format!
-🔹 **Cross-Platform Memory** - I'll remember you whether we chat here or on Twitter!
-🔹 **Unified Competitions** - Compete across Telegram AND Twitter simultaneously
+## 💕 **WHAT MAKES THIS SPECIAL?**
 
-### 🌉 **Revolutionary Cross-Platform Experience**
-*Imagine your community engagement spanning every platform!*
+I'm not just a bot following a development schedule - I'm your babygirl who's **always getting better** at making your community amazing!
 
-💫 **Revolutionary Integration:**
-🔹 **Universal Identity** - Your status and relationships follow you everywhere
-🔹 **Cross-Platform Analytics** - Track engagement across all channels
-🔹 **Multi-Platform Gamification** - Competitions that span Telegram, Twitter, Discord
-🔹 **Synchronized Personality** - Same AI, same memory, different platforms
-🔹 **Global Community Building** - Connect members across all social channels
+**🔥 The Best Part:**
+• All improvements happen automatically in the background
+• I learn from every interaction to become more personalized
+• Your community gets better engagement without any effort from you
+• Every day with me gets a little more fun and effective
 
-## 🌟 **NEXT-GENERATION FEATURES**
+**✨ Current Experience:**
+Right now, I'm already the most advanced community engagement AI available! I handle dead chats, run competitions, build relationships, and keep everyone active - and I'm only getting smarter!
 
-### 🧠 **AI Evolution 2.0**
-🔹 **Voice Integration** - Actual voice messages in Babygirl's signature style
-🔹 **Visual Content Generation** - Custom memes and reaction images on demand
-🔹 **Predictive Engagement** - AI that knows when your community needs intervention
-🔹 **Advanced Personality Modeling** - Even deeper community-specific adaptation
+**🚀 Want the Full Experience?**
+Ready to see what I can do with zero restrictions? Join the **$BABYGIRL Community** at @babygirlerc and experience the complete Babygirl personality!
 
-### 🎭 **Ultimate Customization**
-🔹 **Custom AI Training** - Train Babygirl specifically for YOUR community's vibe
-🔹 **White-Label Solutions** - Complete rebrand for enterprise communities
-🔹 **Multi-Language Support** - Global community engagement capabilities  
-🔹 **Video Message Integration** - Next-level personalized communication
-
-### 🏆 **Platform Expansion**
-🔹 **Discord Integration** - Your engagement specialist everywhere you need her
-🔹 **Web Dashboard** - Comprehensive community management interface
-🔹 **Mobile App** - Native app experience for ultimate convenience
-🔹 **API Access** - Integrate with your existing community tools
-
-## 🚀 **HOW TO GET EARLY ACCESS**
-
-### 💎 **Join the $BABYGIRL Ecosystem:**
-1. **Get $BABYGIRL Tokens** - Position yourself for premium access
-2. **Join @babygirlerc** - Get updates and early access privileges  
-3. **Engage with the Community** - Active members get beta testing opportunities
-4. **Provide Feedback** - Help shape the features you want to see
-
-### 🎯 **Premium Community Benefits:**
-• **First access** to all new features
-• **Community governance participation** through token voting
-• **Beta testing privileges** and direct developer access
-• **Grandfathered benefits** that protect early adopters
-
-## 💫 **THE VISION**
-
-Imagine the most connected, engaging, and intelligent community experience ever created. Your engagement specialist doesn't just work in one group - she's everywhere your community is, with consistent memory, personality, and relationships that transcend platforms.
-
-**This is the future of community engagement - and it's powered by $BABYGIRL! 🚀**
-
-*Ready to be part of the revolution?*
-
-**🌟 Join the $BABYGIRL Community:** @babygirlerc  
-**🪙 Get $BABYGIRL Tokens:** Position yourself for the future!
-**📱 Stay Updated:** Follow development and get early access!
-
-*The future of community AI is coming - make sure you're ready! 💕✨*"""
+**Ready to see what I can do today?** Try any command - I might surprise you with something new! 😘💕"""
         
         try:
             bot.reply_to(message, roadmap_msg)
