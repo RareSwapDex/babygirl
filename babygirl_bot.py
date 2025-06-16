@@ -1466,18 +1466,40 @@ def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive
         should_send_message = False
         is_followup = False
         
+        # Get group title to properly identify core groups
+        try:
+            group_info = bot.get_chat(group_id)
+            group_title = group_info.title if group_info else None
+        except:
+            group_title = None
+        
+        # Check if this is a core group to use shorter intervals
+        is_core = is_core_group(group_id, group_title)
+        
         if not proactive_state['ignored_active']:
-            # First ignored message
+            # First ignored message - use different intervals for core vs external groups
             should_send_message = True
-            new_interval = 900  # 15 minutes - BACK TO NORMAL MODE
+            if is_core:
+                new_interval = 300  # 5 minutes for $BABYGIRL community (core group)
+                logger.info(f"🎯 CORE GROUP DETECTED: {group_id} ({group_title}) - using 5-minute interval")
+            else:
+                new_interval = 900  # 15 minutes for external groups
+                logger.info(f"🔗 External group: {group_id} ({group_title}) - using 15-minute interval")
         else:
             # Check if it's time for a follow-up
             time_since_last = current_time - proactive_state['ignored_last_sent']
             if time_since_last >= proactive_state['ignored_interval']:
                 should_send_message = True
                 is_followup = True
-                # Reduce interval by 50%, minimum 5 minutes (300 seconds) - BACK TO NORMAL MODE
-                new_interval = max(300, proactive_state['ignored_interval'] // 2)
+                # Reduce interval by 50% with different minimums for core vs external
+                if is_core:
+                    # Core groups: minimum 2 minutes (120 seconds)
+                    new_interval = max(120, proactive_state['ignored_interval'] // 2)
+                    logger.info(f"🎯 CORE GROUP FOLLOW-UP: {group_id} - using {new_interval//60}min interval")
+                else:
+                    # External groups: minimum 5 minutes (300 seconds)
+                    new_interval = max(300, proactive_state['ignored_interval'] // 2)
+                    logger.info(f"🔗 External group follow-up: {group_id} - using {new_interval//60}min interval")
         
         if should_send_message:
             # Determine if we should tag users (every other message)
@@ -2259,23 +2281,34 @@ def initialize_proactive_states():
             # AGGRESSIVE: Backdate ALL groups regardless of their current state
             backdated_time = current_time - 3600  # 1 hour ago (reduced for faster trigger)
             
+            # Check if this is a core group for proper interval setup
+            try:
+                group_info = bot.get_chat(group_id)
+                group_title = group_info.title if group_info else None
+                is_core = is_core_group(group_id, group_title)
+                ignored_interval = 300 if is_core else 900  # 5 min for core, 15 min for external
+                logger.info(f"🔍 Group {group_id} ({group_title}) - Core: {is_core}, Interval: {ignored_interval//60}min")
+            except:
+                ignored_interval = 900  # Default to 15 minutes if can't check
+                logger.warning(f"⚠️ Could not check group {group_id} title, using default interval")
+            
             if not existing_state:
                 # Create new state with backdated timestamp to trigger immediate action
                 c.execute("""INSERT INTO proactive_state 
                              (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
                               ignored_active, ignored_last_sent, ignored_interval)
-                             VALUES (?, 0, ?, 1800, 0, ?, 3600)""", 
-                         (group_id, backdated_time, backdated_time))
-                logger.info(f"🆕 CREATED proactive state for group {group_id}")
+                             VALUES (?, 0, ?, 300, 0, ?, ?)""", 
+                         (group_id, backdated_time, backdated_time, ignored_interval))
+                logger.info(f"🆕 CREATED proactive state for group {group_id} with {ignored_interval//60}min ignored interval")
             else:
                 # AGGRESSIVE UPDATE: Reset ALL existing groups (no time check)
                 c.execute("""UPDATE proactive_state 
                              SET dead_chat_last_sent = ?, dead_chat_active = 0,
                                  ignored_last_sent = ?, ignored_active = 0,
-                                 dead_chat_interval = 1800, ignored_interval = 3600
+                                 dead_chat_interval = 300, ignored_interval = ?
                              WHERE group_id = ?""", 
-                         (backdated_time, backdated_time, group_id))
-                logger.info(f"🔄 RESET proactive state for group {group_id}")
+                         (backdated_time, backdated_time, ignored_interval, group_id))
+                logger.info(f"🔄 RESET proactive state for group {group_id} with {ignored_interval//60}min ignored interval")
         
         conn.commit()
         conn.close()
@@ -2556,6 +2589,7 @@ def debug_command(message):
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
+        current_time = int(time.time())
         
         # Check database status
         c.execute("SELECT COUNT(*) FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
@@ -2567,12 +2601,30 @@ def debug_command(message):
         c.execute("SELECT COUNT(*) FROM activity_table WHERE group_id = ?", (str(message.chat.id),))
         activity_count = c.fetchone()[0]
         
+        # Check proactive state
+        c.execute("SELECT * FROM proactive_state WHERE group_id = ?", (str(message.chat.id),))
+        proactive_result = c.fetchone()
+        
+        # Check recent messages
+        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ?", 
+                 (str(message.chat.id), current_time - 900))
+        recent_messages = c.fetchone()[0]
+        
+        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ? AND is_bot_mention = 1", 
+                 (str(message.chat.id), current_time - 900))
+        recent_mentions = c.fetchone()[0]
+        
         # Get bot info
         bot_info = bot.get_me()
+        
+        # Check if core group
+        is_core = is_core_group(str(message.chat.id), message.chat.title)
         
         debug_info = f"""🔧 Debug Info:
 Chat ID: {message.chat.id}
 Chat Type: {message.chat.type}
+Chat Title: {message.chat.title}
+Is Core Group: {is_core}
 User ID: {message.from_user.id}
 Username: {message.from_user.username}
 
@@ -2584,6 +2636,17 @@ Database:
 Boyfriends: {bf_count}
 Cooldowns: {cooldown_count}
 Activity records: {activity_count}
+
+Recent Activity (15min):
+Messages: {recent_messages}
+Bot mentions: {recent_mentions}
+
+Proactive State:
+{f"Active: dead_chat={proactive_result[1]}, ignored={proactive_result[4]}" if proactive_result else "No proactive state found"}
+{f"Last sent: dead_chat={proactive_result[2]}, ignored={proactive_result[5]}" if proactive_result else ""}
+{f"Intervals: dead_chat={proactive_result[3]}s, ignored={proactive_result[6]}s" if proactive_result else ""}
+
+Time since last ignored: {(current_time - proactive_result[5])//60 if proactive_result and proactive_result[5] > 0 else 'Never'}min
 
 Try mentioning: @{bot_info.username} hello"""
         
@@ -2679,6 +2742,21 @@ def mention_test(message):
     except Exception as e:
         logger.error(f"Error in mention test: {e}")
         bot.reply_to(message, "Test failed! Check logs.")
+
+@bot.message_handler(commands=['proactive'])
+def proactive_test(message):
+    """Force trigger proactive engagement for testing"""
+    try:
+        logger.info(f"🧪 Manual proactive test triggered by {message.from_user.username} in {message.chat.id}")
+        
+        # Force run the proactive engagement check for this group
+        check_proactive_engagement(bot)
+        
+        bot.reply_to(message, "🔧 Proactive engagement check triggered! Check logs for results.")
+        
+    except Exception as e:
+        logger.error(f"Error in proactive test: {e}")
+        bot.reply_to(message, f"Proactive test failed: {e}")
 
 @bot.message_handler(commands=['start'])
 def start(message):
