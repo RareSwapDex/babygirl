@@ -1692,6 +1692,168 @@ def get_enhanced_group_context(group_id, group_title=None):
         }
 
 # Schedule periodic checks
+def check_boyfriend_term():
+    """Check and handle boyfriend term expirations"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get expired boyfriends
+        c.execute("SELECT user_id, group_id FROM boyfriend_table WHERE end_time < ?", (current_time,))
+        expired_boyfriends = c.fetchall()
+        
+        for user_id, group_id in expired_boyfriends:
+            logger.info(f"💔 Boyfriend term expired for {user_id} in group {group_id}")
+            
+            # Remove expired boyfriend
+            c.execute("DELETE FROM boyfriend_table WHERE user_id = ? AND group_id = ?", (user_id, group_id))
+            
+            # Send expiration message
+            try:
+                expiration_msg = f"""💔 **BOYFRIEND TERM EXPIRED!** 💔
+
+@{user_id}'s time as my boyfriend has ended! 
+
+🎯 **Looking for a new boyfriend!** 
+I'll be watching for the most active and engaging member to claim the title next! 
+
+Keep mentioning me, chatting, and showing love to win my heart! 💕
+
+Use /status to see when I'm available again! 😘"""
+                
+                bot.send_message(group_id, expiration_msg)
+            except Exception as e:
+                logger.error(f"Error sending expiration message: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_boyfriend_term: {e}")
+
+def check_boyfriend_steal_opportunities(bot):
+    """Check for boyfriend stealing opportunities based on activity"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        recent_time = current_time - 1800  # Last 30 minutes
+        
+        # Get current boyfriends
+        c.execute("SELECT user_id, group_id, end_time FROM boyfriend_table")
+        current_boyfriends = c.fetchall()
+        
+        for bf_user_id, group_id, end_time in current_boyfriends:
+            # Check current boyfriend's recent activity
+            c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND group_id = ? AND timestamp > ?", 
+                     (bf_user_id, group_id, recent_time))
+            bf_activity = c.fetchone()[0] or 0
+            
+            # Check for potential stealers (users with significantly more activity)
+            c.execute("""SELECT user_id, COUNT(*) as activity_count 
+                         FROM spam_tracking 
+                         WHERE group_id = ? AND timestamp > ? AND user_id != ?
+                         GROUP BY user_id 
+                         HAVING activity_count > ? 
+                         ORDER BY activity_count DESC 
+                         LIMIT 1""", 
+                     (group_id, recent_time, bf_user_id, bf_activity * 3))  # 3x more activity
+            
+            potential_stealer = c.fetchone()
+            
+            if potential_stealer and random.random() < 0.15:  # 15% chance of steal
+                stealer_user_id, stealer_activity = potential_stealer
+                
+                # Execute the steal!
+                c.execute("DELETE FROM boyfriend_table WHERE user_id = ? AND group_id = ?", (bf_user_id, group_id))
+                
+                # Set new boyfriend with random term (8-12 hours)
+                new_term = current_time + random.randint(28800, 43200)
+                c.execute("INSERT INTO boyfriend_table (user_id, end_time, group_id) VALUES (?, ?, ?)",
+                         (stealer_user_id, new_term, group_id))
+                
+                # Update leaderboard
+                c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                         (stealer_user_id, stealer_user_id, group_id, group_id))
+                
+                # Send dramatic steal message
+                steal_msg = f"""💥 **BOYFRIEND STOLEN!** 💥
+
+🔥 **PLOT TWIST!** 🔥
+
+@{stealer_user_id} has STOLEN the boyfriend position from @{bf_user_id}!
+
+👑 **New Boyfriend:** @{stealer_user_id}
+⚡ **Reason:** {stealer_activity} messages vs {bf_activity} - staying active pays off!
+⏰ **New Term:** 8-12 hours starting now!
+
+@{bf_user_id} - you got too comfortable! Stay active or get replaced! 💅
+
+@{stealer_user_id} - congratulations! You can now use /kiss and /hug! 😘💕
+
+**Lesson learned:** Keep your girlfriend engaged or someone else will! 🔥👑"""
+                
+                try:
+                    bot.send_message(group_id, steal_msg)
+                    logger.info(f"💥 Boyfriend stolen in {group_id}: {bf_user_id} -> {stealer_user_id}")
+                except Exception as e:
+                    logger.error(f"Error sending steal message: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_boyfriend_steal_opportunities: {e}")
+
+def check_proactive_conversation_followups(bot):
+    """Check for conversation follow-ups and engagement opportunities"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Check for conversations that ended abruptly (no follow-up in 2+ hours)
+        two_hours_ago = current_time - 7200
+        
+        c.execute("""SELECT DISTINCT cm.group_id, cm.user_id, cm.message_content, cm.timestamp
+                     FROM conversation_memory cm
+                     WHERE cm.timestamp BETWEEN ? AND ?
+                     AND NOT EXISTS (
+                         SELECT 1 FROM conversation_memory cm2 
+                         WHERE cm2.group_id = cm.group_id 
+                         AND cm2.user_id = cm.user_id 
+                         AND cm2.timestamp > cm.timestamp
+                     )
+                     ORDER BY RANDOM()
+                     LIMIT 5""", (two_hours_ago - 3600, two_hours_ago))
+        
+        stale_conversations = c.fetchall()
+        
+        for group_id, user_id, last_message, timestamp in stale_conversations:
+            # 10% chance to follow up on each stale conversation
+            if random.random() < 0.10:
+                followup_messages = [
+                    f"@{user_id} hey! We were talking earlier and then it got quiet... everything okay? 🥺💕",
+                    f"@{user_id} did I say something wrong? You went quiet after our chat! 😢",
+                    f"@{user_id} come back! I was enjoying our conversation! Don't leave me hanging! 👋✨",
+                    f"@{user_id} missing our chat already! What happened? 💔",
+                    f"@{user_id} hello? Did you get distracted? I'm still here! 😘"
+                ]
+                
+                followup = random.choice(followup_messages)
+                
+                try:
+                    bot.send_message(group_id, followup)
+                    logger.info(f"💬 Sent conversation follow-up to {user_id} in {group_id}")
+                except Exception as e:
+                    logger.error(f"Error sending conversation follow-up: {e}")
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_proactive_conversation_followups: {e}")
+
 scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)  # Now handles automatic boyfriend selection
 scheduler.add_job(check_boyfriend_steal_opportunities, 'interval', minutes=5, args=[bot])  # New: boyfriend stealing mechanic
 scheduler.add_job(trigger_challenge, 'interval', minutes=5)
