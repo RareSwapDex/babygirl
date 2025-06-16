@@ -2048,6 +2048,7 @@ Try mentioning me: @babygirl_bf_bot to explore everything! ✨"""
 • **Social Relationship Tools** - I help members connect and bond
 • **Memory System** - I'll remember conversations and build relationships
 • **Mood Detection** - My responses adapt to your group's energy
+• **Custom Personalization** - Admins can configure custom emojis and stickers
 
 **📊 Expected Results:**
 ✅ Immediate reduction in silent periods
@@ -2165,6 +2166,8 @@ Join @babygirlerc for our full community experience! 💕✨"""
 • **Mood Detection** - My personality adapts to group energy
 • **Relationship Tracking** - I monitor member connections and dynamics
 • **Activity Analytics** - Real-time insights into group engagement patterns
+• **Custom Emojis & Stickers** - Admins can personalize my reactions and responses
+• **AI-Powered Optimization** - Smart learning from what engages your community best
 
 **⚡ GUARANTEED RESULTS:** Groups using my services see immediate improvement in daily active users, message frequency, and member retention.
 
@@ -2214,10 +2217,13 @@ Add me to your group and use /start to see immediate results!
 
 ⚙️ **ADMIN CONFIGURATION (Admins Only):**
 /setup - Configure custom token and group settings  
+/emojis - Configure custom emojis and reactions
+/stickers - Configure custom stickers and frequency
 /analytics - View engagement metrics and insights
 /upgrade - See premium features and token requirements
 
 🚀 **Quick Token Setup:** `/setup token YOURTOKEN YTK yourwebsite.com`
+🎭 **Custom Personality:** `/emojis add general "💕,✨,😘"` and send stickers!
 📊 **Track Progress:** `/analytics` for detailed engagement data
 
 💡 **Unlock Custom Token Features:** Transform me into YOUR community's AI assistant! I'll discuss your token with the same enthusiasm as $BABYGIRL in the core community!"""
@@ -2287,6 +2293,7 @@ Try mentioning me: @babygirl_bf_bot to explore everything! ✨"""
 • **Social Relationship Tools** - I help members connect and bond
 • **Memory System** - I'll remember conversations and build relationships
 • **Mood Detection** - My responses adapt to your group's energy
+• **Custom Personalization** - Admins can configure custom emojis and stickers
 
 **📊 Expected Results:**
 ✅ Immediate reduction in silent periods
@@ -4281,6 +4288,11 @@ Follow @babygirlerc for launch announcements and early access!
 • `/setup values "values"` - Define community values
 • `/setup hype "phrases"` - Custom hype phrases
 • `/setup goals "goals"` - Project goals and roadmap
+
+**🎭 Personalization:**
+• `/emojis add CATEGORY "emoji1,emoji2"` - Custom emoji sets
+• `/stickers` - Send stickers to customize my responses
+• `/emojis reactions on/off` - Control automatic reactions
 
 **📊 Management:**
 • `/setup view` - See all current settings
