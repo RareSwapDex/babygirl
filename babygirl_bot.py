@@ -322,6 +322,11 @@ def init_db():
                  (user_id TEXT, gift_type TEXT, timestamp INTEGER, group_id TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS spam_tracking 
                  (user_id TEXT, message_hash TEXT, timestamp INTEGER, group_id TEXT)''')
+    
+    # CRITICAL: NEW TABLE for tracking ALL group messages (since Babygirl is admin)
+    c.execute('''CREATE TABLE IF NOT EXISTS all_group_messages
+                 (message_id INTEGER, user_id TEXT, group_id TEXT, timestamp INTEGER, 
+                  message_content TEXT, is_bot_mention INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS user_relationships 
                  (user_id TEXT, status TEXT, partner_id TEXT, group_id TEXT, timestamp INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS ships_table 
@@ -1037,35 +1042,29 @@ def check_proactive_engagement(bot):
         
         for group_id in all_group_ids:
             try:
-                # FIXED LOGIC: Check bot mentions/activity (what we can actually see)
-                thirty_min_ago = current_time - 1800   # 30 minutes
+                # ADMIN LOGIC: Check ALL group messages since Babygirl is admin
                 one_hour_ago = current_time - 3600     # 1 hour  
-                six_hours_ago = current_time - 21600   # 6 hours
                 
-                # Check recent bot mentions/interactions in last 1 hour (reduced from 2 hours)
-                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                # DEAD CHAT: Check ALL group messages in last 1 hour (any member messages)
+                c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ?", 
                          (group_id, one_hour_ago))
-                recent_bot_activity = c.fetchone()[0] or 0
+                all_recent_messages = c.fetchone()[0] or 0
                 
-                # Check recent conversation memory (bot responses) in last 1 hour (reduced from 2 hours)
-                c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", 
+                # BEING IGNORED: Check bot MENTIONS specifically in last 1 hour  
+                c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ? AND is_bot_mention = 1", 
                          (group_id, one_hour_ago))
-                recent_bot_responses = c.fetchone()[0] or 0
+                recent_bot_mentions = c.fetchone()[0] or 0
                 
-                # Total recent bot activity
-                total_recent_activity = recent_bot_activity + recent_bot_responses
+                # Check if group has historical message activity (to know if group is active)
+                c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ?", (group_id,))
+                total_historical_messages = c.fetchone()[0] or 0
                 
-                # Check for longer-term activity (6 hours) to establish baseline
-                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                         (group_id, six_hours_ago))
-                medium_term_activity = c.fetchone()[0] or 0
+                # Check if group has historical bot mentions (to know if they used bot before)
+                c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND is_bot_mention = 1", (group_id,))
+                total_historical_mentions = c.fetchone()[0] or 0
                 
-                # Check if there's historical activity (ever)
-                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ?", (group_id,))
-                total_historical_activity = c.fetchone()[0] or 0
-                
-                # Get active users for personalized messaging (from any bot interaction)
-                c.execute("""SELECT DISTINCT user_id FROM spam_tracking 
+                # Get active users for personalized messaging (from recent message activity)
+                c.execute("""SELECT DISTINCT user_id FROM all_group_messages 
                             WHERE group_id = ? AND timestamp > ? AND user_id != 'bot_added'
                             ORDER BY timestamp DESC LIMIT 3""", 
                          (group_id, current_time - 86400))  # Last 24 hours, exclude auto-registration
@@ -1084,49 +1083,36 @@ def check_proactive_engagement(bot):
                 # Get current proactive state for this group
                 proactive_state = get_proactive_state(group_id)
                 
-                # IMPROVED SCENARIO DETECTION:
+                # CORRECT ADMIN-LEVEL SCENARIO DETECTION:
                 
-                # CRITICAL FIX: More aggressive proactive detection
-                
-                # SCENARIO 1: No bot activity for 1+ hours
-                if total_recent_activity == 0 and total_historical_activity > 0:
-                    logger.info(f"💀 No bot activity in group {group_id} for 1+ hours - triggering revival")
+                # SCENARIO 1: DEAD CHAT - No messages from ANY members for 1+ hours
+                if all_recent_messages == 0 and total_historical_messages > 0:
+                    logger.info(f"💀 DEAD CHAT in group {group_id} - no messages from anyone for 1+ hours")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 2: Very low activity for extended period (reduced threshold)
-                elif medium_term_activity <= 2 and total_historical_activity > 3:  # More sensitive detection
-                    logger.info(f"😴 Very quiet group {group_id} - long-term low activity detected")
-                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                # SCENARIO 2: BEING IGNORED - Group has messages but no bot mentions for 1+ hours
+                elif all_recent_messages > 0 and recent_bot_mentions == 0 and total_historical_mentions > 0:
+                    logger.info(f"👀 BEING IGNORED in group {group_id} - {all_recent_messages} messages but no bot mentions for 1+ hours")
+                    handle_ignored_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 3: Time-based proactive engagement (reduced from 4 hours to 3 hours)
-                elif proactive_state['dead_chat_last_sent'] > 0:
-                    time_since_last_proactive = current_time - proactive_state['dead_chat_last_sent']
-                    if time_since_last_proactive >= 10800:  # 3 hours (reduced from 4)
-                        logger.info(f"⏰ Time-based proactive engagement for group {group_id} - been {time_since_last_proactive//3600}h since last message")
+                # SCENARIO 3: NEW GROUP - First time engagement after 30 minutes of any activity
+                elif total_historical_messages <= 3 and total_historical_messages > 0:
+                    c.execute("SELECT MIN(timestamp) FROM all_group_messages WHERE group_id = ?", (group_id,))
+                    first_message = c.fetchone()[0]
+                    if first_message and (current_time - first_message) >= 1800:  # 30 minutes
+                        logger.info(f"🆕 NEW GROUP {group_id} - sending initial engagement after 30 minutes")
                         handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 4: Bootstrap groups that have never sent proactive messages
-                elif proactive_state['dead_chat_last_sent'] == 0 and total_historical_activity > 0:
-                    logger.info(f"🎯 Bootstrapping proactive engagement for group {group_id} - never sent proactive message")
-                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
-                
-                # SCENARIO 5: Reset states if there's been recent activity
-                elif total_recent_activity > 0:
+                # SCENARIO 4: RESET - Recent activity detected, reset proactive states
+                elif all_recent_messages > 0 and recent_bot_mentions > 0:
                     if proactive_state['dead_chat_active'] or proactive_state['ignored_active']:
                         reset_proactive_state(group_id, 'both')
-                        logger.info(f"🔄 Reset proactive state for {group_id} - recent activity detected")
+                        logger.info(f"🔄 Reset proactive state for {group_id} - recent activity and bot mentions detected")
                 
-                # SCENARIO 6: Being ignored - group has general activity but no bot mentions for 1+ hours
-                # Note: This would require detecting general group activity, which we can't easily do
-                # For now, we'll rely on users to mention the bot to trigger activity tracking
-                
-                # SCENARIO 7: New groups get a proactive message after 30 minutes
-                elif total_historical_activity <= 1:
-                    c.execute("SELECT MIN(timestamp) FROM spam_tracking WHERE group_id = ?", (group_id,))
-                    first_activity = c.fetchone()[0]
-                    if first_activity and (current_time - first_activity) >= 1800:  # 30 minutes
-                        logger.info(f"🆕 New group {group_id} - sending initial proactive engagement")
-                        handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                # SCENARIO 5: BOOTSTRAP - Group has never received proactive but has historical activity
+                elif proactive_state['dead_chat_last_sent'] == 0 and total_historical_messages > 3:
+                    logger.info(f"🎯 BOOTSTRAP group {group_id} - has activity but never sent proactive message")
+                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
             except Exception as group_error:
                 logger.error(f"Error processing group {group_id}: {group_error}")
@@ -3846,7 +3832,52 @@ def handle_all_mentions(message):
         chat_type = message.chat.type if hasattr(message.chat, 'type') else 'unknown'
         username = message.from_user.username or f"ID{message.from_user.id}"
         
-        # Log ALL non-command messages for debugging in groups
+        # CRITICAL: Track ALL group messages since Babygirl is admin
+        if chat_type in ['group', 'supergroup'] and message.text:
+            try:
+                # Check if this is a bot mention
+                is_bot_mention = 0
+                if message.text and '@babygirl_bf_bot' in message.text.lower():
+                    is_bot_mention = 1
+                elif message.reply_to_message:
+                    # Check if replying to bot
+                    try:
+                        bot_user = bot.get_me()
+                        if message.reply_to_message.from_user.id == bot_user.id:
+                            is_bot_mention = 1
+                    except:
+                        pass
+                elif message.entities:
+                    # Check entities for mentions
+                    for entity in message.entities:
+                        if entity.type == 'mention':
+                            mention_text = message.text[entity.offset:entity.offset + entity.length].lower()
+                            if mention_text == '@babygirl_bf_bot':
+                                is_bot_mention = 1
+                                break
+                
+                # Store ALL group messages (critical for dead chat detection)
+                conn = sqlite3.connect('babygirl.db')
+                c = conn.cursor()
+                c.execute('''INSERT INTO all_group_messages 
+                            (message_id, user_id, group_id, timestamp, message_content, is_bot_mention)
+                            VALUES (?, ?, ?, ?, ?, ?)''',
+                         (message.message_id, str(message.from_user.id), str(message.chat.id), 
+                          int(time.time()), message.text[:500], is_bot_mention))  # Limit content to 500 chars
+                
+                # Clean old messages (keep only last 7 days for performance)
+                week_ago = int(time.time()) - 604800
+                c.execute('DELETE FROM all_group_messages WHERE timestamp < ?', (week_ago,))
+                
+                conn.commit()
+                conn.close()
+                
+                logger.info(f"📨 TRACKED MESSAGE: '{message.text[:50]}...' in {chat_type} from {username} (bot_mention: {is_bot_mention})")
+                
+            except Exception as e:
+                logger.error(f"Error tracking group message: {e}")
+        
+        # Log ALL non-command messages for debugging in groups  
         if chat_type in ['group', 'supergroup']:
             logger.info(f"📨 GROUP MESSAGE: '{message.text}' in {chat_type} from {username}")
             
@@ -4252,36 +4283,37 @@ def proactive_debug_command(message):
         one_hour_ago = current_time - 3600
         two_hours_ago = current_time - 7200
         
-        # Check spam_tracking data
-        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ?", (group_id,))
-        total_spam = c.fetchone()[0]
+        # Check all_group_messages data (ADMIN TRACKING)
+        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ?", (group_id,))
+        total_messages = c.fetchone()[0]
         
-        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", (group_id, one_hour_ago))
-        recent_spam = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ?", (group_id, one_hour_ago))
+        recent_messages = c.fetchone()[0]
         
-        # Check conversation_memory
-        c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ?", (group_id,))
-        total_memory = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND is_bot_mention = 1", (group_id,))
+        total_bot_mentions = c.fetchone()[0]
         
-        c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", (group_id, two_hours_ago))
-        recent_memory = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ? AND is_bot_mention = 1", (group_id, one_hour_ago))
+        recent_bot_mentions = c.fetchone()[0]
         
         # Check proactive state
         proactive_state = get_proactive_state(group_id)
         
         # Check if this group would be monitored
-        c.execute("SELECT DISTINCT group_id FROM spam_tracking")
+        c.execute("SELECT DISTINCT group_id FROM all_group_messages")
         monitored_groups = [row[0] for row in c.fetchall()]
         is_monitored = group_id in monitored_groups
         
-        debug_info = f"""🔧 **Proactive Engagement Debug** 🔧
+        debug_info = f"""🔧 **Proactive Engagement Debug (ADMIN TRACKING)** 🔧
 
 **Group ID:** `{group_id}`
 **Currently Monitored:** {'✅ YES' if is_monitored else '❌ NO'}
 
-**Activity Data:**
-• Spam tracking records: {total_spam} total, {recent_spam} in last hour
-• Conversation memories: {total_memory} total, {recent_memory} in last 2 hours
+**Admin-Level Message Data:**
+• Total group messages: {total_messages} 
+• Messages in last hour: {recent_messages}
+• Total bot mentions: {total_bot_mentions}
+• Bot mentions in last hour: {recent_bot_mentions}
 
 **Proactive State:**
 • Dead chat active: {proactive_state['dead_chat_active']}
@@ -4289,10 +4321,16 @@ def proactive_debug_command(message):
 • Ignored active: {proactive_state['ignored_active']}
 • Ignored interval: {proactive_state['ignored_interval']}s
 
-**Would trigger dead chat?** {'YES' if recent_spam == 0 and (total_spam > 0 or total_memory > 0) else 'NO'}
-**Would trigger ignored?** {'YES' if recent_spam > 5 and recent_memory == 0 else 'NO'}
+**DEAD CHAT:** {'🔥 YES' if recent_messages == 0 and total_messages > 0 else '❌ NO'} 
+(No messages from anyone for 1+ hours)
 
-**Bootstrap Issue:** {'⚠️ Group not monitored - needs activity first!' if not is_monitored else '✅ Group is being monitored'}"""
+**BEING IGNORED:** {'🔥 YES' if recent_messages > 0 and recent_bot_mentions == 0 and total_bot_mentions > 0 else '❌ NO'}
+(Group has messages but no bot mentions for 1+ hours)
+
+**NEW GROUP:** {'🔥 YES' if total_messages <= 3 and total_messages > 0 else '❌ NO'}
+(Less than 3 total messages)
+
+**Bootstrap Issue:** {'⚠️ Group not tracked - needs messages first!' if not is_monitored else '✅ Group is being tracked'}"""
         
         bot.reply_to(message, debug_info)
         conn.close()
