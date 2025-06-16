@@ -706,6 +706,19 @@ def handle_random_sticker_reply(message):
         except:
             pass
         
+        # Official $BABYGIRL sticker pack - from https://t.me/addstickers/BABYGIRLCOMMUNITY
+        # These are the official stickers created specifically for the $BABYGIRL community
+        official_babygirl_stickers = [
+            # TODO: Replace with actual file IDs from the official $BABYGIRL sticker pack
+            # The sticker pack URL is: https://t.me/addstickers/BABYGIRLCOMMUNITY
+            # Need to get the actual file IDs by adding the pack and extracting IDs
+            "PLACEHOLDER_STICKER_1",  # Will be replaced with actual $BABYGIRL sticker IDs
+            "PLACEHOLDER_STICKER_2",
+            "PLACEHOLDER_STICKER_3",
+            "PLACEHOLDER_STICKER_4",
+            "PLACEHOLDER_STICKER_5"
+        ]
+        
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         current_time = int(time.time())
@@ -729,31 +742,47 @@ def handle_random_sticker_reply(message):
         
         # Check if we've reached the target count
         if message_count >= target_count:
-            # Check if group has custom stickers
+            logger.info(f"🎪 STICKER TRIGGER: Reached target {target_count} messages in group {group_id}")
+            
+            # First try to get custom stickers for this group
             c.execute("SELECT sticker_file_id FROM custom_stickers WHERE group_id = ? ORDER BY RANDOM() LIMIT 1", (group_id,))
             sticker_result = c.fetchone()
             
+            sticker_file_id = None
+            sticker_source = "unknown"
+            
             if sticker_result:
                 sticker_file_id = sticker_result[0]
-                
-                # Try to send the sticker as a reply to the current message
-                try:
-                    bot.send_sticker(message.chat.id, sticker_file_id, reply_to_message_id=message.message_id)
-                    logger.info(f"🎪 Sent random sticker reply in group {group_id} after {message_count} messages")
-                    
-                    # Update analytics
-                    c.execute("INSERT INTO sticker_analytics (group_id, sticker_file_id, sent_timestamp, context_type) VALUES (?, ?, ?, ?)",
-                             (group_id, sticker_file_id, current_time, 'random_reply'))
-                    
-                except Exception as e:
-                    logger.error(f"Error sending random sticker: {e}")
-                    # Don't reset counter if sending failed
+                sticker_source = "custom"
+                logger.info(f"🎪 Using CUSTOM sticker for group {group_id}")
+            else:
+                # Use random official $BABYGIRL sticker
+                if all(sticker.startswith("PLACEHOLDER") for sticker in official_babygirl_stickers):
+                    # If we still have placeholders, skip sticker sending until real IDs are added
+                    logger.info(f"🎪 Official $BABYGIRL stickers not configured yet, skipping sticker for group {group_id}")
                     conn.commit()
                     conn.close()
                     return
-            else:
-                logger.info(f"🎪 No custom stickers available for group {group_id}")
-                # Still reset the counter even if no stickers available
+                else:
+                    sticker_file_id = random.choice(official_babygirl_stickers)
+                    sticker_source = "official_babygirl"
+                    logger.info(f"🎪 Using OFFICIAL $BABYGIRL sticker for group {group_id} (no custom stickers found)")
+            
+            # Try to send the sticker as a reply to the current message
+            try:
+                bot.send_sticker(message.chat.id, sticker_file_id, reply_to_message_id=message.message_id)
+                logger.info(f"🎪 ✅ SUCCESSFULLY sent random {sticker_source} sticker reply in group {group_id} after {message_count} messages")
+                
+                # Update analytics
+                c.execute("INSERT INTO sticker_analytics (group_id, sticker_file_id, sent_timestamp, context_type) VALUES (?, ?, ?, ?)",
+                         (group_id, sticker_file_id, current_time, 'random_reply'))
+                
+            except Exception as e:
+                logger.error(f"❌ ERROR sending random sticker to group {group_id}: {e}")
+                # Don't reset counter if sending failed
+                conn.commit()
+                conn.close()
+                return
             
             # Reset counter with new random target
             new_target = random.randint(3, 10)
@@ -4790,6 +4819,107 @@ The proactive engagement system is now fully active! 🚀💕"""
         logger.error(f"Error in force proactive: {e}")
         bot.reply_to(message, f"❌ Error: {e}\n\nTry mentioning me first: @babygirl_bf_bot hello")
 
+@bot.message_handler(commands=['sticker_debug'])
+def sticker_debug_command(message):
+    """Debug sticker tracking and configuration"""
+    try:
+        if not message.from_user.username or message.from_user.username.lower() not in ['ryanmccallum1', 'admin']:
+            bot.reply_to(message, "This command is restricted to admins only.")
+            return
+            
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        group_id = str(message.chat.id)
+        
+        # Check sticker tracking status
+        c.execute("SELECT message_count, target_count, last_sticker_time FROM sticker_reply_tracking WHERE group_id = ?", (group_id,))
+        tracking_result = c.fetchone()
+        
+        if tracking_result:
+            message_count, target_count, last_sticker_time = tracking_result
+            last_sticker_ago = int(time.time()) - last_sticker_time if last_sticker_time > 0 else "Never"
+        else:
+            message_count, target_count, last_sticker_ago = 0, "Not set", "Never"
+        
+        # Check custom stickers for this group
+        c.execute("SELECT COUNT(*) FROM custom_stickers WHERE group_id = ?", (group_id,))
+        custom_sticker_count = c.fetchone()[0]
+        
+        # Check if official stickers are configured
+        official_configured = not all(sticker.startswith("PLACEHOLDER") for sticker in official_babygirl_stickers)
+        
+        debug_info = f"""🎪 **Sticker System Debug** 🎪
+
+**Group ID:** `{group_id}`
+
+**Sticker Tracking:**
+• Current message count: {message_count}
+• Target count for next sticker: {target_count}
+• Last sticker sent: {last_sticker_ago} seconds ago
+
+**Sticker Configuration:**
+• Custom stickers for this group: {custom_sticker_count}
+• Official $BABYGIRL stickers: {'✅ Configured' if official_configured else '❌ Not configured (using placeholders)'}
+
+**Official Sticker Pack:**
+• URL: https://t.me/addstickers/BABYGIRLCOMMUNITY
+• Created by: @williamsgab
+• Status: {'Ready' if official_configured else 'Needs file IDs'}
+
+**How to get sticker file IDs:**
+1. Add the sticker pack to your Telegram
+2. Send a sticker from the pack to this bot
+3. The bot will log the file_id in the console
+4. Update the code with real file IDs
+
+**Next Steps:**
+{'• System is working with official stickers!' if official_configured else '• Replace PLACEHOLDER stickers with real file IDs from the pack'}
+"""
+        
+        bot.reply_to(message, debug_info)
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in sticker debug: {e}")
+        bot.reply_to(message, f"Debug error: {e}")
+
+@bot.message_handler(commands=['extract_sticker_ids'])
+def extract_sticker_ids_command(message):
+    """Help extract sticker file IDs from the official pack"""
+    try:
+        if not message.from_user.username or message.from_user.username.lower() not in ['ryanmccallum1', 'admin']:
+            bot.reply_to(message, "This command is restricted to admins only.")
+            return
+            
+        help_text = f"""🎪 **Extract Official Sticker IDs** 🎪
+
+**Steps to get the real sticker file IDs:**
+
+1. **Add the official pack:** https://t.me/addstickers/BABYGIRLCOMMUNITY
+
+2. **Send stickers to this bot:**
+   • Forward or send 5-10 stickers from the pack to this chat
+   • The bot will log the file_id of each sticker in the console
+   
+3. **Update the code:**
+   • Replace the PLACEHOLDER entries with the real file IDs
+   • The system will automatically start using them
+
+**Current Status:**
+• Official pack: $BABYGIRL by @williamsgab
+• Stickers configured: ❌ Using placeholders
+• Ready for extraction: ✅ Send stickers to get IDs
+
+**Pro tip:** Send different stickers from the pack to get variety in the random responses!
+"""
+        
+        bot.reply_to(message, help_text)
+        
+    except Exception as e:
+        logger.error(f"Error in extract sticker IDs: {e}")
+        bot.reply_to(message, f"Extraction help error: {e}")
+
 @bot.message_handler(commands=['setup'])
 def setup_command(message):
     """Allow group admins to configure custom token and settings"""
@@ -5653,22 +5783,50 @@ Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
 
 @bot.message_handler(content_types=['sticker'])
 def handle_sticker_uploads(message):
-    """Handle sticker uploads - NO automatic processing, admins must use commands"""
+    """Handle sticker uploads - ENHANCED for official $BABYGIRL pack detection"""
     try:
-        # DO NOT automatically process stickers or respond to them
-        # Stickers should only be added through explicit commands like /stickers add
-        
-        # If we want to track stickers for potential manual review, we could log them
-        # but we should NOT automatically add them or respond to them
-        
         group_id = str(message.chat.id)
         
-        # Only log in groups, no responses
-        if message.chat.type in ['group', 'supergroup']:
-            logger.info(f"🎪 Sticker uploaded in group {group_id} - not auto-processed")
+        # Get sticker info
+        sticker = message.sticker
+        file_id = sticker.file_id
         
-        # DO NOT respond to sticker uploads automatically
-        # Users should use /stickers command for configuration
+        # ENHANCED LOGGING: Check if this is from the official $BABYGIRL pack
+        is_official_pack = False
+        if sticker.set_name:
+            # Check for various possible pack name variations
+            pack_name_upper = sticker.set_name.upper()
+            if any(keyword in pack_name_upper for keyword in ['BABYGIRL', 'BABYGIRLCOMMUNITY', '$BABYGIRL']):
+                is_official_pack = True
+                logger.info(f"🎯 OFFICIAL $BABYGIRL STICKER DETECTED!")
+                logger.info(f"🎪 OFFICIAL STICKER FILE_ID: {file_id}")
+                logger.info(f"🎪 OFFICIAL STICKER EMOJI: {sticker.emoji}")
+                logger.info(f"🎪 OFFICIAL STICKER SET: {sticker.set_name}")
+                logger.info(f"🎪 === COPY THIS FILE_ID TO REPLACE PLACEHOLDER ===")
+        
+        # Log all stickers for debugging
+        logger.info(f"🎪 Sticker received: file_id={file_id}, emoji={sticker.emoji}, set_name={sticker.set_name}")
+        
+        # If this is an official pack sticker, provide immediate feedback to admins
+        if is_official_pack and message.from_user.username and message.from_user.username.lower() in ['ryanmccallum1', 'admin']:
+            feedback_msg = f"""🎯 **OFFICIAL $BABYGIRL STICKER DETECTED!**
+
+**File ID:** `{file_id}`
+**Emoji:** {sticker.emoji}
+**Pack:** {sticker.set_name}
+
+**🔧 To Use This Sticker:**
+Replace one of the PLACEHOLDER entries in the code with this file_id!
+
+**Current Status:** Logged in console for easy copying! 📝
+
+**Quick Copy Format:**
+`"{file_id}",  # {sticker.emoji}`"""
+            
+            bot.reply_to(message, feedback_msg)
+        
+        # For all other users and non-official stickers, do nothing
+        # Users should use /stickers add command for manual configuration
         
     except Exception as e:
         logger.error(f"Error in sticker handler: {e}")
