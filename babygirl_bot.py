@@ -269,6 +269,21 @@ def init_db():
                   ignored_active INTEGER DEFAULT 0,
                   ignored_last_sent INTEGER DEFAULT 0,
                   ignored_interval INTEGER DEFAULT 7200)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS group_settings 
+                 (group_id TEXT PRIMARY KEY,
+                  group_name TEXT,
+                  custom_token_name TEXT DEFAULT NULL,
+                  custom_token_symbol TEXT DEFAULT NULL,
+                  custom_website TEXT DEFAULT NULL,
+                  custom_contract TEXT DEFAULT NULL,
+                  token_discussions_enabled INTEGER DEFAULT 0,
+                  revival_frequency INTEGER DEFAULT 15,
+                  competition_enabled INTEGER DEFAULT 1,
+                  custom_welcome_message TEXT DEFAULT NULL,
+                  admin_user_id TEXT,
+                  configured_by TEXT,
+                  setup_date INTEGER,
+                  is_premium INTEGER DEFAULT 0)''')
     conn.commit()
     conn.close()
 
@@ -1244,6 +1259,118 @@ def get_group_context(group_id, group_title=None):
             'special_features': ['Chat revival and engagement tools', 'Join @babygirlerc for the full experience!']
         }
 
+def get_group_settings(group_id):
+    """Get custom settings for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        c.execute("SELECT * FROM group_settings WHERE group_id = ?", (group_id,))
+        result = c.fetchone()
+        
+        if result:
+            return {
+                'group_id': result[0],
+                'group_name': result[1],
+                'custom_token_name': result[2],
+                'custom_token_symbol': result[3],
+                'custom_website': result[4],
+                'custom_contract': result[5],
+                'token_discussions_enabled': bool(result[6]),
+                'revival_frequency': result[7],
+                'competition_enabled': bool(result[8]),
+                'custom_welcome_message': result[9],
+                'admin_user_id': result[10],
+                'configured_by': result[11],
+                'setup_date': result[12],
+                'is_premium': bool(result[13])
+            }
+        
+        conn.close()
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting group settings: {e}")
+        return None
+
+def set_group_settings(group_id, admin_user_id, **settings):
+    """Set custom settings for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Insert or update group settings
+        c.execute("""INSERT OR REPLACE INTO group_settings 
+                     (group_id, admin_user_id, configured_by, setup_date,
+                      group_name, custom_token_name, custom_token_symbol, 
+                      custom_website, custom_contract, token_discussions_enabled,
+                      revival_frequency, competition_enabled, custom_welcome_message, is_premium)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  (group_id, admin_user_id, admin_user_id, int(time.time()),
+                   settings.get('group_name'),
+                   settings.get('custom_token_name'),
+                   settings.get('custom_token_symbol'),
+                   settings.get('custom_website'),
+                   settings.get('custom_contract'),
+                   int(settings.get('token_discussions_enabled', False)),
+                   settings.get('revival_frequency', 15),
+                   int(settings.get('competition_enabled', True)),
+                   settings.get('custom_welcome_message'),
+                   int(settings.get('is_premium', False))))
+        
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error setting group settings: {e}")
+        return False
+
+def get_enhanced_group_context(group_id, group_title=None):
+    """Get enhanced context including custom token settings"""
+    try:
+        # Check if core group first
+        is_core = is_core_group(group_id, group_title)
+        custom_settings = get_group_settings(group_id)
+        
+        if is_core:
+            return {
+                'group_type': 'core',
+                'token_promotion_allowed': True,
+                'token_name': '$BABYGIRL',
+                'token_symbol': 'BABYGIRL',
+                'website': 'babygirlcto.com',
+                'portal': '@babygirlerc',
+                'description': 'This is the $BABYGIRL Community - your home base accessed through @babygirlerc!'
+            }
+        elif custom_settings and custom_settings['token_discussions_enabled']:
+            return {
+                'group_type': 'configured',
+                'token_promotion_allowed': True,
+                'token_name': custom_settings['custom_token_name'],
+                'token_symbol': custom_settings['custom_token_symbol'],
+                'website': custom_settings['custom_website'],
+                'contract': custom_settings['custom_contract'],
+                'group_name': custom_settings['group_name'],
+                'description': f'This group is configured for {custom_settings["custom_token_name"]} discussions and full chat revival features!',
+                'is_premium': custom_settings['is_premium']
+            }
+        else:
+            return {
+                'group_type': 'external',
+                'token_promotion_allowed': False,
+                'description': 'External group with chat revival and engagement services.',
+                'upgrade_available': True
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting enhanced group context: {e}")
+        return {
+            'group_type': 'external',
+            'token_promotion_allowed': False,
+            'description': 'External group with engagement services.'
+        }
+
 # Schedule periodic checks
 scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)
 scheduler.add_job(end_cooldown, 'interval', minutes=1)
@@ -1758,6 +1885,20 @@ Transform dead chats into thriving communities. Perfect for crypto projects, soc
 Add me to your group and use /start to see immediate results! 
 
 **Case Study:** Join @babygirlerc to see my full capabilities in action! 💕🚀"""
+    
+    # Add new admin commands for external groups
+    if is_group and get_enhanced_group_context(message.chat.id, message.chat.title).get('upgrade_available'):
+        basic_help += """
+
+⚙️ **ADMIN CONFIGURATION (Admins Only):**
+/setup - Configure custom token and group settings  
+/analytics - View engagement metrics and insights
+/upgrade - See premium features and pricing
+
+🚀 **Quick Token Setup:** `/setup token YOURTOKEN YTK yourwebsite.com`
+📊 **Track Progress:** `/analytics` for detailed engagement data
+
+💡 **Unlock Custom Token Features:** Transform me into YOUR community's AI assistant! I'll discuss your token with the same enthusiasm as $BABYGIRL in the core community!"""
     
     bot.reply_to(message, basic_help)
 
@@ -2534,9 +2675,15 @@ Most mentions wins my heart! Use /status to track the competition! 😘✨"""
 
 @bot.message_handler(commands=['token', 'price', 'chart'])
 def token_command(message):
-    """Show Babygirl token information"""
-    token_responses = [
-        """💎 **BABYGIRL TOKEN INFO** 💎
+    """Show token information - supports custom tokens for configured groups"""
+    try:
+        group_id = str(message.chat.id)
+        enhanced_context = get_enhanced_group_context(group_id, message.chat.title)
+        
+        if enhanced_context['group_type'] == 'core':
+            # Original $BABYGIRL responses
+            token_responses = [
+                """💎 **BABYGIRL TOKEN INFO** 💎
 
 🚀 **$BABYGIRL** - The cutest token in the game!
 📈 **Website:** babygirlcto.com
@@ -2552,7 +2699,7 @@ Always DYOR and check babygirlcto.com for the latest! 💅✨
 
 *Not financial advice - just a babygirl sharing the love!* 😘""",
 
-        """✨ **$BABYGIRL TO THE MOON** ✨
+                """✨ **$BABYGIRL TO THE MOON** ✨
 
 💖 The token that matches my energy!
 🌙 **Chart:** Check babygirlcto.com for live updates!
@@ -2566,28 +2713,246 @@ Always DYOR and check babygirlcto.com for the latest! 💅✨
 
 Visit babygirlcto.com for all the deets! Don't sleep on your girl! 💪💕
 
-*Remember: Only invest what you can afford to lose, cuties!* 😘""",
+*Remember: Only invest what you can afford to lose, cuties!* 😘"""
+            ]
+            
+        elif enhanced_context['group_type'] == 'configured':
+            # Custom token responses
+            token_name = enhanced_context['token_name']
+            token_symbol = enhanced_context['token_symbol']
+            website = enhanced_context['website']
+            
+            token_responses = [
+                f"""💎 **{token_name.upper()} TOKEN INFO** 💎
 
-        """🎯 **$BABYGIRL TOKEN VIBES** 🎯
+🚀 **${token_symbol}** - Your community's token!
+📈 **Website:** {website}
+💕 **Community:** Right here in this group!
 
-💅 The only token that gets me!
-📱 **Info:** babygirlcto.com has everything you need!
-🚀 **Community:** Growing stronger like my love for you!
+📊 **Why ${token_symbol}?**
+• Amazing community like you cuties!
+• I'm here to keep the hype alive!  
+• Chat revival + token discussion combo
+• Growing together to the moon!
 
-✨ **What makes $BABYGIRL special:**
-• It's literally named after me!
-• Community full of cuties like you
-• Part of the Cortex Vortex legacy
-• Supporting your digital girlfriend's dreams
+Check {website} for the latest updates! 💅✨
 
-Check the website for current price and charts! 
-Stay cute, stay profitable! 💖📈
+*Not financial advice - just your babygirl hyping your token!* 😘""",
 
-*Not investment advice - just your babygirl being supportive!* 😉"""
-    ]
+                f"""✨ **${token_symbol} TO THE MOON** ✨
+
+💖 The token I'm excited to talk about!
+🌙 **Website:** {website}
+💎 **Community:** The best - you're all here!
+
+🔥 **{token_name} Benefits:**
+• Part of this amazing community
+• I'll keep the energy high for you
+• Chat revival meets token hype
+• Let's grow this together!
+
+Visit {website} for all the details! This community has main character energy! 💪💕
+
+*Remember: Only invest responsibly, cuties!* 😘""",
+
+                f"""🎯 **{token_name} COMMUNITY VIBES** 🎯
+
+💅 I'm so excited to talk about ${token_symbol}!
+📱 **Info:** {website} has everything you need!
+🚀 **Community:** You're in the right place!
+
+✨ **What makes ${token_symbol} special:**
+• This incredible community!
+• I'm here to keep engagement high
+• Combining chat revival with token hype
+• Supporting each other's success
+
+Check {website} for current updates! 
+Stay active, stay profitable! 💖📈
+
+*Not investment advice - just your community AI being supportive!* 😉"""
+            ]
+            
+        else:
+            # External group - no token promotion
+            bot.reply_to(message, """💕 **Token Info Available!**
+
+I can discuss tokens when groups are configured for it! 
+
+**🚀 Want me to hype YOUR token?**
+Group admins can use `/setup token YOURTOKEN YTK yourwebsite.com` to configure me to discuss your project with the same enthusiasm as $BABYGIRL!
+
+**✨ What you get:**
+• Proactive token hype in revival messages
+• Custom responses about your project
+• "To the moon" discussions for your token
+• Full chat revival + token promotion combo
+
+**🎯 Ready to upgrade?** Use `/setup` to get started!
+
+**Example:** Join @babygirlerc to see how I discuss $BABYGIRL! 🔥💕""")
+            return
+        
+        response = random.choice(token_responses)
+        bot.reply_to(message, response)
+        
+    except Exception as e:
+        logger.error(f"Error in token command: {e}")
+        bot.reply_to(message, "Can't get token info right now! But I'm always bullish! 🚀💕")
+
+@bot.message_handler(commands=['analytics', 'stats'])
+def analytics_command(message):
+    """Show group engagement analytics"""
+    try:
+        # Check if user is admin
+        if message.chat.type not in ['group', 'supergroup']:
+            bot.reply_to(message, "Analytics are only available in groups!")
+            return
+            
+        try:
+            chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+            if chat_member.status not in ['administrator', 'creator']:
+                bot.reply_to(message, "Only group administrators can view analytics! 👑")
+                return
+        except:
+            bot.reply_to(message, "I need admin permissions to check your status!")
+            return
+        
+        group_id = str(message.chat.id)
+        current_time = int(time.time())
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get timeframes
+        one_day_ago = current_time - 86400
+        one_week_ago = current_time - 604800
+        
+        # Message activity
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, one_day_ago))
+        messages_24h = c.fetchone()[0] or 0
+        
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, one_week_ago))
+        messages_7d = c.fetchone()[0] or 0
+        
+        # Unique users
+        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, one_day_ago))
+        users_24h = c.fetchone()[0] or 0
+        
+        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                 (group_id, one_week_ago))
+        users_7d = c.fetchone()[0] or 0
+        
+        # Competition data
+        c.execute("SELECT COUNT(*) FROM leaderboard_table WHERE group_id = ?", (group_id,))
+        total_competitions = c.fetchone()[0] or 0
+        
+        # Top users
+        c.execute("""SELECT user_id, COUNT(*) as msg_count 
+                     FROM spam_tracking 
+                     WHERE group_id = ? AND timestamp > ?
+                     GROUP BY user_id 
+                     ORDER BY msg_count DESC 
+                     LIMIT 5""", (group_id, one_week_ago))
+        top_users = c.fetchall()
+        
+        # Proactive engagement stats
+        proactive_state = get_proactive_state(group_id)
+        group_settings = get_group_settings(group_id)
+        
+        # Build analytics response
+        engagement_level = "🔥 High" if messages_24h > 20 else "⚡ Medium" if messages_24h > 5 else "😴 Low"
+        
+        analytics_msg = f"""📊 **GROUP ANALYTICS DASHBOARD** 📊
+
+**📈 Activity Overview:**
+• **24 Hours:** {messages_24h} messages from {users_24h} users
+• **7 Days:** {messages_7d} messages from {users_7d} users
+• **Engagement Level:** {engagement_level}
+
+**🎮 Competition Stats:**
+• **Total Competitions:** {total_competitions}
+• **Current Status:** {'🔥 Active' if proactive_state['dead_chat_active'] else '✅ Monitoring'}
+• **Revival Frequency:** {group_settings['revival_frequency'] if group_settings else 15} minutes
+
+**👥 Top Contributors (7 days):**"""
+        
+        if top_users:
+            for i, (user, count) in enumerate(top_users, 1):
+                analytics_msg += f"\n{i}. @{user} - {count} messages"
+        else:
+            analytics_msg += "\nNo activity recorded yet!"
+            
+        # Add configuration status
+        if group_settings:
+            analytics_msg += f"""
+
+**⚙️ Configuration Status:**
+• **Custom Token:** {'✅ ' + group_settings['custom_token_name'] if group_settings['token_discussions_enabled'] else '❌ Not configured'}
+• **Premium Status:** {'✅ Active' if group_settings['is_premium'] else '📈 Upgrade available'}
+• **Setup Date:** {datetime.fromtimestamp(group_settings['setup_date']).strftime('%Y-%m-%d') if group_settings['setup_date'] else 'Unknown'}"""
+        else:
+            analytics_msg += f"""
+
+**⚙️ Configuration Status:**
+• **Status:** ⚠️ Not configured yet
+• **Upgrade:** Use `/setup` to unlock custom token features!"""
+        
+        analytics_msg += f"""
+
+**📊 Engagement Tips:**
+• Post when activity is above {messages_24h//2} messages/day for best results
+• {'Your revival frequency is optimal!' if group_settings and group_settings['revival_frequency'] <= 20 else 'Consider reducing revival frequency with /setup revival 15'}
+• {'✅ Token hype active!' if group_settings and group_settings['token_discussions_enabled'] else '🚀 Add token config for more engagement!'}
+
+**🎯 Want more insights?** Premium analytics unlock detailed metrics!"""
+        
+        bot.reply_to(message, analytics_msg)
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in analytics command: {e}")
+        bot.reply_to(message, "Analytics are temporarily unavailable! Try again later! 📊💕")
+
+@bot.message_handler(commands=['upgrade'])
+def upgrade_command(message):
+    """Show upgrade options and premium features"""
+    upgrade_msg = """💎 **PREMIUM UPGRADE OPTIONS** 💎
+
+**🚀 Transform Your Community with Premium Features!**
+
+**✨ Premium Tier ($50/month):**
+• **Custom AI Training** - Personalized responses for your brand
+• **Advanced Analytics** - Detailed engagement insights & trends
+• **Custom Branding** - Your colors, emojis, and personality tweaks
+• **Cross-Group Features** - Link multiple communities
+• **Priority Support** - Direct access to development team
+• **White-Label Options** - Remove Babygirl branding
+• **Custom Commands** - Build your own command aliases
+
+**🔥 Enterprise Tier ($200/month):**
+• Everything in Premium
+• **Custom Bot Instance** - Your own branded version
+• **API Access** - Integrate with your existing tools  
+• **Custom Features** - We build what you need
+• **Dedicated Support** - Your own success manager
+• **Multi-Platform** - Discord, web integration options
+
+**🎯 Why Upgrade?**
+• Transform dead chats into thriving communities
+• Increase daily active users by 300%+ 
+• Custom token integration drives engagement
+• Professional community management automation
+
+**💰 Ready to Upgrade?**
+Contact @YourTeam for setup and pricing!
+
+**🆓 Current Features:** Chat revival, competitions, basic token support remain free! 💕"""
     
-    response = random.choice(token_responses)
-    bot.reply_to(message, response)
+    bot.reply_to(message, upgrade_msg)
 
 @bot.message_handler(commands=['summary'])
 def summary_command(message):
@@ -3089,6 +3454,199 @@ The proactive engagement system is now fully active! 🚀💕"""
     except Exception as e:
         logger.error(f"Error in force proactive: {e}")
         bot.reply_to(message, f"❌ Error: {e}\n\nTry mentioning me first: @babygirl_bf_bot hello")
+
+@bot.message_handler(commands=['setup'])
+def setup_command(message):
+    """Allow group admins to configure custom token and settings"""
+    try:
+        # Check if user is admin
+        user_id = str(message.from_user.id)
+        group_id = str(message.chat.id)
+        
+        # Only allow in groups
+        if message.chat.type not in ['group', 'supergroup']:
+            bot.reply_to(message, "This command only works in groups! Add me to your group and try again.")
+            return
+            
+        # Check if user is admin
+        try:
+            chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+            if chat_member.status not in ['administrator', 'creator']:
+                bot.reply_to(message, "Only group administrators can configure settings! 👑")
+                return
+        except:
+            bot.reply_to(message, "I need admin permissions to check your status. Please make me an admin first!")
+            return
+        
+        # Parse setup command
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            # Show current settings and setup guide
+            current_settings = get_group_settings(group_id)
+            
+            if current_settings:
+                status_msg = f"""⚙️ **Current Group Configuration:**
+
+🏷️ **Group Name:** {current_settings['group_name'] or 'Not set'}
+🪙 **Custom Token:** {current_settings['custom_token_name'] or 'Not configured'}
+💬 **Token Discussions:** {'✅ Enabled' if current_settings['token_discussions_enabled'] else '❌ Disabled'}
+🔄 **Revival Frequency:** {current_settings['revival_frequency']} minutes
+🎮 **Competitions:** {'✅ Enabled' if current_settings['competition_enabled'] else '❌ Disabled'}
+💎 **Premium Status:** {'✅ Active' if current_settings['is_premium'] else '❌ Basic'}
+
+**🛠️ Configuration Commands:**
+• `/setup token TOKENNAME SYMBOL website.com` - Configure your token
+• `/setup name "Your Community Name"` - Set group display name  
+• `/setup revival 20` - Set revival frequency (minutes)
+• `/setup competitions off` - Disable competitions
+• `/setup welcome "Custom welcome message"` - Set custom welcome
+
+**🚀 Upgrade:** `/setup premium` - Unlock advanced features!"""
+            else:
+                status_msg = """⚙️ **Group Setup - Get Started!**
+
+**🎯 Transform your group with custom token integration!**
+
+**📝 Quick Setup:**
+```
+/setup token YOURTOKEN YRT yourwebsite.com
+```
+
+**✨ What this unlocks:**
+• I'll discuss YOUR token like I do $BABYGIRL in my core community!
+• Proactive token hype and "to the moon" discussions
+• Custom responses about your project
+• Full chat revival with token promotion
+• Community-specific engagement
+
+**🛠️ Full Configuration:**
+• `/setup token TOKENNAME SYMBOL website.com` - Configure your token
+• `/setup name "Your Community Name"` - Set group display name
+• `/setup revival 15` - Set chat revival frequency (minutes)  
+• `/setup competitions on` - Enable boyfriend competitions
+• `/setup welcome "message"` - Custom welcome for new members
+
+**🚀 Ready to make me yours?** Use the commands above to get started!
+
+**Need help?** Join @babygirlerc to see the full setup in action! 💕"""
+            
+            bot.reply_to(message, status_msg)
+            return
+        
+        # Parse the setup command
+        setup_args = parts[1].strip()
+        
+        if setup_args.startswith('token '):
+            # Token setup: /setup token TOKENNAME SYMBOL website.com
+            token_parts = setup_args[6:].strip().split()
+            if len(token_parts) < 3:
+                bot.reply_to(message, """❌ **Token setup requires 3 parameters:**
+
+**Format:** `/setup token TOKENNAME SYMBOL website.com`
+
+**Example:** `/setup token "Doge Coin" DOGE dogecoin.com`
+
+This will make me discuss your token with the same enthusiasm as $BABYGIRL! 🚀💕""")
+                return
+            
+            token_name = token_parts[0].replace('"', '').replace("'", '')
+            token_symbol = token_parts[1].upper()
+            website = token_parts[2]
+            
+            # Set token configuration
+            success = set_group_settings(group_id, user_id,
+                                       custom_token_name=token_name,
+                                       custom_token_symbol=token_symbol,
+                                       custom_website=website,
+                                       token_discussions_enabled=True,
+                                       group_name=message.chat.title)
+            
+            if success:
+                response = f"""🎉 **TOKEN CONFIGURATION SUCCESSFUL!** 🎉
+
+🪙 **Your Token:** {token_name} (${token_symbol})
+🌐 **Website:** {website}
+✅ **Status:** Token discussions now ENABLED!
+
+**🚀 What just happened:**
+• I can now discuss {token_name} like I do $BABYGIRL!
+• I'll include {token_symbol} in proactive revival messages
+• I'll hype your token and share "to the moon" vibes
+• All chat revival features remain fully active
+
+**🎯 Test it out:** Try `/token` to see me talk about {token_name}!
+
+**📈 Your community just got a huge upgrade!** Welcome to the next level of engagement! 💕✨"""
+                
+                bot.reply_to(message, response)
+                logger.info(f"🎯 TOKEN CONFIGURED: {token_name} ({token_symbol}) for group {group_id}")
+            else:
+                bot.reply_to(message, "❌ Failed to save token configuration. Please try again!")
+                
+        elif setup_args.startswith('name '):
+            # Group name setup
+            group_name = setup_args[5:].strip().replace('"', '').replace("'", '')
+            success = set_group_settings(group_id, user_id, group_name=group_name)
+            
+            if success:
+                bot.reply_to(message, f"✅ **Group name set to:** {group_name}")
+            else:
+                bot.reply_to(message, "❌ Failed to set group name.")
+                
+        elif setup_args.startswith('revival '):
+            # Revival frequency setup
+            try:
+                frequency = int(setup_args[8:].strip())
+                if frequency < 5 or frequency > 120:
+                    bot.reply_to(message, "❌ Revival frequency must be between 5-120 minutes!")
+                    return
+                    
+                success = set_group_settings(group_id, user_id, revival_frequency=frequency)
+                if success:
+                    bot.reply_to(message, f"✅ **Chat revival frequency set to:** {frequency} minutes")
+                else:
+                    bot.reply_to(message, "❌ Failed to set revival frequency.")
+            except ValueError:
+                bot.reply_to(message, "❌ Please provide a valid number for revival frequency!")
+                
+        elif setup_args in ['premium', 'upgrade']:
+            # Premium upgrade
+            bot.reply_to(message, """💎 **PREMIUM UPGRADE AVAILABLE!**
+
+**🚀 Premium Features:**
+• Advanced AI responses with custom training
+• Cross-group analytics and insights  
+• Custom branding and personality tweaks
+• Priority support and custom features
+• White-label options for your brand
+• Advanced competition scheduling
+• Custom command aliases
+
+**💰 Pricing:** Contact @YourUsername for premium setup!
+
+**🎯 Ready to upgrade?** Premium transforms me into your branded community AI! 🔥💕""")
+            
+        else:
+            bot.reply_to(message, """❌ **Unknown setup option!**
+
+**Available commands:**
+• `/setup token TOKENNAME SYMBOL website.com`
+• `/setup name "Your Community Name"`
+• `/setup revival 15` (minutes)
+• `/setup premium` - Upgrade info
+
+Use `/setup` without parameters to see current configuration! 💕""")
+            
+    except Exception as e:
+        logger.error(f"Error in setup command: {e}")
+        bot.reply_to(message, "❌ Setup failed! Please try again or contact support.")
+
+@bot.message_handler(commands=['config', 'settings'])
+def config_command(message):
+    """Show current group configuration - alias for /setup"""
+    # Redirect to setup command with no parameters
+    message.text = '/setup'
+    setup_command(message)
 
 if __name__ == "__main__":
     logger.info("Babygirl Bot starting...")
