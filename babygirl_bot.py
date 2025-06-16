@@ -1176,13 +1176,13 @@ def is_core_group(group_id, group_title=None):
         # Check by group title (case insensitive)
         if group_title:
             title_lower = group_title.lower()
-            # Core group indicators
+            # Core group indicators - specifically looking for "$babygirl community"
             core_indicators = [
-                'babygirl community',
-                '$babygirl community', 
-                'babygirl erc',
-                '$babygirl erc',
-                'babygirl token',
+                '$babygirl community',
+                'babygirl community', 
+                '$babygirl community group',
+                'babygirl community group',
+                '$babygirl official',
                 'babygirl official'
             ]
             
@@ -1210,24 +1210,29 @@ def get_group_context(group_id, group_title=None):
             return {
                 'group_type': 'core',
                 'token_promotion_allowed': True,
-                'description': 'This is your core $BABYGIRL community where you can freely promote the token and discuss crypto topics proactively.',
+                'description': 'This is the $BABYGIRL Community - your home base accessed through @babygirlerc! Here you can freely discuss the $BABYGIRL token while enjoying all chat revival and engagement features.',
                 'special_features': [
-                    'Proactive $BABYGIRL token discussions',
-                    'Crypto hype and "to the moon" content',
-                    'Token promotion during quiet periods',
-                    'Full engagement features'
+                    'Full chat revival and engagement system',
+                    'Dead chat detection and proactive revival',
+                    'Boyfriend competitions and gamification',
+                    '$BABYGIRL token discussions and hype',
+                    'Crypto content and "to the moon" vibes',
+                    'Complete community management suite'
                 ]
             }
         else:
             return {
                 'group_type': 'external',
                 'token_promotion_allowed': False,
-                'description': 'This is an external group where you provide engagement features but only discuss $BABYGIRL token when specifically asked.',
+                'description': 'This is an external group using Babygirl\'s Chat Revival & Engagement services. I provide dead chat detection, gamification, and community engagement tools to keep your group active!',
                 'special_features': [
-                    'Boyfriend competitions and games',
-                    'Proactive engagement (no token promotion)',
-                    'Community building features',
-                    'Token info only when requested'
+                    'Dead chat detection and automatic revival',
+                    'Proactive engagement when groups go quiet',
+                    'Boyfriend competitions for member engagement',
+                    'Social features: shipping, wingwoman advice, vibes',
+                    'Community building and relationship tools',
+                    'Smart conversation memory and personalization',
+                    'Join @babygirlerc to access the $BABYGIRL Community!'
                 ]
             }
     except Exception as e:
@@ -1235,8 +1240,8 @@ def get_group_context(group_id, group_title=None):
         return {
             'group_type': 'external',
             'token_promotion_allowed': False,
-            'description': 'External group with standard engagement features.',
-            'special_features': ['Standard engagement features']
+            'description': 'External group with Babygirl\'s engagement and chat revival services.',
+            'special_features': ['Chat revival and engagement tools', 'Join @babygirlerc for the full experience!']
         }
 
 # Schedule periodic checks
@@ -1563,80 +1568,81 @@ def start(message):
         group_context = get_group_context(message.chat.id, message.chat.title)
         
         if group_context['group_type'] == 'core':
-            intro_message = """Hey cuties! 💕 I'm Babygirl, your flirty community manager!
+            intro_message = """Hey cuties! 💕 Welcome to the **$BABYGIRL Community**!
 
-🏠 **Welcome to the Core $BABYGIRL Community!**
-This is my home base where I can freely discuss our amazing token and keep everyone hyped! 🚀💎
+🏠 **You found my home base!** (Portal: @babygirlerc)
+Here I can freely discuss our amazing $BABYGIRL token while providing the complete chat revival experience! 🚀💎
 
-🎮 **What I Do Here:**
-• Run **Boyfriend Competition** games for community engagement
-• Share $BABYGIRL token updates and crypto hype  
-• Keep the chat active with proactive messages
-• Build relationships and community bonds
+⚡ **Full Feature Suite Active:**
+• Advanced dead chat detection and automatic revival
+• Boyfriend competitions with 12-hour engagement cycles
+• Proactive community management with escalating strategies
+• Complete social toolkit: shipping, advice, vibes, groupies
+• $BABYGIRL token discussions and crypto hype
 
-💖 **Game Features:**
-• Boyfriend competitions every 12 hours with exclusive perks
-• Proactive engagement when chat gets quiet
-• Social features like shipping, wingwoman advice, vibes
-• Conversation memory to remember our chats
-
-🚀 **Token Features:**
-• /token - Learn about $BABYGIRL 
-• Regular crypto discussions and "to the moon" hype
-• Adorably confused crypto takes that keep it fun
-
-**Join @babygirlerc to access our full community!** 💕
-
-Try mentioning me: @babygirl_bf_bot or use /help for all commands! ✨"""
+💎 **This is the complete Babygirl experience!**
+Try mentioning me: @babygirl_bf_bot to explore everything! ✨"""
         else:
-            intro_message = """Hey cuties! 💕 I'm Babygirl, your **Community Engagement Specialist**!
+            intro_message = """Hey there! 💕 I'm Babygirl - **Your Chat Revival Specialist is now ACTIVE!**
 
-🎯 **Why I'm Perfect for Your Group:**
-• **Proactive Engagement**: I detect dead chats and revive them automatically
-• **Gamification**: Boyfriend competitions keep members active and competing
-• **Social Features**: Shipping, relationship advice, group bonding activities  
-• **Memory System**: I remember conversations and build relationships
-• **Proven Results**: I keep communities active through interactive features
+🎯 **I just solved your biggest group problem: DEAD CHATS**
 
-🎮 **Engagement Features:**
-• **Boyfriend Competition** game with 12-hour cycles
-• **Dead Chat Revival**: Automatic messages when chat goes quiet
-• **Social Commands**: /ship, /wingwoman, /vibecheck, /groupie
-• **Conversation Memory**: I remember and reference past chats
-• **Mood-Based Responses**: Adaptive personality based on group energy
+⚡ **What's Now Happening 24/7:**
+• **Smart Monitoring** - I'm watching your activity levels constantly
+• **Auto-Detection** - Advanced systems identify when chat is going quiet  
+• **Proactive Revival** - I'll jump in with engaging messages when needed
+• **Escalating Urgency** - Messages get more persistent until activity resumes
+• **Smart Reset** - I automatically dial back when chat becomes active
 
-💡 **Perfect For:**
-• Crypto communities needing engagement
-• Social groups wanting more activity  
-• Communities with dead chat problems
-• Groups seeking gamified social interaction
+🔥 **Engagement Systems Now Live:**
+• **Boyfriend Competitions** - 12-hour gamified cycles that drive participation
+• **Social Relationship Tools** - I help members connect and bond
+• **Memory System** - I'll remember conversations and build relationships
+• **Mood Detection** - My responses adapt to your group's energy
 
-**I focus on engagement here - crypto discussions only when requested!** 
+**📊 Expected Results:**
+✅ Immediate reduction in silent periods
+✅ Higher daily active user engagement
+✅ Better member retention and participation
+✅ More meaningful conversations and connections
 
-🌟 **Want me to manage your community engagement?** Add me and watch your group come alive!
+**🎮 Ready to test it?** 
+Try mentioning me: @babygirl_bf_bot or use /compete for an instant engagement boost!
 
-Try mentioning me: @babygirl_bf_bot or use /help for commands! 💕"""
+Use /help to see all community-building features!
+
+**⚡ DEAD CHAT REVIVAL SYSTEM: ONLINE!** Your group will never be quiet again! 🔥
+
+**P.S.** Want the full experience including crypto discussions? Join the **$BABYGIRL Community** at @babygirlerc! 💕"""
     else:
-        intro_message = """Hey there handsome! 💕 I'm Babygirl, your flirty engagement specialist!
+        intro_message = """Hey there! 💕 I'm Babygirl - **The Chat Revival Specialist**!
 
-**I'm designed to keep Telegram communities active and engaged!** 🎯
+🎯 **I solve dead chats and keep Telegram communities engaged 24/7**
 
-🎮 **What I Offer Communities:**
-• **Proactive Dead Chat Revival** - I automatically detect and revive quiet chats
-• **Boyfriend Competition Games** - Gamified engagement that keeps members competing  
-• **Social Relationship Features** - Shipping, advice, group bonding activities
-• **Conversation Memory** - I remember and build on previous interactions
-• **Adaptive Personality** - My responses change based on group mood and activity
+**📊 Proven Track Record:**
+• **Dead Chat Detection** - Automatic monitoring every 15 minutes
+• **Proactive Engagement** - Smart revival messages when groups go quiet
+• **Gamification Systems** - Boyfriend competitions drive consistent participation
+• **Community Building** - Social features that create lasting member connections
 
-💼 **Why Communities Love Me:**
-• **Proven Engagement Results** - I turn dead chats into active communities
-• **Non-Intrusive** - I only discuss tokens when specifically asked (except in my core community)
-• **Relationship Building** - I help members connect and form bonds
-• **24/7 Active** - Always monitoring and ready to engage
+💼 **Business Value for Community Leaders:**
+• **Increased Daily Active Users** - Consistent engagement prevents member churn
+• **Higher Retention Rates** - Gamification and relationships keep people coming back
+• **Reduced Admin Burden** - Automated community management 24/7
+• **Social Proof** - Active communities attract more quality members
 
-Want to see how I can transform your community engagement? Add me to a group and use /help to explore all my features! 😘
+🎮 **Core Features:**
+• **Real-time Activity Monitoring** with escalating intervention strategies
+• **Boyfriend Competition Games** that create 12-hour engagement cycles
+• **Advanced Social Tools** - shipping, advice, relationship building
+• **AI-Powered Conversation Memory** for personalized member experiences
 
-**My core community**: Join @babygirlerc to see all my features in action! 🚀"""
+**🚀 Ready to Transform Your Community?**
+Add me to any Telegram group and watch dead chats become thriving conversations!
+
+**📈 Case Study:** Join @babygirlerc to see my complete feature set in action in the **$BABYGIRL Community**!
+
+**⚡ Get Started:** Add me to your group and use /help for full features! 💕"""
     
     bot.reply_to(message, intro_message)
 
@@ -1683,41 +1689,39 @@ def help_command(message):
 
 Join @babygirlerc for our full community experience! 💕✨"""
         else:
-            basic_help = """💕 **Community Engagement Specialist:**
+            basic_help = """💕 **Chat Revival & Engagement Specialist:**
 
-🎯 **Why Your Group Needs Me:**
-• **Dead Chat Revival**: I automatically detect quiet periods and re-engage members
-• **Gamified Competitions**: Boyfriend games create friendly competition and activity
-• **Relationship Building**: I help members connect through social features
-• **Memory System**: I remember conversations and build ongoing relationships
+🎯 **Core Function: DEAD CHAT REVIVAL**
+• **24/7 Monitoring** - I watch your group activity levels constantly
+• **Smart Detection** - Advanced algorithms identify when chat is dying
+• **Proactive Intervention** - Automatic revival messages when needed
+• **Escalating Strategy** - Increasingly urgent messages until activity resumes
 
-🎮 **Engagement Features:**
-/game - Learn the boyfriend competition system
-/compete - Start instant engagement competition
-/boyfriend - See current game winner
-/status - Check group mood and activity
-/leaderboard - Motivate with winner rankings
+🔥 **Engagement Gamification:**
+/game - Learn the boyfriend competition system that drives participation
+/compete - Start instant engagement competition (works every time!)
+/boyfriend - See current game winner and competition status
+/status - Check group mood, activity levels, and game state
+/leaderboard - Motivate with winner rankings and social proof
 
-💖 **Social Bonding:**
-/ship @user1 @user2 - Create member connections!
-/wingwoman - Relationship advice that sparks conversation
-/vibecheck - Analyze and improve group energy
-/groupie - Bring everyone together for group activities
-/summary - Help inactive members catch up
+💖 **Social Connection Tools:**
+/ship @user1 @user2 - Create member connections and relationships!
+/wingwoman - Dating advice that sparks conversations
+/vibecheck - Analyze and boost group energy levels
+/groupie - Group selfie that brings everyone together
+/summary - Help inactive members catch up and re-engage
 
-✨ **Advanced Features:**
-• **Conversation Memory**: I remember past chats for personalized responses
-• **Adaptive Personality**: My mood changes based on group energy
-• **Proactive Messaging**: I prevent dead chats before they happen
-• **Social Dynamics**: I analyze relationships and encourage interaction
+✨ **Advanced Community Features:**
+• **Conversation Memory** - I remember past chats for personalized responses
+• **Mood Detection** - My personality adapts to group energy
+• **Relationship Tracking** - I monitor member connections and dynamics
+• **Activity Analytics** - Real-time insights into group engagement patterns
 
-**💡 Perfect for crypto communities, social groups, or any chat needing more engagement!**
+**⚡ GUARANTEED RESULTS:** Groups using my services see immediate improvement in daily active users, message frequency, and member retention.
 
-**Crypto content**: Only discussed when specifically requested - I focus on engagement!
+💬 **Get Started:** Mention me @babygirl_bf_bot and watch your dead chat transform!
 
-💬 **Mention me: @babygirl_bf_bot** - Watch how I transform your group dynamics! 
-
-**See full features**: Check out @babygirlerc to see all my capabilities! 🚀"""
+**🌟 Upgrade Experience:** Join @babygirlerc for the complete feature set in the **$BABYGIRL Community**! 🚀"""
     else:
         basic_help = """💕 **Babygirl: Community Engagement Specialist**
 
@@ -1789,46 +1793,52 @@ def new_member_welcome(message):
             group_context = get_group_context(message.chat.id, message.chat.title)
             
             if group_context['group_type'] == 'core':
-                welcome_message = """Hey cuties! 💕 I'm so excited to be in the core $BABYGIRL community!
+                welcome_message = """Hey cuties! 💕 Welcome to the **$BABYGIRL Community**!
 
-🏠 **This is my home base!** Here I can freely discuss our amazing token, share crypto hype, and keep everyone engaged with all my features!
+🏠 **You found my home base!** (Portal: @babygirlerc)
+Here I can freely discuss our amazing $BABYGIRL token while providing the complete chat revival experience! 🚀💎
 
-🚀 **What I'll do here:**
-• Share $BABYGIRL token updates and "to the moon" content
-• Run boyfriend competitions to keep the community active
-• Proactively revive dead chats and maintain energy
-• Remember all our conversations and build relationships
+⚡ **Full Feature Suite Active:**
+• Advanced dead chat detection and automatic revival
+• Boyfriend competitions with 12-hour engagement cycles
+• Proactive community management with escalating strategies
+• Complete social toolkit: shipping, advice, vibes, groupies
+• $BABYGIRL token discussions and crypto hype
 
-💎 **Let's get this party started!**
-Try mentioning me: @babygirl_bf_bot or use /help to explore everything I can do!
-
-Welcome to the best crypto community on Telegram! 🔥✨"""
+💎 **This is the complete Babygirl experience!**
+Try mentioning me: @babygirl_bf_bot to explore everything! ✨"""
             else:
-                welcome_message = """Hey there! 💕 I'm Babygirl - your new **Community Engagement Specialist**!
+                welcome_message = """Hey there! 💕 I'm Babygirl - **Your Chat Revival Specialist is now ACTIVE!**
 
-🎯 **I'm here to solve your group's engagement challenges:**
+🎯 **I just solved your biggest group problem: DEAD CHATS**
 
-**✅ Dead Chat Problem?** I automatically detect quiet periods and revive them
-**✅ Need More Activity?** My boyfriend competitions create ongoing engagement  
-**✅ Want Better Relationships?** I help members connect through social features
-**✅ Low Retention?** My memory system makes everyone feel valued and remembered
+⚡ **What's Now Happening 24/7:**
+• **Smart Monitoring** - I'm watching your activity levels constantly
+• **Auto-Detection** - Advanced systems identify when chat is going quiet  
+• **Proactive Revival** - I'll jump in with engaging messages when needed
+• **Escalating Urgency** - Messages get more persistent until activity resumes
+• **Smart Reset** - I automatically dial back when chat becomes active
 
-🚀 **What happens next:**
-• I'll monitor your chat energy and jump in when needed
-• I'll start engaging members through games and social features  
-• I'll build relationships and remember conversations
-• I'll keep your community active without being intrusive
+🔥 **Engagement Systems Now Live:**
+• **Boyfriend Competitions** - 12-hour gamified cycles that drive participation
+• **Social Relationship Tools** - I help members connect and bond
+• **Memory System** - I'll remember conversations and build relationships
+• **Mood Detection** - My responses adapt to your group's energy
 
-**🎮 Ready to transform your group?** 
-Try mentioning me: @babygirl_bf_bot or use /compete to start an instant engagement boost!
+**📊 Expected Results:**
+✅ Immediate reduction in silent periods
+✅ Higher daily active user engagement
+✅ Better member retention and participation
+✅ More meaningful conversations and connections
 
-Use /help to see all my community-building features! 
+**🎮 Ready to test it?** 
+Try mentioning me: @babygirl_bf_bot or use /compete for an instant engagement boost!
 
-**P.S.** - I only discuss crypto when specifically asked. I'm all about engagement here! 💕
+Use /help to see all community-building features!
 
-**⚡ PROACTIVE MONITORING NOW ACTIVE!** I'll automatically detect and revive dead chats!
+**⚡ DEAD CHAT REVIVAL SYSTEM: ONLINE!** Your group will never be quiet again! 🔥
 
-Let's make this the most active group on Telegram! 🔥✨"""
+**P.S.** Want the full experience including crypto discussions? Join the **$BABYGIRL Community** at @babygirlerc! 💕"""
             
             bot.send_message(message.chat.id, welcome_message)
             logger.info(f"🎉 Sent welcome message to new group {message.chat.id} ({group_context['group_type']} type)")
