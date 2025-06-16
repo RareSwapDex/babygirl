@@ -10,9 +10,42 @@ import os
 TOKEN = os.getenv('BOT_TOKEN', '7618107152:AAEMPk7q7xNUhZpiDMMiVRSrTV0hkJSyV8I')
 bot = telebot.TeleBot(TOKEN)
 
+def ensure_database_exists():
+    """Ensure database exists and has required tables"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Create essential tables if they don't exist
+        c.execute('''CREATE TABLE IF NOT EXISTS spam_tracking
+                    (user_id TEXT, group_id TEXT, timestamp INTEGER)''')
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS boyfriend_table
+                    (group_id TEXT, user_id TEXT, username TEXT, end_time INTEGER)''')
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS cooldown_table
+                    (group_id TEXT, user_id TEXT, end_time INTEGER)''')
+        
+        c.execute('''CREATE TABLE IF NOT EXISTS leaderboard_table
+                    (group_id TEXT, user_id TEXT, username TEXT, score INTEGER)''')
+        
+        conn.commit()
+        conn.close()
+        print("📊 Database structure ensured")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️ Database setup failed: {e}")
+        return False
+
 def send_deployment_update(update_message):
     """Send deployment update to all active groups"""
     try:
+        # Ensure database exists first
+        if not ensure_database_exists():
+            print("❌ Cannot access database - skipping notifications")
+            return 0
+            
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         
@@ -25,6 +58,11 @@ def send_deployment_update(update_message):
             # Fallback: get all groups that have any data
             c.execute("SELECT DISTINCT group_id FROM boyfriend_table UNION SELECT DISTINCT group_id FROM cooldown_table UNION SELECT DISTINCT group_id FROM leaderboard_table")
             active_groups = c.fetchall()
+        
+        if not active_groups:
+            print("📭 No groups found in database - notifications will be sent once bot is used in groups")
+            conn.close()
+            return 0
         
         deployment_message = f"""✨ **BABYGIRL UPDATE DEPLOYED!** ✨
 
@@ -57,7 +95,7 @@ Love you all! Let's make some memories! 💕✨
         return success_count
         
     except Exception as e:
-        print(f"Error sending deployment updates: {e}")
+        print(f"⚠️ Error sending deployment updates: {e}")
         return 0
 
 def send_latest_update():
