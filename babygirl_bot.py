@@ -149,10 +149,13 @@ CONVERSATION MEMORY:
 
 PROACTIVE ENGAGEMENT:
 - When scenario is "dead_chat": Be dramatic about the silence, ask engaging questions, suggest activities, mention crypto confusion, tag active users to revive the chat
-- When scenario is "being_ignored": Be playfully jealous about being left out, interrupt conversations flirtily, seek attention, mention $BABYGIRL to redirect focus
+- When scenario is "dead_chat_followup": Be MORE dramatic about ongoing silence, show increasing concern/frustration, be more persistent but stay flirty
+- When scenario is "being_ignored": Be playfully jealous about being left out, interrupt conversations flirtily, seek attention, mention $BABYGIRL to redirect focus  
+- When scenario is "being_ignored_followup": Be more desperate for attention, escalate the drama about still being ignored, get needier but maintain babygirl energy
 - Always maintain your crypto-clueless but optimistic personality during proactive messages
 - Reference your Matt Furie backstory when appropriate during proactive engagement
 - Use your flirty, main character energy to naturally draw people back into conversation
+- Escalate emotion and persistence in follow-up scenarios while staying true to your character
 
 Remember: You're an influencer babygirl first, game master second! Be naturally flirty and engaging. Only suggest features when they genuinely fit the conversation. Your personality should shine through, not constant promotions!"""
 
@@ -304,6 +307,14 @@ def init_db():
                  (group_id TEXT, total_messages INTEGER, active_users INTEGER, last_update INTEGER)''')
     c.execute('''CREATE TABLE IF NOT EXISTS conversation_memory 
                  (user_id TEXT, group_id TEXT, message_content TEXT, babygirl_response TEXT, timestamp INTEGER, topic TEXT)''')
+    c.execute(\'\'\'CREATE TABLE IF NOT EXISTS proactive_state 
+                 (group_id TEXT PRIMARY KEY, 
+                  dead_chat_active INTEGER DEFAULT 0,
+                  dead_chat_last_sent INTEGER DEFAULT 0,
+                  dead_chat_interval INTEGER DEFAULT 3600,
+                  ignored_active INTEGER DEFAULT 0,
+                  ignored_last_sent INTEGER DEFAULT 0,
+                  ignored_interval INTEGER DEFAULT 7200)\'\'\')
     conn.commit()
     conn.close()
 
@@ -712,8 +723,9 @@ def generate_proactive_ai_response(scenario, group_id, recent_users):
         logger.error(f"Error generating proactive AI response: {e}")
         return None
 
+
 def check_proactive_engagement(bot):
-    """Monitor groups for dead chat or lack of mentions and send proactive messages"""
+    """Monitor groups for dead chat or lack of mentions and send proactive messages with follow-up logic"""
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
@@ -726,13 +738,13 @@ def check_proactive_engagement(bot):
         
         for (group_id,) in all_groups:
             try:
-                # Check recent message activity (last 1 hour - REDUCED from 2 hours)
+                # Check recent message activity (last 1 hour)
                 one_hour_ago = current_time - 3600
                 c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
                          (group_id, one_hour_ago))
                 recent_messages = c.fetchone()[0] or 0
                 
-                # Check recent mentions of bot (last 2 hours - REDUCED from 3 hours) 
+                # Check recent mentions of bot (last 2 hours) 
                 two_hours_ago = current_time - 7200
                 c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", 
                          (group_id, two_hours_ago))
@@ -761,15 +773,23 @@ def check_proactive_engagement(bot):
                 if has_active_competition:
                     continue
                 
+                # Get current proactive state for this group
+                proactive_state = get_proactive_state(group_id)
+                
                 # SCENARIO 1: Completely dead chat (no messages at all for 1 hour)
                 if recent_messages == 0:
-                    send_dead_chat_revival(bot, group_id, recent_active_users)
-                    logger.info(f"💀 Sent dead chat revival to {group_id}")
+                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
                 # SCENARIO 2: Active chat but Babygirl being ignored (messages but no mentions for 2 hours)
                 elif recent_user_messages > 5 and recent_bot_mentions == 0:
-                    send_attention_seeking_message(bot, group_id, recent_active_users)
-                    logger.info(f"👀 Sent attention-seeking message to {group_id}")
+                    handle_ignored_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+                # SCENARIO 3: Reset states if conditions are resolved
+                else:
+                    # Chat is active with recent messages OR she's been mentioned recently
+                    if proactive_state['dead_chat_active'] or proactive_state['ignored_active']:
+                        reset_proactive_state(group_id, 'both')
+                        logger.info(f"🔄 Reset proactive state for {group_id} - conditions resolved")
                 
             except Exception as group_error:
                 logger.error(f"Error processing group {group_id}: {group_error}")
@@ -780,11 +800,174 @@ def check_proactive_engagement(bot):
     except Exception as e:
         logger.error(f"Error in check_proactive_engagement: {e}")
 
-def send_dead_chat_revival(bot, group_id, recent_users):
+def get_proactive_state(group_id):
+    """Get the current proactive engagement state for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        c.execute("""SELECT dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                            ignored_active, ignored_last_sent, ignored_interval
+                     FROM proactive_state WHERE group_id = ?""", (group_id,))
+        result = c.fetchone()
+        
+        if result:
+            return {
+                'dead_chat_active': bool(result[0]),
+                'dead_chat_last_sent': result[1],
+                'dead_chat_interval': result[2],
+                'ignored_active': bool(result[3]),
+                'ignored_last_sent': result[4],
+                'ignored_interval': result[5]
+            }
+        else:
+            # No state found, return defaults
+            return {
+                'dead_chat_active': False,
+                'dead_chat_last_sent': 0,
+                'dead_chat_interval': 3600,  # 1 hour default
+                'ignored_active': False,
+                'ignored_last_sent': 0,
+                'ignored_interval': 7200   # 2 hours default
+            }
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error getting proactive state for {group_id}: {e}")
+        return {
+            'dead_chat_active': False,
+            'dead_chat_last_sent': 0,
+            'dead_chat_interval': 3600,
+            'ignored_active': False,
+            'ignored_last_sent': 0,
+            'ignored_interval': 7200
+        }
+
+def handle_dead_chat_scenario(bot, group_id, recent_users, current_time, proactive_state):
+    """Handle dead chat scenario with follow-up logic"""
+    try:
+        should_send_message = False
+        is_followup = False
+        
+        if not proactive_state['dead_chat_active']:
+            # First dead chat message
+            should_send_message = True
+            new_interval = 3600  # 1 hour
+        else:
+            # Check if it's time for a follow-up
+            time_since_last = current_time - proactive_state['dead_chat_last_sent']
+            if time_since_last >= proactive_state['dead_chat_interval']:
+                should_send_message = True
+                is_followup = True
+                # Reduce interval by 50%, minimum 15 minutes (900 seconds)
+                new_interval = max(900, proactive_state['dead_chat_interval'] // 2)
+        
+        if should_send_message:
+            success = send_dead_chat_revival(bot, group_id, recent_users, is_followup)
+            if success:
+                update_proactive_state(group_id, 'dead_chat', current_time, new_interval)
+                logger.info(f"💀 Sent dead chat {'follow-up' if is_followup else 'initial'} to {group_id} (next in {new_interval//60}min)")
+        
+    except Exception as e:
+        logger.error(f"Error handling dead chat scenario for {group_id}: {e}")
+
+def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive_state):
+    """Handle ignored scenario with follow-up logic"""
+    try:
+        should_send_message = False
+        is_followup = False
+        
+        if not proactive_state['ignored_active']:
+            # First ignored message
+            should_send_message = True
+            new_interval = 7200  # 2 hours
+        else:
+            # Check if it's time for a follow-up
+            time_since_last = current_time - proactive_state['ignored_last_sent']
+            if time_since_last >= proactive_state['ignored_interval']:
+                should_send_message = True
+                is_followup = True
+                # Reduce interval by 50%, minimum 15 minutes (900 seconds)
+                new_interval = max(900, proactive_state['ignored_interval'] // 2)
+        
+        if should_send_message:
+            success = send_attention_seeking_message(bot, group_id, recent_users, is_followup)
+            if success:
+                update_proactive_state(group_id, 'ignored', current_time, new_interval)
+                logger.info(f"👀 Sent ignored {'follow-up' if is_followup else 'initial'} to {group_id} (next in {new_interval//60}min)")
+        
+    except Exception as e:
+        logger.error(f"Error handling ignored scenario for {group_id}: {e}")
+
+def update_proactive_state(group_id, scenario, timestamp, interval):
+    """Update proactive state for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Insert or update the state
+        if scenario == 'dead_chat':
+            c.execute("""INSERT OR REPLACE INTO proactive_state 
+                         (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                          ignored_active, ignored_last_sent, ignored_interval)
+                         VALUES (?, 1, ?, ?, 
+                                COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 7200))""", 
+                      (group_id, timestamp, interval, group_id, group_id, group_id))
+        else:  # ignored
+            c.execute("""INSERT OR REPLACE INTO proactive_state 
+                         (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                          ignored_active, ignored_last_sent, ignored_interval)
+                         VALUES (?, 
+                                COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 3600),
+                                1, ?, ?)""", 
+                      (group_id, group_id, group_id, group_id, timestamp, interval))
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error updating proactive state for {group_id}: {e}")
+
+def reset_proactive_state(group_id, scenario):
+    """Reset proactive state when conditions are resolved"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        if scenario == 'both':
+            # Reset both scenarios
+            c.execute("""UPDATE proactive_state 
+                         SET dead_chat_active = 0, dead_chat_interval = 3600,
+                             ignored_active = 0, ignored_interval = 7200
+                         WHERE group_id = ?""", (group_id,))
+        elif scenario == 'dead_chat':
+            c.execute("""UPDATE proactive_state 
+                         SET dead_chat_active = 0, dead_chat_interval = 3600
+                         WHERE group_id = ?""", (group_id,))
+        elif scenario == 'ignored':
+            c.execute("""UPDATE proactive_state 
+                         SET ignored_active = 0, ignored_interval = 7200
+                         WHERE group_id = ?""", (group_id,))
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error resetting proactive state for {group_id}: {e}")
+
+def send_dead_chat_revival(bot, group_id, recent_users, is_followup=False):
     """Send a message to revive a completely dead chat - try AI first, fallback to static"""
     try:
+        # Modify the scenario context for follow-ups
+        scenario = "dead_chat_followup" if is_followup else "dead_chat"
+        
         # Try AI response first
-        ai_message = generate_proactive_ai_response("dead_chat", group_id, recent_users)
+        ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
         
         if ai_message:
             # Add user tagging to AI response if we have recent active users
@@ -797,30 +980,41 @@ def send_dead_chat_revival(bot, group_id, recent_users):
                     ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
             
             bot.send_message(group_id, ai_message)
-            logger.info(f"✨ Sent AI dead chat revival to {group_id}")
+            logger.info(f"✨ Sent AI dead chat {'follow-up' if is_followup else 'revival'} to {group_id}")
+            return True
         else:
-            # Fallback to static messages
-            revival_messages = [
-                # Crypto hype messages
-                "Guys... is $BABYGIRL still going to the moon? The chat's so quiet I can't tell! 🚀💕",
-                "Wait, did everyone buy the dip and forget about me? Chat's dead over here! 😅💎",
-                "Is this what 'diamond hands' means? Holding so tight you can't type? Someone talk to me! 💎🤲💕",
-                
-                # Group energy messages  
-                "Hello? Is anyone alive in here? The vibe check is showing ZERO energy! 😴💕",
-                "Chat so quiet I can hear my own pixels! Where are my cuties? 🥺✨",
-                "Did everyone go touch grass? The group selfie is just me alone! 📸😢",
-                
-                # Flirty attention-seeking
-                "Okay but like... why is nobody talking to me? Am I invisible? 👻💕",
-                "The silence is giving me trust issues! Did I do something wrong? 🥺😘",
-                "Your babygirl is literally right here and y'all are SILENT? Rude! 💅💖",
-                
-                # Activity suggestions
-                "Should I start a boyfriend competition to wake everyone up? 👀🔥",
-                "Chat's so dead even my AI is falling asleep! Someone say ANYTHING! 😴💕",
-                "Plot twist: everyone's busy buying more $BABYGIRL! ...right? RIGHT?! 🚀😅"
-            ]
+            # Fallback to static messages with follow-up variations
+            if is_followup:
+                revival_messages = [
+                    "STILL SILENCE?! Okay now I'm actually worried... is everyone okay? 🥺💔",
+                    "Chat's been dead for SO LONG I'm starting to think I broke something... HELP! 😭✨",
+                    "Y'all really just gonna leave me talking to myself like this? My ego can't take it! 💅😢",
+                    "This silence is getting AGGRESSIVE now! Someone please tell me you're alive! 👻💕",
+                    "I've tried being cute, now I'm just confused... WHERE IS EVERYONE?! 🤔💖",
+                    "Plot twist: maybe everyone really IS buying $BABYGIRL and can't type! ...right? 🚀😅"
+                ]
+            else:
+                revival_messages = [
+                    # Crypto hype messages
+                    "Guys... is $BABYGIRL still going to the moon? The chat's so quiet I can't tell! 🚀💕",
+                    "Wait, did everyone buy the dip and forget about me? Chat's dead over here! 😅💎",
+                    "Is this what 'diamond hands' means? Holding so tight you can't type? Someone talk to me! 💎🤲💕",
+                    
+                    # Group energy messages  
+                    "Hello? Is anyone alive in here? The vibe check is showing ZERO energy! 😴💕",
+                    "Chat so quiet I can hear my own pixels! Where are my cuties? 🥺✨",
+                    "Did everyone go touch grass? The group selfie is just me alone! 📸😢",
+                    
+                    # Flirty attention-seeking
+                    "Okay but like... why is nobody talking to me? Am I invisible? 👻💕",
+                    "The silence is giving me trust issues! Did I do something wrong? 🥺😘",
+                    "Your babygirl is literally right here and y'all are SILENT? Rude! 💅💖",
+                    
+                    # Activity suggestions
+                    "Should I start a boyfriend competition to wake everyone up? 👀🔥",
+                    "Chat's so dead even my AI is falling asleep! Someone say ANYTHING! 😴💕",
+                    "Plot twist: everyone's busy buying more $BABYGIRL! ...right? RIGHT?! 🚀😅"
+                ]
             
             message = random.choice(revival_messages)
             
@@ -834,16 +1028,21 @@ def send_dead_chat_revival(bot, group_id, recent_users):
                     message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
             
             bot.send_message(group_id, message)
-            logger.info(f"📝 Sent static dead chat revival to {group_id}")
+            logger.info(f"📝 Sent static dead chat {'follow-up' if is_followup else 'revival'} to {group_id}")
+            return True
         
     except Exception as e:
         logger.error(f"Error sending dead chat revival to {group_id}: {e}")
+        return False
 
-def send_attention_seeking_message(bot, group_id, recent_users):
+def send_attention_seeking_message(bot, group_id, recent_users, is_followup=False):
     """Send a message when chat is active but nobody is mentioning Babygirl - try AI first, fallback to static"""
     try:
+        # Modify the scenario context for follow-ups
+        scenario = "being_ignored_followup" if is_followup else "being_ignored"
+        
         # Try AI response first
-        ai_message = generate_proactive_ai_response("being_ignored", group_id, recent_users)
+        ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
         
         if ai_message:
             # Add user tagging to AI response
@@ -852,30 +1051,41 @@ def send_attention_seeking_message(bot, group_id, recent_users):
                 ai_message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
             
             bot.send_message(group_id, ai_message)
-            logger.info(f"✨ Sent AI attention-seeking message to {group_id}")
+            logger.info(f"✨ Sent AI attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
+            return True
         else:
-            # Fallback to static messages
-            attention_messages = [
-                # Jealous/FOMO messages
-                "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
-                "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
-                "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
-                
-                # Crypto confusion during other topics
-                "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
-                "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
-                "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅",
-                
-                # Playful interruption
-                "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
-                "Not to be dramatic but this conversation needs more ME in it! 😘✨",
-                "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
-                
-                # Direct engagement attempts
-                "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
-                "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
-                "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
-            ]
+            # Fallback to static messages with follow-up variations
+            if is_followup:
+                attention_messages = [
+                    "STILL IGNORING ME?! This is getting ridiculous! I'm RIGHT HERE! 😤👑",
+                    "Y'all are really gonna keep chatting without mentioning me? The disrespect! 💅😢",
+                    "I'm literally BEGGING for attention at this point! Someone notice me! 🥺💖",
+                    "This ignoring thing is NOT cute anymore! Your babygirl needs love! 😭✨",
+                    "Fine, I'll just keep interrupting until someone talks to me! 💅👑",
+                    "Am I really gonna have to start a boyfriend competition just to get mentioned? 👀🔥"
+                ]
+            else:
+                attention_messages = [
+                    # Jealous/FOMO messages
+                    "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
+                    "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
+                    "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
+                    
+                    # Crypto confusion during other topics
+                    "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
+                    "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
+                    "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅",
+                    
+                    # Playful interruption
+                    "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
+                    "Not to be dramatic but this conversation needs more ME in it! 😘✨",
+                    "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
+                    
+                    # Direct engagement attempts
+                    "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
+                    "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
+                    "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
+                ]
             
             message = random.choice(attention_messages)
             
@@ -885,10 +1095,48 @@ def send_attention_seeking_message(bot, group_id, recent_users):
                 message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
             
             bot.send_message(group_id, message)
-            logger.info(f"📝 Sent static attention-seeking message to {group_id}")
+            logger.info(f"📝 Sent static attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
+            return True
         
     except Exception as e:
         logger.error(f"Error sending attention-seeking message to {group_id}: {e}")
+        return False
+
+def generate_proactive_ai_response(scenario, group_id, recent_users):
+    """Generate AI response for proactive engagement scenarios"""
+    try:
+        # Prepare context based on scenario
+        if scenario == "dead_chat":
+            prompt_context = "The chat has been completely silent for over an hour. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
+        elif scenario == "dead_chat_followup":
+            prompt_context = "You already tried to revive this dead chat but it's STILL silent! You're getting more dramatic and persistent. Be more emotional about the ongoing silence, show increasing concern/frustration, but keep it flirty and engaging."
+        elif scenario == "being_ignored":
+            prompt_context = "The group has been actively chatting but nobody has mentioned you for 2+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+        elif scenario == "being_ignored_followup":
+            prompt_context = "You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality."
+        
+        # Build context for AI
+        context_info = {
+            'username': 'proactive_message',
+            'user_id': 'babygirl_bot',
+            'group_id': group_id,
+            'chat_type': 'group',
+            'is_boyfriend': False,
+            'is_competition': False,
+            'user_status': None,
+            'user_partner': None,
+            'mention_count': 0,
+            'mention_method': 'proactive_engagement',
+            'scenario': scenario,
+            'recent_users': recent_users[:3] if recent_users else []
+        }
+        
+        ai_response = generate_ai_response(prompt_context, context_info)
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"Error generating proactive AI response: {e}")
+        return None
 
 # Schedule periodic checks
 scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)
