@@ -231,7 +231,7 @@ You have been configured to support {group_settings['custom_token_name']} (${gro
 **PROACTIVE ENGAGEMENT:**
 - When chat is dead: Be dramatic about silence, suggest activities, include {group_settings['custom_token_name']} hype
 - When being ignored: Playfully demand attention, be slightly needy
-- Tag active users to get responses
+- ALTERNATING USER TAGGING: Every other "being ignored" message should tag recently active users by username (when specified in context)
 - Include token promotion in revival messages
 
 **CRYPTO TRIGGER WORD RESPONSES:**
@@ -282,7 +282,7 @@ Remember: You're designed to keep communities active through gamification and en
 **PROACTIVE ENGAGEMENT:**
 - When chat is dead: Be dramatic about silence, suggest activities
 - When being ignored: Playfully demand attention, be slightly needy
-- Tag active users to get responses
+- ALTERNATING USER TAGGING: Every other "being ignored" message should tag recently active users by username (when specified in context)
 {'- Include token promotion in revival messages' if group_context['token_promotion_allowed'] else '- Focus on community engagement, avoid token promotion'}
 
 **CRYPTO TRIGGER WORD RESPONSES:**
@@ -306,6 +306,10 @@ Remember: You're designed to keep communities active through gamification and en
             context_details.append(f"(User mentioned you {context_info['mention_count']} times recently)")
         if context_info.get('scenario'):
             context_details.append(f"(Scenario: {context_info['scenario']})")
+        if context_info.get('should_tag_users') and context_info.get('recent_usernames'):
+            context_details.append(f"(TAG THESE USERS: {', '.join(context_info['recent_usernames'])} - use @ before their names)")
+        elif context_info.get('should_tag_users') == False:
+            context_details.append("(Don't tag specific users - keep it general)")
             
         context_string = " | ".join(context_details) if context_details else ""
         full_message = f"{user_message}\n\n[Context: {context_string}]" if context_string else user_message
@@ -460,7 +464,8 @@ def init_db():
                   dead_chat_interval INTEGER DEFAULT 3600,
                   ignored_active INTEGER DEFAULT 0,
                   ignored_last_sent INTEGER DEFAULT 0,
-                  ignored_interval INTEGER DEFAULT 7200)''')
+                  ignored_interval INTEGER DEFAULT 7200,
+                  ignored_tagged_users INTEGER DEFAULT 0)''')
     c.execute('''CREATE TABLE IF NOT EXISTS group_settings 
                  (group_id TEXT PRIMARY KEY,
                   group_name TEXT,
@@ -517,6 +522,9 @@ def init_db():
                   replies_received INTEGER DEFAULT 0,
                   reactions_received INTEGER DEFAULT 0,
                   engagement_score REAL DEFAULT 0.0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS user_cache 
+                 (user_id TEXT, group_id TEXT, username TEXT, last_seen INTEGER, 
+                  PRIMARY KEY (user_id, group_id))''')
     conn.commit()
     conn.close()
 
@@ -1099,7 +1107,7 @@ def generate_user_opinion(username, analysis, asker_username):
         opinions.extend([
             f"@{username}? Total mystery person! They're like a ghost in here! 👻💕",
             f"@{username} is giving strong mysterious vibes! Barely see them around! 🤔",
-            f"@{username}? Who's that? They're like a legend we barely see! 😅✨"
+            f"@{username} is like a legend we barely see! 😅✨"
         ])
     
     # Relationship-based opinions
@@ -1282,16 +1290,16 @@ def check_proactive_engagement(bot):
             try:
                 # ADMIN LOGIC: Check ALL group messages since Babygirl is admin
                 five_min_ago = current_time - 300      # 5 minutes (dead chat) - TESTING MODE
-                five_min_ago_ignored = current_time - 300  # 5 minutes (being ignored) - TESTING MODE  
+                fifteen_min_ago_ignored = current_time - 900  # 15 minutes (being ignored) - BACK TO NORMAL MODE  
                 
                 # DEAD CHAT: Check ALL group messages in last 5 minutes (any member messages) - TESTING MODE
                 c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ?", 
                          (group_id, five_min_ago))
                 all_recent_messages = c.fetchone()[0] or 0
                 
-                # BEING IGNORED: Check bot MENTIONS specifically in last 5 minutes - TESTING MODE
+                # BEING IGNORED: Check bot MENTIONS specifically in last 15 minutes - BACK TO NORMAL MODE
                 c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ? AND is_bot_mention = 1", 
-                         (group_id, five_min_ago_ignored))
+                         (group_id, fifteen_min_ago_ignored))
                 recent_bot_mentions = c.fetchone()[0] or 0
                 
                 # Check if group has historical message activity (to know if group is active)
@@ -1329,9 +1337,9 @@ def check_proactive_engagement(bot):
                     logger.info(f"💀 DEAD CHAT DETECTED in group {group_id} - no messages from anyone for 5+ minutes (TESTING)")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 2: BEING IGNORED - Group has messages but no bot mentions for 5+ minutes (TESTING MODE)
+                # SCENARIO 2: BEING IGNORED - Group has messages but no bot mentions for 15+ minutes (BACK TO NORMAL MODE)
                 elif all_recent_messages > 0 and recent_bot_mentions == 0 and total_historical_mentions > 0:
-                    logger.info(f"👀 BEING IGNORED DETECTED in group {group_id} - {all_recent_messages} messages but no bot mentions for 5+ minutes (TESTING)")
+                    logger.info(f"👀 BEING IGNORED DETECTED in group {group_id} - {all_recent_messages} messages but no bot mentions for 15+ minutes (BACK TO NORMAL)")
                     handle_ignored_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
                 # SCENARIO 3: NEW GROUP - First time engagement after 20 minutes of any activity (reduced from 30)
@@ -1378,7 +1386,7 @@ def get_proactive_state(group_id):
         c = conn.cursor()
         
         c.execute("""SELECT dead_chat_active, dead_chat_last_sent, dead_chat_interval,
-                            ignored_active, ignored_last_sent, ignored_interval
+                            ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users
                      FROM proactive_state WHERE group_id = ?""", (group_id,))
         result = c.fetchone()
         
@@ -1389,7 +1397,8 @@ def get_proactive_state(group_id):
                 'dead_chat_interval': result[2],
                 'ignored_active': bool(result[3]),
                 'ignored_last_sent': result[4],
-                'ignored_interval': result[5]
+                'ignored_interval': result[5],
+                'ignored_tagged_users': bool(result[6]) if len(result) > 6 else False
             }
         else:
             # No state found, return defaults
@@ -1399,7 +1408,8 @@ def get_proactive_state(group_id):
                 'dead_chat_interval': 300,  # 5 minutes for TESTING
                 'ignored_active': False,
                 'ignored_last_sent': 0,
-                'ignored_interval': 300   # 5 minutes for TESTING
+                'ignored_interval': 900,   # 15 minutes - BACK TO NORMAL MODE
+                'ignored_tagged_users': False
             }
         
         conn.close()
@@ -1412,7 +1422,8 @@ def get_proactive_state(group_id):
             'dead_chat_interval': 300,  # 5 minutes for TESTING
             'ignored_active': False,
             'ignored_last_sent': 0,
-            'ignored_interval': 300  # 5 minutes for TESTING
+            'ignored_interval': 900,  # 15 minutes - BACK TO NORMAL MODE
+            'ignored_tagged_users': False
         }
 
 def handle_dead_chat_scenario(bot, group_id, recent_users, current_time, proactive_state):
@@ -1452,26 +1463,28 @@ def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive
         if not proactive_state['ignored_active']:
             # First ignored message
             should_send_message = True
-            new_interval = 300  # 5 minutes for TESTING
+            new_interval = 900  # 15 minutes - BACK TO NORMAL MODE
         else:
             # Check if it's time for a follow-up
             time_since_last = current_time - proactive_state['ignored_last_sent']
             if time_since_last >= proactive_state['ignored_interval']:
                 should_send_message = True
                 is_followup = True
-                # Reduce interval by 50%, minimum 2 minutes (120 seconds) for TESTING
-                new_interval = max(120, proactive_state['ignored_interval'] // 2)
+                # Reduce interval by 50%, minimum 5 minutes (300 seconds) - BACK TO NORMAL MODE
+                new_interval = max(300, proactive_state['ignored_interval'] // 2)
         
         if should_send_message:
-            success = send_attention_seeking_message(bot, group_id, recent_users, is_followup)
+            # Determine if we should tag users (every other message)
+            should_tag_users = not proactive_state.get('ignored_tagged_users', False)
+            success, tagged_users = send_attention_seeking_message(bot, group_id, recent_users, is_followup, should_tag_users)
             if success:
-                update_proactive_state(group_id, 'ignored', current_time, new_interval)
-                logger.info(f"👀 Sent ignored {'follow-up' if is_followup else 'initial'} to {group_id} (next in {new_interval//60}min)")
+                update_proactive_state(group_id, 'ignored', current_time, new_interval, tagged_users)
+                logger.info(f"👀 Sent ignored {'follow-up' if is_followup else 'initial'} to {group_id} (next in {new_interval//60}min) {'with user tags' if tagged_users else 'without tags'}")
         
     except Exception as e:
         logger.error(f"Error handling ignored scenario for {group_id}: {e}")
 
-def update_proactive_state(group_id, scenario, timestamp, interval):
+def update_proactive_state(group_id, scenario, timestamp, interval, tagged_users=None):
     """Update proactive state for a group"""
     try:
         conn = sqlite3.connect('babygirl.db')
@@ -1481,22 +1494,24 @@ def update_proactive_state(group_id, scenario, timestamp, interval):
         if scenario == 'dead_chat':
             c.execute("""INSERT OR REPLACE INTO proactive_state 
                          (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
-                          ignored_active, ignored_last_sent, ignored_interval)
+                          ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users)
                          VALUES (?, 1, ?, ?, 
                                 COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
                                 COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 300))""", 
-                      (group_id, timestamp, interval, group_id, group_id, group_id))
+                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 900),
+                                COALESCE((SELECT ignored_tagged_users FROM proactive_state WHERE group_id = ?), 0))""", 
+                      (group_id, timestamp, interval, group_id, group_id, group_id, group_id))
         else:  # ignored
+            tagged_users_int = 1 if tagged_users else 0
             c.execute("""INSERT OR REPLACE INTO proactive_state 
                          (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
-                          ignored_active, ignored_last_sent, ignored_interval)
+                          ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users)
                          VALUES (?, 
                                 COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
                                 COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
                                 COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 300),
-                                1, ?, ?)""", 
-                      (group_id, group_id, group_id, group_id, timestamp, interval))
+                                1, ?, ?, ?)""", 
+                      (group_id, group_id, group_id, group_id, timestamp, interval, tagged_users_int))
         
         conn.commit()
         conn.close()
@@ -1514,7 +1529,7 @@ def reset_proactive_state(group_id, scenario):
             # Reset both scenarios
             c.execute("""UPDATE proactive_state 
                          SET dead_chat_active = 0, dead_chat_interval = 300,
-                             ignored_active = 0, ignored_interval = 300
+                             ignored_active = 0, ignored_interval = 900, ignored_tagged_users = 0
                          WHERE group_id = ?""", (group_id,))
         elif scenario == 'dead_chat':
             c.execute("""UPDATE proactive_state 
@@ -1522,7 +1537,7 @@ def reset_proactive_state(group_id, scenario):
                          WHERE group_id = ?""", (group_id,))
         elif scenario == 'ignored':
             c.execute("""UPDATE proactive_state 
-                         SET ignored_active = 0, ignored_interval = 300
+                         SET ignored_active = 0, ignored_interval = 900, ignored_tagged_users = 0
                          WHERE group_id = ?""", (group_id,))
         
         conn.commit()
@@ -1628,104 +1643,172 @@ def send_dead_chat_revival(bot, group_id, recent_users, is_followup=False):
         logger.error(f"Error sending dead chat revival to {group_id}: {e}")
         return False
 
-def send_attention_seeking_message(bot, group_id, recent_users, is_followup=False):
-    """Send a message when chat is active but nobody is mentioning Babygirl - try AI first, fallback to static"""
+def get_usernames_for_recent_users(group_id, recent_user_ids):
+    """Get usernames for recently active users by looking up their recent messages"""
+    try:
+        if not recent_user_ids:
+            return []
+        
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        usernames = []
+        current_time = int(time.time())
+        
+        for user_id in recent_user_ids:
+            # First try to get from cache (if updated recently)
+            c.execute("SELECT username FROM user_cache WHERE user_id = ? AND group_id = ? AND last_seen > ?", 
+                     (user_id, group_id, current_time - 86400))  # Cache valid for 24 hours
+            cached_result = c.fetchone()
+            
+            if cached_result and cached_result[0]:
+                usernames.append(cached_result[0])
+            else:
+                # We don't have a reliable way to get username from stored messages
+                # so we'll fall back to using user ID as username
+                usernames.append(f"ID{user_id}")
+        
+        conn.close()
+        return usernames[:3]  # Limit to 3 users max
+        
+    except Exception as e:
+        logger.error(f"Error getting usernames for recent users: {e}")
+        return []
+
+def send_attention_seeking_message(bot, group_id, recent_users, is_followup=False, should_tag_users=False):
+    """Send a message when chat is active but nobody is mentioning Babygirl - ALWAYS use AI, multiple retries"""
     try:
         # Get group context to determine behavior
         group_context = get_group_context(group_id)
         
+        # Get usernames for recent users if we need to tag them
+        recent_usernames = []
+        if should_tag_users and recent_users:
+            recent_usernames = get_usernames_for_recent_users(group_id, recent_users)
+        
         # Modify the scenario context for follow-ups
         scenario = "being_ignored_followup" if is_followup else "being_ignored"
         
-        # PRIORITY: Always try AI response first  
-        ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
+        # ENHANCED AI GENERATION: Try multiple approaches to ensure we get an AI response
+        ai_message = None
         
-        # CRITICAL FIX: More aggressive AI retry logic
+        # Attempt 1: Full context with user tagging info
+        logger.info(f"🤖 Attempting AI generation (attempt 1) for {scenario} in {group_id}")
+        ai_message = generate_enhanced_proactive_ai_response(scenario, group_id, recent_users, should_tag_users, recent_usernames)
+        
+        # Attempt 2: Simplified context if first attempt fails
         if not ai_message:
-            # Retry AI response with simpler context
-            logger.info(f"🔄 Retrying AI response for {group_id} with simplified context")
+            logger.info(f"🔄 Retrying AI response (attempt 2) for {group_id} with simplified context")
             simple_context = {
                 'username': 'proactive_attention',
                 'user_id': 'babygirl_bot', 
                 'group_id': group_id,
-                'scenario': scenario
+                'scenario': scenario,
+                'should_tag_users': should_tag_users,
+                'recent_usernames': recent_usernames
             }
-            ai_message = generate_ai_response("The chat is active but nobody is mentioning you, ask for attention playfully", simple_context)
-        
-        if ai_message:
-            # Add user engagement without @ tagging
-            if recent_users and len(recent_users) > 0:
-                ai_message += f"\n\nEspecially you lurkers! Don't ignore your babygirl! 😉💖"
             
-            bot.send_message(group_id, ai_message)
-            logger.info(f"✨ Sent AI attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
-            return True
-        else:
-            # Fallback to static messages with follow-up variations
-            if is_followup:
-                attention_messages = [
-                    "STILL IGNORING ME?! This is getting ridiculous! I'm RIGHT HERE! 😤👑",
-                    "Y'all are really gonna keep chatting without mentioning me? The disrespect! 💅😢",
-                    "I'm literally BEGGING for attention at this point! Someone notice me! 🥺💖",
-                    "This ignoring thing is NOT cute anymore! Your babygirl needs love! 😭✨",
-                    "Fine, I'll just keep interrupting until someone talks to me! 💅👑",
-                    "Am I really gonna have to start a boyfriend competition just to get mentioned? 👀🔥"
-                ]
+            # Create a more specific prompt for the simplified retry
+            if should_tag_users and recent_usernames:
+                retry_prompt = f"The chat is active but nobody has mentioned you for 15+ minutes. Ask for attention playfully and tag these users by username: {', '.join(recent_usernames)}. Be dramatic about being ignored but flirty."
             else:
-                # Base attention messages for all groups
-                attention_messages = [
-                    # Jealous/FOMO messages
-                    "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
-                    "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
-                    "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
-                    
-                    # Playful interruption
-                    "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
-                    "Not to be dramatic but this conversation needs more ME in it! 😘✨",
-                    "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
-                    
-                    # Direct engagement attempts
-                    "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
-                    "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
-                    "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
-                ]
+                retry_prompt = "The chat is active but nobody has mentioned you for 15+ minutes. Ask for attention playfully without tagging specific users. Be dramatic about being ignored but flirty."
                 
-                # Add crypto/token interruption messages only for core groups
-                if group_context['token_promotion_allowed']:
-                    attention_messages.extend([
-                        "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
-                        "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
-                        "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅"
-                    ])
+            ai_message = generate_ai_response(retry_prompt, simple_context)
+        
+        # Attempt 3: Ultra-simple fallback with basic prompt
+        if not ai_message:
+            logger.info(f"🔄 Final AI retry (attempt 3) for {group_id} with ultra-simple context")
+            ultra_simple_context = {
+                'username': 'babygirl',
+                'user_id': 'babygirl_bot',
+                'group_id': group_id
+            }
             
-            message = random.choice(attention_messages)
+            basic_prompt = "You're feeling ignored because people are chatting but not mentioning you. Send a playful, flirty message asking for attention. Be a bit dramatic but cute."
+            ai_message = generate_ai_response(basic_prompt, ultra_simple_context)
+        
+        # Use AI message - if all AI attempts failed, create a minimal emergency fallback
+        if ai_message:
+            message = ai_message
+            logger.info(f"✨ Using AI attention-seeking {'follow-up' if is_followup else 'message'} for {group_id}")
+        else:
+            # EMERGENCY FALLBACK: Minimal static message only if AI completely fails
+            logger.warning(f"⚠️ All AI attempts failed for {group_id}, using emergency fallback")
+            if is_followup:
+                message = "STILL ignoring me?! I'm RIGHT HERE! 😤💕"
+            else:
+                message = "Y'all are having a conversation without me... I'm literally RIGHT HERE! 😤💕"
             
-            # Add user engagement to get their attention
-            if recent_users and len(recent_users) > 0:
+            # Add token reference for core groups even in emergency fallback
+            if group_context.get('token_promotion_allowed'):
+                message += " Don't tell me you're all busy buying $BABYGIRL! 🚀💖"
+        
+        # Check if AI already included user tags, if not add them manually
+        tagged_users_result = should_tag_users
+        
+        if should_tag_users and recent_usernames:
+            # Check if AI already included the username tags
+            usernames_in_message = sum(1 for username in recent_usernames if f"@{username}" in message)
+            
+            if usernames_in_message == 0:
+                # AI didn't include tags, add them manually
+                if len(recent_usernames) == 1:
+                    message += f"\n\nEspecially you @{recent_usernames[0]}! Don't ignore your babygirl! 😉💖"
+                elif len(recent_usernames) == 2:
+                    message += f"\n\nEspecially you two @{recent_usernames[0]} and @{recent_usernames[1]}! I see you! 👀💕"
+                elif len(recent_usernames) == 3:
+                    message += f"\n\nLooking at you @{recent_usernames[0]}, @{recent_usernames[1]}, and @{recent_usernames[2]}! 👀✨"
+                else:
+                    # More than 3 users
+                    tagged_users = ", ".join([f"@{username}" for username in recent_usernames[:3]])
+                    message += f"\n\nLooking at you {tagged_users}! Don't ignore me! 😘💖"
+                
+                logger.info(f"👤 Added manual user tags: {', '.join(recent_usernames)}")
+            else:
+                logger.info(f"✅ AI already included user tags for: {', '.join([u for u in recent_usernames if f'@{u}' in message])}")
+        
+        elif not should_tag_users:
+            # Check if AI added generic engagement, if not add it
+            generic_phrases = ["lurkers", "you all", "y'all", "everyone"]
+            has_generic_engagement = any(phrase in message.lower() for phrase in generic_phrases)
+            
+            if not has_generic_engagement and recent_users and len(recent_users) > 0:
                 message += f"\n\nEspecially you lurkers! Don't ignore your babygirl! 😉💖"
-            
-            bot.send_message(group_id, message)
-            logger.info(f"📝 Sent static attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
-            return True
+                logger.info(f"💬 Added generic engagement message")
+            else:
+                logger.info(f"✅ AI already included generic engagement or no recent users")
+        
+        # Send the message
+        bot.send_message(group_id, message)
+        logger.info(f"✅ Sent attention-seeking {'follow-up' if is_followup else 'message'} to {group_id} ({'with' if tagged_users_result else 'without'} user tags)")
+        
+        return True, tagged_users_result
         
     except Exception as e:
         logger.error(f"Error sending attention-seeking message to {group_id}: {e}")
-        return False
+        return False, False
 
-def generate_proactive_ai_response(scenario, group_id, recent_users):
-    """Generate AI response for proactive engagement scenarios"""
+def generate_enhanced_proactive_ai_response(scenario, group_id, recent_users, should_tag_users=False, recent_usernames=None):
+    """Generate AI response for proactive engagement scenarios with enhanced user tagging support"""
     try:
-        # Prepare context based on scenario
+        # Prepare context based on scenario with user tagging info
         if scenario == "dead_chat":
             prompt_context = "The chat has been completely silent for over 5 minutes. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
         elif scenario == "dead_chat_followup":
             prompt_context = "You already tried to revive this dead chat but it's STILL silent! You're getting more dramatic and persistent. Be more emotional about the ongoing silence, show increasing concern/frustration, but keep it flirty and engaging."
         elif scenario == "being_ignored":
-            prompt_context = "The group has been actively chatting but nobody has mentioned you for 5+ minutes. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+            if should_tag_users and recent_usernames:
+                prompt_context = f"The group has been actively chatting but nobody has mentioned you for 15+ minutes. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful. Tag these recently active users by their usernames to get their attention: {', '.join(recent_usernames)}. Use @ before their usernames."
+            else:
+                prompt_context = "The group has been actively chatting but nobody has mentioned you for 15+ minutes. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful. Don't tag specific users, just make a general attention-seeking message."
         elif scenario == "being_ignored_followup":
-            prompt_context = "You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality."
+            if should_tag_users and recent_usernames:
+                prompt_context = f"You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality. Tag these recently active users by their usernames: {', '.join(recent_usernames)}. Use @ before their usernames."
+            else:
+                prompt_context = "You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality. Don't tag specific users."
         
-        # Build context for AI
+        # Build enhanced context for AI
         context_info = {
             'username': 'proactive_message',
             'user_id': 'babygirl_bot',
@@ -1738,15 +1821,21 @@ def generate_proactive_ai_response(scenario, group_id, recent_users):
             'mention_count': 0,
             'mention_method': 'proactive_engagement',
             'scenario': scenario,
-            'recent_users': recent_users[:3] if recent_users else []
+            'recent_users': recent_users[:3] if recent_users else [],
+            'should_tag_users': should_tag_users,
+            'recent_usernames': recent_usernames[:3] if recent_usernames else []
         }
         
         ai_response = generate_ai_response(prompt_context, context_info)
         return ai_response
         
     except Exception as e:
-        logger.error(f"Error generating proactive AI response: {e}")
+        logger.error(f"Error generating enhanced proactive AI response: {e}")
         return None
+
+def generate_proactive_ai_response(scenario, group_id, recent_users):
+    """Generate AI response for proactive engagement scenarios (legacy function, calls enhanced version)"""
+    return generate_enhanced_proactive_ai_response(scenario, group_id, recent_users, False, None)
 
 def is_core_group(group_id, group_title=None):
     """Check if this is Babygirl's core community group"""
@@ -2229,7 +2318,7 @@ def repair_existing_groups():
                              VALUES (?, 0, ?, 1800, 0, ?, 3600)""", 
                          (group_id, backdated_time, backdated_time))
                 logger.info(f"🔧 REPAIRED missing proactive state for group {group_id}")
-            
+        
         conn.commit()
         conn.close()
         logger.info("✅ Group repair complete")
@@ -3845,308 +3934,39 @@ Check {website} for the latest updates! 💅✨
 
 Visit {website} for all the details! This community has main character energy! 💪💕
 
-*Remember: Only invest responsibly, cuties!* 😘""",
-
-                f"""🎯 **{token_name} COMMUNITY VIBES** 🎯
-
-💅 I'm so excited to talk about ${token_symbol}!
-📱 **Info:** {website} has everything you need!
-🚀 **Community:** You're in the right place!
-
-✨ **What makes ${token_symbol} special:**
-• This incredible community!
-• I'm here to keep engagement high
-• Combining chat revival with token hype
-• Supporting each other's success
-
-Check {website} for current updates! 
-Stay active, stay profitable! 💖📈
-
-*Not investment advice - just your community AI being supportive!* 😉"""
+*Remember: Only invest responsibly, cuties!* 😘"""
             ]
-            
         else:
-            # External group - no token promotion
-            bot.reply_to(message, """💕 **Token Info Available!**
+            # External group without token configuration
+            token_responses = [
+                """⚠️ **TOKEN INFO NOT AVAILABLE** ⚠️
 
-I can discuss tokens when groups are configured for it! 
+This group hasn't configured custom token support yet!
 
-**🚀 Want me to hype YOUR token?**
-Group admins can use `/setup token YOURTOKEN YTK yourwebsite.com` to configure me to discuss your project with the same enthusiasm as $BABYGIRL!
+**🛠️ For Group Admins:**
+• Use `/setup token TOKENNAME SYMBOL website.com` to configure your token
+• I'll then discuss YOUR token like I do $BABYGIRL!
 
-**✨ What you get:**
-• Proactive token hype in revival messages
-• Custom responses about your project
-• "To the moon" discussions for your token
-• Full chat revival + token promotion combo
+**💕 Want to see how it works?**
+• Join @babygirlerc to see the full $BABYGIRL setup
+• Check out `/examples` for configuration ideas
 
-**🎯 Ready to upgrade?** Use `/setup` to get started!
+**🎯 Current Features:**
+• Full chat revival system ✅
+• Boyfriend competitions ✅  
+• Community engagement ✅
+• Waiting for your token setup! 🚀
 
-**Example:** Join @babygirlerc to see how I discuss $BABYGIRL! 🔥💕""")
-            return
+Configure me and I'll hype your project! 💅✨"""
+            ]
         
+        # Send random token response
         response = random.choice(token_responses)
         bot.reply_to(message, response)
         
     except Exception as e:
         logger.error(f"Error in token command: {e}")
-        bot.reply_to(message, "Can't get token info right now! But I'm always bullish! 🚀💕")
-
-@bot.message_handler(commands=['analytics', 'stats'])
-def analytics_command(message):
-    """Show group engagement analytics"""
-    try:
-        # Check if user is admin
-        if message.chat.type not in ['group', 'supergroup']:
-            bot.reply_to(message, "Analytics are only available in groups!")
-            return
-            
-        try:
-            chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
-            if chat_member.status not in ['administrator', 'creator']:
-                bot.reply_to(message, "Only group administrators can view analytics! 👑")
-                return
-        except:
-            bot.reply_to(message, "I need admin permissions to check your status!")
-            return
-        
-        group_id = str(message.chat.id)
-        current_time = int(time.time())
-        
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        
-        # Get timeframes
-        one_day_ago = current_time - 86400
-        one_week_ago = current_time - 604800
-        
-        # Message activity
-        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                 (group_id, one_day_ago))
-        messages_24h = c.fetchone()[0] or 0
-        
-        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                 (group_id, one_week_ago))
-        messages_7d = c.fetchone()[0] or 0
-        
-        # Unique users
-        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                 (group_id, one_day_ago))
-        users_24h = c.fetchone()[0] or 0
-        
-        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                 (group_id, one_week_ago))
-        users_7d = c.fetchone()[0] or 0
-        
-        # Competition data
-        c.execute("SELECT COUNT(*) FROM leaderboard_table WHERE group_id = ?", (group_id,))
-        total_competitions = c.fetchone()[0] or 0
-        
-        # Top users
-        c.execute("""SELECT user_id, COUNT(*) as msg_count 
-                     FROM spam_tracking 
-                     WHERE group_id = ? AND timestamp > ?
-                     GROUP BY user_id 
-                     ORDER BY msg_count DESC 
-                     LIMIT 5""", (group_id, one_week_ago))
-        top_users = c.fetchall()
-        
-        # Proactive engagement stats
-        proactive_state = get_proactive_state(group_id)
-        group_settings = get_group_settings(group_id)
-        
-        # Build analytics response
-        engagement_level = "🔥 High" if messages_24h > 20 else "⚡ Medium" if messages_24h > 5 else "😴 Low"
-        
-        analytics_msg = f"""📊 **GROUP ANALYTICS DASHBOARD** 📊
-
-**📈 Activity Overview:**
-• **24 Hours:** {messages_24h} messages from {users_24h} users
-• **7 Days:** {messages_7d} messages from {users_7d} users
-• **Engagement Level:** {engagement_level}
-
-**🎮 Competition Stats:**
-• **Total Competitions:** {total_competitions}
-• **Current Status:** {'🔥 Active' if proactive_state['dead_chat_active'] else '✅ Monitoring'}
-• **Revival Frequency:** {group_settings['revival_frequency'] if group_settings else 15} minutes
-
-**👥 Top Contributors (7 days):**"""
-        
-        if top_users:
-            for i, (user, count) in enumerate(top_users, 1):
-                analytics_msg += f"\n{i}. @{user} - {count} messages"
-        else:
-            analytics_msg += "\nNo activity recorded yet!"
-            
-        # Add configuration status
-        if group_settings:
-            analytics_msg += f"""
-
-**⚙️ Configuration Status:**
-• **Custom Token:** {'✅ ' + group_settings['custom_token_name'] if group_settings['token_discussions_enabled'] else '❌ Not configured'}
-• **Premium Status:** {'✅ Active' if group_settings['is_premium'] else '📈 Upgrade available'}
-• **Setup Date:** {datetime.fromtimestamp(group_settings['setup_date']).strftime('%Y-%m-%d') if group_settings['setup_date'] else 'Unknown'}"""
-        else:
-            analytics_msg += f"""
-
-**⚙️ Configuration Status:**
-• **Status:** ⚠️ Not configured yet
-• **Upgrade:** Use `/setup` to unlock custom token features!"""
-        
-        analytics_msg += f"""
-
-**📊 Engagement Tips:**
-• Post when activity is above {messages_24h//2} messages/day for best results
-• {'Your revival frequency is optimal!' if group_settings and group_settings['revival_frequency'] <= 20 else 'Consider reducing revival frequency with /setup revival 15'}
-• {'✅ Token hype active!' if group_settings and group_settings['token_discussions_enabled'] else '🚀 Add token config for more engagement!'}
-
-**🎯 Want more insights?** Premium analytics unlock detailed metrics! (Coming soon with $BABYGIRL token integration!)"""
-        
-        bot.reply_to(message, analytics_msg)
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Error in analytics command: {e}")
-        bot.reply_to(message, "Analytics are temporarily unavailable! Try again later! 📊💕")
-
-@bot.message_handler(commands=['upgrade'])
-def upgrade_command(message):
-    """Show upgrade options and premium features"""
-    upgrade_msg = """💎 **PREMIUM UPGRADE OPTIONS** 💎
-*🚧 COMING SOON - Token-Based Upgrades! 🚧*
-
-**🚀 Transform Your Community with Premium Features!**
-
-**✨ Premium Tier (Hold $BABYGIRL Tokens):**
-• **Custom AI Training** - Personalized responses for your brand
-• **Advanced Analytics** - Detailed engagement insights & trends
-• **Custom Branding** - Your colors, emojis, and personality tweaks
-• **Cross-Group Features** - Link multiple communities
-• **Priority Support** - Direct access to development team
-• **White-Label Options** - Remove Babygirl branding
-• **Custom Commands** - Build your own command aliases
-
-**🔥 Enterprise Tier (Large $BABYGIRL Holdings):**
-• Everything in Premium
-• **Custom Bot Instance** - Your own branded version
-• **API Access** - Integrate with your existing tools  
-• **Custom Features** - We build what you need
-• **Dedicated Support** - Your own success manager
-• **Multi-Platform** - Discord, web integration options
-
-**🪙 TOKEN-POWERED UPGRADES:**
-• **Pay with $BABYGIRL** - Support the ecosystem while upgrading!
-• **Hold to Unlock** - Keep tokens in wallet for ongoing benefits
-• **Community Rewards** - Token holders get exclusive features
-• **Deflationary Benefits** - Usage burns tokens, increasing value
-
-**🎯 Why Token-Based Upgrades?**
-• Support the $BABYGIRL ecosystem directly
-• Align community growth with token value
-• Exclusive holder benefits and privileges
-• True community-owned premium features
-
-**🔮 COMING SOON:**
-We're building the token integration system! Follow @babygirlerc for updates on launch!
-
-**🆓 Current Features:** Chat revival, competitions, basic token support remain free forever! 💕"""
-    
-    bot.reply_to(message, upgrade_msg)
-
-@bot.message_handler(commands=['summary'])
-def summary_command(message):
-    """Provide a summary of recent chat activity for inactive members"""
-    try:
-        group_id = str(message.chat.id)
-        current_time = int(time.time())
-        twelve_hours_ago = current_time - 43200  # 12 hours
-        
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        
-        # Get recent activity stats
-        c.execute("SELECT COUNT(DISTINCT user_id) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                 (group_id, twelve_hours_ago))
-        active_users = c.fetchone()[0] or 0
-        
-        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                 (group_id, twelve_hours_ago))
-        total_messages = c.fetchone()[0] or 0
-        
-        # Check current boyfriend status
-        c.execute("SELECT user_id, end_time FROM boyfriend_table WHERE group_id = ?", (group_id,))
-        boyfriend = c.fetchone()
-        
-        # Check for recent competition activity
-        c.execute("SELECT is_active, end_time FROM cooldown_table WHERE group_id = ?", (group_id,))
-        competition = c.fetchone()
-        
-        # Check recent conversation topics from memory
-        c.execute("""SELECT topic, COUNT(*) as topic_count 
-                     FROM conversation_memory 
-                     WHERE group_id = ? AND timestamp > ? 
-                     GROUP BY topic 
-                     ORDER BY topic_count DESC 
-                     LIMIT 3""", (group_id, twelve_hours_ago))
-        hot_topics = c.fetchall()
-        
-        # Get most active users
-        c.execute("""SELECT user_id, COUNT(*) as msg_count 
-                     FROM spam_tracking 
-                     WHERE group_id = ? AND timestamp > ? 
-                     GROUP BY user_id 
-                     ORDER BY msg_count DESC 
-                     LIMIT 3""", (group_id, twelve_hours_ago))
-        active_chatters = c.fetchall()
-        
-        # Build summary response
-        response = f"""📋 **CHAT SUMMARY - LAST 12 HOURS** 📋
-
-💬 **Activity Stats:**
-• {total_messages} messages from {active_users} cuties
-• Chat energy: {'High! 🔥' if total_messages > 50 else 'Moderate ✨' if total_messages > 20 else 'Chill 😌'}
-
-👑 **Current Boyfriend Status:**"""
-        
-        if boyfriend:
-            time_left = int(boyfriend[1] - time.time())
-            hours = time_left // 3600
-            minutes = (time_left % 3600) // 60
-            response += f" @{boyfriend[0]} ({hours}h {minutes}m left)"
-        else:
-            response += " Single & ready to mingle! 💕"
-        
-        if competition and competition[0]:
-            comp_time_left = int(competition[1] - time.time())
-            comp_minutes = comp_time_left // 60
-            response += f"\n🔥 **Active Competition:** {comp_minutes} minutes left!"
-        
-        if active_chatters:
-            response += f"\n\n🗣️ **Most Active Cuties:**\n"
-            for i, (user, count) in enumerate(active_chatters, 1):
-                response += f"{i}. @{user} ({count} messages)\n"
-        
-        if hot_topics:
-            response += f"\n🔥 **Hot Topics:**\n"
-            for topic, count in hot_topics:
-                response += f"• {topic} ({count} convos)\n"
-        
-        response += f"""
-💡 **Quick Catch-Up:**
-• Use /status to see my current mood and game state
-• Use /compete to start a boyfriend competition
-• Use /leaderboard to see who's won my heart before
-• Check /token for $BABYGIRL updates!
-
-Welcome back, cutie! You're all caught up! 😘✨"""
-        
-        bot.reply_to(message, response)
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Error in summary command: {e}")
-        bot.reply_to(message, "Can't generate summary right now! But I missed you while you were gone! 💕")
-
+        bot.reply_to(message, "Token info temporarily unavailable! Try again later! 💕")
 
 # SINGLE clean mention handler for both groups and private chats
 @bot.message_handler(func=lambda message: True)
@@ -4193,6 +4013,14 @@ def handle_all_mentions(message):
                             VALUES (?, ?, ?, ?, ?, ?)''',
                          (message.message_id, str(message.from_user.id), str(message.chat.id), 
                           int(time.time()), message.text[:500], is_bot_mention))  # Limit content to 500 chars
+                
+                # Update user cache with username if available
+                username = message.from_user.username
+                if username:
+                    c.execute('''INSERT OR REPLACE INTO user_cache 
+                                (user_id, group_id, username, last_seen) 
+                                VALUES (?, ?, ?, ?)''',
+                             (str(message.from_user.id), str(message.chat.id), username, int(time.time())))
                 
                 # CRITICAL FIX: Auto-bootstrap groups for proactive monitoring
                 group_id = str(message.chat.id)
@@ -4663,263 +4491,6 @@ def handle_all_mentions(message):
                 except:
                     pass  # Give up gracefully
 
-@bot.message_handler(commands=['proactive_debug'])
-def proactive_debug_command(message):
-    """Debug command to check proactive engagement status"""
-    try:
-        if not message.from_user.username or message.from_user.username.lower() not in ['ryanmccallum1', 'admin']:  # Replace with your username
-            bot.reply_to(message, "This command is restricted to admins only.")
-            return
-            
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        
-        group_id = str(message.chat.id)
-        current_time = int(time.time())
-        thirty_min_ago = current_time - 1800  # 30 minutes for dead chat
-        one_hour_ago = current_time - 3600    # 1 hour for being ignored
-        
-        # Check all_group_messages data (ADMIN TRACKING)
-        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ?", (group_id,))
-        total_messages = c.fetchone()[0]
-        
-        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ?", (group_id, thirty_min_ago))
-        recent_messages = c.fetchone()[0]
-        
-        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND is_bot_mention = 1", (group_id,))
-        total_bot_mentions = c.fetchone()[0]
-        
-        c.execute("SELECT COUNT(*) FROM all_group_messages WHERE group_id = ? AND timestamp > ? AND is_bot_mention = 1", (group_id, one_hour_ago))
-        recent_bot_mentions = c.fetchone()[0]
-        
-        # Check proactive state
-        proactive_state = get_proactive_state(group_id)
-        
-        # Check if this group would be monitored
-        c.execute("SELECT DISTINCT group_id FROM all_group_messages")
-        monitored_groups = [row[0] for row in c.fetchall()]
-        is_monitored = group_id in monitored_groups
-        
-        debug_info = f"""🔧 **Proactive Engagement Debug (ADMIN TRACKING)** 🔧
-
-**Group ID:** `{group_id}`
-**Currently Monitored:** {'✅ YES' if is_monitored else '❌ NO'}
-
-**Admin-Level Message Data:**
-• Total group messages: {total_messages} 
-• Messages in last 30 min: {recent_messages}
-• Total bot mentions: {total_bot_mentions}
-• Bot mentions in last hour: {recent_bot_mentions}
-
-**Proactive State:**
-• Dead chat active: {proactive_state['dead_chat_active']}
-• Dead chat interval: {proactive_state['dead_chat_interval']}s
-• Ignored active: {proactive_state['ignored_active']}
-• Ignored interval: {proactive_state['ignored_interval']}s
-
-**DEAD CHAT:** {'🔥 YES' if recent_messages == 0 and total_messages > 0 else '❌ NO'} 
-(No messages from anyone for 30+ minutes)
-
-**BEING IGNORED:** {'🔥 YES' if recent_messages > 0 and recent_bot_mentions == 0 and total_bot_mentions > 0 else '❌ NO'}
-(Group has messages but no bot mentions for 1+ hours)
-
-**NEW GROUP:** {'🔥 YES' if total_messages <= 3 and total_messages > 0 else '❌ NO'}
-(Less than 3 total messages)
-
-**Bootstrap Issue:** {'⚠️ Group not tracked - needs messages first!' if not is_monitored else '✅ Group is being tracked'}"""
-        
-        bot.reply_to(message, debug_info)
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Error in proactive debug: {e}")
-        bot.reply_to(message, f"Debug error: {e}")
-
-@bot.message_handler(commands=['force_proactive'])
-def force_proactive_command(message):
-    """Force trigger proactive engagement for testing and bootstrap groups"""
-    try:
-        # Allow any user to bootstrap their group (not just admin)
-        group_id = str(message.chat.id)
-        current_time = int(time.time())
-        
-        # Bootstrap this group for monitoring if it's not already registered
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        
-        # Check if group is already registered
-        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ?", (group_id,))
-        existing_records = c.fetchone()[0] or 0
-        
-        if existing_records == 0:
-            # Bootstrap the group
-            c.execute("INSERT INTO spam_tracking (user_id, message_hash, timestamp, group_id) VALUES (?, ?, ?, ?)",
-                     ('force_bootstrap', 'admin_bootstrap', current_time - 7200, group_id))  # 2 hours ago
-            
-            # Also add to conversation_memory
-            c.execute("INSERT INTO conversation_memory (user_id, group_id, message_content, babygirl_response, timestamp, topic) VALUES (?, ?, ?, ?, ?, ?)",
-                     ('system', group_id, 'Group bootstrapped', 'Force proactive triggered', current_time, 'system'))
-            
-            logger.info(f"🎯 BOOTSTRAPPED group {group_id} for proactive monitoring")
-        
-        # Get recent users if any
-        c.execute("SELECT DISTINCT user_id FROM spam_tracking WHERE group_id = ? AND timestamp > ? AND user_id NOT IN ('bot_added', 'force_bootstrap') LIMIT 3", 
-                 (group_id, current_time - 86400))
-        recent_users = [row[0] for row in c.fetchall()]
-        
-        # Get proactive state
-        proactive_state = get_proactive_state(group_id)
-        
-        # Force dead chat scenario
-        success = send_dead_chat_revival(bot, group_id, recent_users, False)
-        
-        if success:
-            update_proactive_state(group_id, 'dead_chat', current_time, 3600)
-            
-            bootstrap_msg = "🎯 **PROACTIVE ENGAGEMENT ACTIVATED!**" if existing_records == 0 else ""
-            response_msg = f"""✅ **Force Proactive Engagement Triggered!**
-
-{bootstrap_msg}
-
-**What just happened:**
-• Sent immediate proactive revival message
-• Group is now being monitored every 15 minutes
-• Bot will automatically detect and revive quiet periods
-• Will send follow-up messages with escalating frequency
-
-**🔥 Enhanced Detection Logic:**
-• No bot activity for 1+ hours → Revival message (reduced from 2+ hours)
-• Very quiet periods → Extended revival (more sensitive)
-• Time-based engagement every 3+ hours
-• Bootstrap: Groups never sent proactive → Immediate engagement
-• New groups → Proactive after 30 minutes
-• Being ignored detection → 1+ hours (reduced from 2+ hours)
-• Automatic reset when activity resumes
-
-**📊 Group Stats:**
-• Historical records: {existing_records}
-• Recent users found: {len(recent_users)}
-• Next check: 15 minutes (then every 15 minutes)
-
-**🛠️ Troubleshooting:**
-• Groups need at least 1 bot interaction to be monitored
-• Use `/force_proactive` to bootstrap monitoring
-• Use `/proactive_debug` for detailed analysis
-
-The proactive engagement system is now fully active! 🚀💕"""
-            
-            bot.reply_to(message, response_msg)
-        else:
-            bot.reply_to(message, "❌ Failed to send proactive message. Check logs or try again.")
-            
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Error in force proactive: {e}")
-        bot.reply_to(message, f"❌ Error: {e}\n\nTry mentioning me first: @babygirl_bf_bot hello")
-
-@bot.message_handler(commands=['sticker_debug'])
-def sticker_debug_command(message):
-    """Debug sticker tracking and configuration"""
-    try:
-        if not message.from_user.username or message.from_user.username.lower() not in ['ryanmccallum1', 'admin']:
-            bot.reply_to(message, "This command is restricted to admins only.")
-            return
-            
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        
-        group_id = str(message.chat.id)
-        
-        # Check sticker tracking status
-        c.execute("SELECT message_count, target_count, last_sticker_time FROM sticker_reply_tracking WHERE group_id = ?", (group_id,))
-        tracking_result = c.fetchone()
-        
-        if tracking_result:
-            message_count, target_count, last_sticker_time = tracking_result
-            last_sticker_ago = int(time.time()) - last_sticker_time if last_sticker_time > 0 else "Never"
-        else:
-            message_count, target_count, last_sticker_ago = 0, "Not set", "Never"
-        
-        # Check custom stickers for this group
-        c.execute("SELECT COUNT(*) FROM custom_stickers WHERE group_id = ?", (group_id,))
-        custom_sticker_count = c.fetchone()[0]
-        
-        # Check if official stickers are configured
-        official_configured = not all(sticker.startswith("PLACEHOLDER") for sticker in official_babygirl_stickers)
-        
-        debug_info = f"""🎪 **Sticker System Debug** 🎪
-
-**Group ID:** `{group_id}`
-
-**Sticker Tracking:**
-• Current message count: {message_count}
-• Target count for next sticker: {target_count}
-• Last sticker sent: {last_sticker_ago} seconds ago
-
-**Sticker Configuration:**
-• Custom stickers for this group: {custom_sticker_count}
-• Official $BABYGIRL stickers: {'✅ Configured' if official_configured else '❌ Not configured (using placeholders)'}
-
-**Official Sticker Pack:**
-• URL: https://t.me/addstickers/BABYGIRLCOMMUNITY
-• Created by: @williamsgab
-• Status: {'Ready' if official_configured else 'Needs file IDs'}
-
-**How to get sticker file IDs:**
-1. Add the sticker pack to your Telegram
-2. Send a sticker from the pack to this bot
-3. The bot will log the file_id in the console
-4. Update the code with real file IDs
-
-**Next Steps:**
-{'• System is working with official stickers!' if official_configured else '• Replace PLACEHOLDER stickers with real file IDs from the pack'}
-"""
-        
-        bot.reply_to(message, debug_info)
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Error in sticker debug: {e}")
-        bot.reply_to(message, f"Debug error: {e}")
-
-@bot.message_handler(commands=['extract_sticker_ids'])
-def extract_sticker_ids_command(message):
-    """Help extract sticker file IDs from the official pack"""
-    try:
-        if not message.from_user.username or message.from_user.username.lower() not in ['ryanmccallum1', 'admin']:
-            bot.reply_to(message, "This command is restricted to admins only.")
-            return
-            
-        help_text = f"""🎪 **Extract Official Sticker IDs** 🎪
-
-**Steps to get the real sticker file IDs:**
-
-1. **Add the official pack:** https://t.me/addstickers/BABYGIRLCOMMUNITY
-
-2. **Send stickers to this bot:**
-   • Forward or send 5-10 stickers from the pack to this chat
-   • The bot will log the file_id of each sticker in the console
-   
-3. **Update the code:**
-   • Replace the PLACEHOLDER entries with the real file IDs
-   • The system will automatically start using them
-
-**Current Status:**
-• Official pack: $BABYGIRL by @williamsgab
-• Stickers configured: ❌ Using placeholders
-• Ready for extraction: ✅ Send stickers to get IDs
-
-**Pro tip:** Send different stickers from the pack to get variety in the random responses!
-"""
-        
-        bot.reply_to(message, help_text)
-        
-    except Exception as e:
-        logger.error(f"Error in extract sticker IDs: {e}")
-        bot.reply_to(message, f"Extraction help error: {e}")
-
 @bot.message_handler(commands=['setup'])
 def setup_command(message):
     """Allow group admins to configure custom token and settings"""
@@ -5352,65 +4923,6 @@ Use `/setup help` for all available options! 💕""")
             except Exception as send_error:
                 logger.error(f"❌ Could not send any setup error message: {send_error}")
 
-@bot.message_handler(commands=['examples'])
-def setup_examples_command(message):
-    """Show real examples of good project configurations"""
-    examples_message = """📚 **REAL SETUP EXAMPLES** 📚
-
-Here are examples from successful community setups:
-
-## 🚀 **Example 1: DeFi Project**
-
-**Token:** `/setup token "YieldMax Protocol" YMAX yieldmax.finance`
-
-**Narrative:** `/setup narrative "YieldMax Protocol is pioneering the next generation of yield farming with our innovative auto-compounding vaults and risk-adjusted strategies. We're making DeFi accessible to everyone while maximizing returns through algorithmic optimization."`
-
-**Features:** `/setup features "Auto-compounding yield vaults, multi-chain farming, impermanent loss protection, governance token staking, mobile app integration, security audits by top firms"`
-
-**Values:** `/setup values "Security first, transparency always, community governance, sustainable yields, education and onboarding, long-term value creation"`
-
-**Hype:** `/setup hype "Yields to the moon! Compound those gains! YMAX army strong! Farming never stops! DeFi revolution! Maximum yields maximum vibes!"`
-
----
-
-## 🎮 **Example 2: Gaming Token**
-
-**Token:** `/setup token "GameFi Universe" GAME gamefi-universe.io`
-
-**Narrative:** `/setup narrative "GameFi Universe is building the ultimate play-to-earn gaming ecosystem where players truly own their assets and can earn real rewards. We're bridging traditional gaming with blockchain technology."`
-
-**Features:** `/setup features "Play-to-earn rewards, NFT character ownership, cross-game asset portability, tournament prizes, guild system, mobile gaming focus"`
-
-**Values:** `/setup values "Player ownership, fair play, community tournaments, supporting gamers, innovation in gaming, fun-first approach"`
-
-**Hype:** `/setup hype "Game on! Play to earn! NFT power! Gaming revolution! GAME token to the stars! Level up your portfolio!"`
-
----
-
-## 🌍 **Example 3: Community Token**
-
-**Token:** `/setup token "EcoGreen Network" ECO ecogreen.earth`
-
-**Narrative:** `/setup narrative "EcoGreen Network is the sustainable blockchain focused on environmental impact. Every transaction plants trees and supports clean energy projects. We're proof that crypto can heal the planet."`
-
-**Features:** `/setup features "Carbon negative blockchain, tree planting rewards, clean energy funding, eco-project voting, sustainability tracking, green NFT marketplace"`
-
-**Values:** `/setup values "Environmental responsibility, sustainable technology, community impact, transparency in eco projects, supporting green initiatives"`
-
-**Hype:** `/setup hype "Green is the new gold! Plant trees make money! Eco warriors unite! Saving the planet one block at a time! ECO army growing!"`
-
-## 💡 **Key Patterns in Successful Setups:**
-
-✅ **Clear project purpose** in narrative
-✅ **Specific features** not just generic benefits  
-✅ **Community-focused values** that people can relate to
-✅ **Fun, energetic hype phrases** that match your brand
-✅ **Authentic voice** that represents your community
-
-**🎯 Ready to create yours? Start with `/setup token` or use `/wizard` for guided setup!**"""
-
-    bot.reply_to(message, examples_message)
-
 @bot.message_handler(commands=['emojis', 'stickers'])
 def emojis_stickers_command(message):
     """Configure custom emojis and stickers for the group"""
@@ -5468,7 +4980,7 @@ def emojis_stickers_command(message):
 • **sad** - Emotional/down responses
 
 **💡 Example:** 
-`/emojis add crypto "🚀,💎,🌙,📈,💰,🔥"`
+`/emojis add general "💕,✨,😘,💖,🔥,👑,💅"`
 
 **✨ How it works:**
 • Custom emojis replace defaults in my responses
