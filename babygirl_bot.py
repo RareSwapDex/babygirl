@@ -1082,38 +1082,41 @@ def check_proactive_engagement(bot):
                 
                 # IMPROVED SCENARIO DETECTION:
                 
-                # SCENARIO 1: No bot activity for 2+ hours (realistic "dead chat" for bot)
-                # This means people either aren't in the group OR they forgot about the bot
+                # CRITICAL FIX: More aggressive proactive detection
+                
+                # SCENARIO 1: No bot activity for 1+ hours (reduced from 2+ hours)
                 if total_recent_activity == 0 and total_historical_activity > 0:
                     logger.info(f"💀 No bot activity in group {group_id} for 2+ hours - triggering revival")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 2: Very low activity for an extended period (6+ hours with minimal interaction)
-                elif medium_term_activity <= 1 and total_historical_activity > 5:  # Had activity before but very quiet now
+                # SCENARIO 2: Very low activity for extended period (reduced threshold)
+                elif medium_term_activity <= 2 and total_historical_activity > 3:  # More sensitive detection
                     logger.info(f"😴 Very quiet group {group_id} - long-term low activity detected")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 3: Time-based proactive engagement (every 4-6 hours regardless)
-                # Check when we last sent any proactive message
+                # SCENARIO 3: Time-based proactive engagement (reduced from 4 hours to 3 hours)
                 elif proactive_state['dead_chat_last_sent'] > 0:
                     time_since_last_proactive = current_time - proactive_state['dead_chat_last_sent']
-                    # If it's been 4+ hours since last proactive message, send another
-                    if time_since_last_proactive >= 14400:  # 4 hours
+                    if time_since_last_proactive >= 10800:  # 3 hours (reduced from 4)
                         logger.info(f"⏰ Time-based proactive engagement for group {group_id} - been {time_since_last_proactive//3600}h since last message")
                         handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 4: Reset states if there's been recent activity
+                # SCENARIO 4: Bootstrap groups that have never sent proactive messages
+                elif proactive_state['dead_chat_last_sent'] == 0 and total_historical_activity > 0:
+                    logger.info(f"🎯 Bootstrapping proactive engagement for group {group_id} - never sent proactive message")
+                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+                # SCENARIO 5: Reset states if there's been recent activity
                 elif total_recent_activity > 0:
                     if proactive_state['dead_chat_active'] or proactive_state['ignored_active']:
                         reset_proactive_state(group_id, 'both')
                         logger.info(f"🔄 Reset proactive state for {group_id} - recent activity detected")
                 
-                # SCENARIO 5: New groups get a proactive message after 1 hour of no activity
-                elif total_historical_activity <= 1:  # Likely a new group (only has registration entry)
-                    # Check if group was registered recently
+                # SCENARIO 6: New groups get a proactive message after 30 minutes (reduced from 1 hour)
+                elif total_historical_activity <= 1:
                     c.execute("SELECT MIN(timestamp) FROM spam_tracking WHERE group_id = ?", (group_id,))
                     first_activity = c.fetchone()[0]
-                    if first_activity and (current_time - first_activity) >= 3600:  # 1 hour after registration
+                    if first_activity and (current_time - first_activity) >= 1800:  # 30 minutes (reduced from 1 hour)
                         logger.info(f"🆕 New group {group_id} - sending initial proactive engagement")
                         handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
@@ -1311,14 +1314,14 @@ def send_dead_chat_revival(bot, group_id, recent_users, is_followup=False):
             ai_message = generate_ai_response("The chat has been silent, please send an engaging message to revive it", simple_context)
         
         if ai_message:
-            # Add user tagging to AI response if we have recent active users
+            # Add user engagement without @ tagging (since we only have user IDs, not usernames)
             if recent_users and len(recent_users) > 0:
                 if len(recent_users) == 1:
-                    ai_message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+                    ai_message += f"\n\nBestie, I know you're there! Save me from this silence! 😘"
                 elif len(recent_users) == 2:
-                    ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+                    ai_message += f"\n\nYou two better start chatting! I see you lurking! 💕"
                 else:
-                    ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+                    ai_message += f"\n\nY'all better start talking! I know there are people here! 👋✨"
             
             bot.send_message(group_id, ai_message)
             logger.info(f"✨ Sent AI dead chat {'follow-up' if is_followup else 'revival'} to {group_id}")
@@ -1366,14 +1369,14 @@ def send_dead_chat_revival(bot, group_id, recent_users, is_followup=False):
             
             message = random.choice(revival_messages)
             
-            # Add user tagging if we have recent active users
+            # Add user engagement without @ tagging (since we only have user IDs, not usernames)
             if recent_users and len(recent_users) > 0:
                 if len(recent_users) == 1:
-                    message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+                    message += f"\n\nBestie, I know you're there! Save me from this silence! 😘"
                 elif len(recent_users) == 2:
-                    message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+                    message += f"\n\nYou two better start chatting! I see you lurking! 💕"
                 else:
-                    message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+                    message += f"\n\nY'all better start talking! I know there are people here! 👋✨"
             
             bot.send_message(group_id, message)
             logger.info(f"📝 Sent static dead chat {'follow-up' if is_followup else 'revival'} to {group_id}")
@@ -1408,10 +1411,9 @@ def send_attention_seeking_message(bot, group_id, recent_users, is_followup=Fals
             ai_message = generate_ai_response("The chat is active but nobody is mentioning you, ask for attention playfully", simple_context)
         
         if ai_message:
-            # Add user tagging to AI response
+            # Add user engagement without @ tagging
             if recent_users and len(recent_users) > 0:
-                tagged_user = random.choice(recent_users)
-                ai_message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+                ai_message += f"\n\nEspecially you lurkers! Don't ignore your babygirl! 😉💖"
             
             bot.send_message(group_id, ai_message)
             logger.info(f"✨ Sent AI attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
@@ -1456,10 +1458,9 @@ def send_attention_seeking_message(bot, group_id, recent_users, is_followup=Fals
             
             message = random.choice(attention_messages)
             
-            # Add user tagging to get their attention
+            # Add user engagement to get their attention
             if recent_users and len(recent_users) > 0:
-                tagged_user = random.choice(recent_users)
-                message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+                message += f"\n\nEspecially you lurkers! Don't ignore your babygirl! 😉💖"
             
             bot.send_message(group_id, message)
             logger.info(f"📝 Sent static attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
@@ -4344,11 +4345,23 @@ def force_proactive_command(message):
 • Bot will automatically detect and revive quiet periods
 • Will send follow-up messages with escalating frequency
 
-**How it works:**
+**🔥 Enhanced Detection Logic:**
 • No bot activity for 2+ hours → Revival message
-• Very quiet for 6+ hours → Extended revival
-• Time-based engagement every 4+ hours
+• Very quiet periods → Extended revival (more sensitive)
+• Time-based engagement every 3+ hours (reduced from 4)
+• Bootstrap: Groups never sent proactive → Immediate engagement
+• New groups → Proactive after 30 minutes (reduced from 1 hour)
 • Automatic reset when activity resumes
+
+**📊 Group Stats:**
+• Historical records: {existing_records}
+• Recent users found: {len(recent_users)}
+• Next check: 15 minutes (then every 15 minutes)
+
+**🛠️ Troubleshooting:**
+• Groups need at least 1 bot interaction to be monitored
+• Use `/force_proactive` to bootstrap monitoring
+• Use `/proactive_debug` for detailed analysis
 
 The proactive engagement system is now fully active! 🚀💕"""
             
