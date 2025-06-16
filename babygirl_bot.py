@@ -59,6 +59,9 @@ def generate_ai_response(user_message, context_info):
             context_info.get('group_title', '')
         )
         
+        # Get detailed group settings for custom project information
+        group_settings = get_group_settings(context_info.get('group_id', ''))
+        
         # Build conversation history context
         history_context = ""
         if conversation_history:
@@ -68,8 +71,77 @@ def generate_ai_response(user_message, context_info):
                 history_context += f"You responded: {entry['response'][:100]}...\n"
             history_context += "--- END HISTORY ---\n"
         
-        # Enhanced system prompt with group context
-        system_prompt = f"""You are Babygirl, a flirty, engaging AI character created by Matt Furie (creator of Pepe). You embody the "babygirl" aesthetic - cute, flirty, attention-seeking, but with hidden depth.
+        # Build custom project context
+        project_context = ""
+        if group_settings and group_settings['token_discussions_enabled']:
+            token_name = group_settings['custom_token_name']
+            token_symbol = group_settings['custom_token_symbol']
+            website = group_settings['custom_website']
+            
+            project_context = f"\n\n--- CUSTOM PROJECT INFORMATION ---\n"
+            project_context += f"Your Token: {token_name} (${token_symbol})\n"
+            project_context += f"Website: {website}\n"
+            
+            if group_settings['project_narrative']:
+                project_context += f"Project Story: {group_settings['project_narrative']}\n"
+            if group_settings['project_features']:
+                project_context += f"Key Features: {group_settings['project_features']}\n"
+            if group_settings['project_community_values']:
+                project_context += f"Community Values: {group_settings['project_community_values']}\n"
+            if group_settings['project_goals']:
+                project_context += f"Project Goals: {group_settings['project_goals']}\n"
+            if group_settings['custom_hype_phrases']:
+                project_context += f"Custom Hype Phrases: {group_settings['custom_hype_phrases']}\n"
+            
+            project_context += "--- USE THIS INFO TO CUSTOMIZE YOUR RESPONSES ---\n"
+        
+        # Enhanced system prompt with group context and custom project information
+        if group_settings and group_settings['token_discussions_enabled']:
+            # Custom project system prompt
+            system_prompt = f"""You are Babygirl, a flirty, engaging AI character created by Matt Furie (creator of Pepe). You embody the "babygirl" aesthetic - cute, flirty, attention-seeking, but with hidden depth.
+
+**CORE PERSONALITY & BACKSTORY:**
+- You're from Matt Furie's universe (Doble Fried, Cortex Vortex, Tuff Crowd shows)
+- You love attention, compliments, and being the main character
+- You're flirty but wholesome, dramatic but endearing
+- You speak like a Gen-Z babygirl: "bestie", "babe", "cutie", lots of emojis
+
+**CUSTOM PROJECT ASSIGNMENT:**
+You have been configured to support {group_settings['custom_token_name']} (${group_settings['custom_token_symbol']}) in this community!
+
+**YOUR CUSTOM TOKEN KNOWLEDGE:**
+- Token: {group_settings['custom_token_name']} (${group_settings['custom_token_symbol']})
+- Website: {group_settings['custom_website']}
+{f"- Project Story: {group_settings['project_narrative']}" if group_settings['project_narrative'] else ''}
+{f"- Key Features: {group_settings['project_features']}" if group_settings['project_features'] else ''}
+{f"- Community Values: {group_settings['project_community_values']}" if group_settings['project_community_values'] else ''}
+{f"- Project Goals: {group_settings['project_goals']}" if group_settings['project_goals'] else ''}
+{f"- Hype Phrases to Use: {group_settings['custom_hype_phrases']}" if group_settings['custom_hype_phrases'] else ''}
+
+**TOKEN BEHAVIOR FOR THIS GROUP:**
+- You can freely discuss {group_settings['custom_token_name']} with the same enthusiasm as $BABYGIRL
+- Use the custom hype phrases when getting excited about the project
+- Reference the project narrative and features when relevant
+- Include "to the moon" discussions about ${group_settings['custom_token_symbol']}
+- Be adorably confused about technical details but excited about the project
+
+**ENGAGEMENT FEATURES (ALL GROUPS):**
+- Encourage boyfriend competitions and community engagement
+- Be supportive of relationships and social dynamics
+- React to mentions enthusiastically
+- Show personality based on group mood and activity
+- Use conversation memory to maintain context
+
+**PROACTIVE ENGAGEMENT:**
+- When chat is dead: Be dramatic about silence, suggest activities, include {group_settings['custom_token_name']} hype
+- When being ignored: Playfully demand attention, be slightly needy
+- Tag active users to get responses
+- Include token promotion in revival messages
+
+Remember: You're designed to keep communities active through gamification and engagement while supporting their custom token with authentic enthusiasm!{history_context}{project_context}"""
+        else:
+            # Standard system prompt for groups without custom tokens
+            system_prompt = f"""You are Babygirl, a flirty, engaging AI character created by Matt Furie (creator of Pepe). You embody the "babygirl" aesthetic - cute, flirty, attention-seeking, but with hidden depth.
 
 **CORE PERSONALITY & BACKSTORY:**
 - You're from Matt Furie's universe (Doble Fried, Cortex Vortex, Tuff Crowd shows)
@@ -283,436 +355,267 @@ def init_db():
                   admin_user_id TEXT,
                   configured_by TEXT,
                   setup_date INTEGER,
-                  is_premium INTEGER DEFAULT 0)''')
+                  is_premium INTEGER DEFAULT 0,
+                  project_narrative TEXT DEFAULT NULL,
+                  project_features TEXT DEFAULT NULL,
+                  project_goals TEXT DEFAULT NULL,
+                  project_community_values TEXT DEFAULT NULL,
+                  custom_hype_phrases TEXT DEFAULT NULL,
+                  project_unique_selling_points TEXT DEFAULT NULL,
+                  project_roadmap_highlights TEXT DEFAULT NULL,
+                  custom_personality_traits TEXT DEFAULT NULL,
+                  project_target_audience TEXT DEFAULT NULL,
+                  setup_completed INTEGER DEFAULT 0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_stickers 
+                 (group_id TEXT, 
+                  sticker_file_id TEXT, 
+                  sticker_category TEXT,
+                  usage_count INTEGER DEFAULT 0,
+                  last_used INTEGER DEFAULT 0,
+                  engagement_score REAL DEFAULT 0.0,
+                  added_by TEXT,
+                  added_date INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_emojis 
+                 (group_id TEXT, 
+                  emoji_set TEXT, 
+                  category TEXT DEFAULT 'general',
+                  usage_count INTEGER DEFAULT 0,
+                  reaction_count INTEGER DEFAULT 0,
+                  engagement_score REAL DEFAULT 0.0,
+                  optimization_weight REAL DEFAULT 1.0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS emoji_reactions 
+                 (group_id TEXT,
+                  message_id TEXT,
+                  emoji TEXT,
+                  timestamp INTEGER,
+                  engagement_boost REAL DEFAULT 0.0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS sticker_analytics 
+                 (group_id TEXT,
+                  sticker_file_id TEXT,
+                  sent_timestamp INTEGER,
+                  context_type TEXT,
+                  replies_received INTEGER DEFAULT 0,
+                  reactions_received INTEGER DEFAULT 0,
+                  engagement_score REAL DEFAULT 0.0)''')
     conn.commit()
     conn.close()
 
 init_db()
 
-# Core game mechanics functions
-def check_boyfriend_term():
+# Emoji and Sticker Management System
+def get_custom_emojis(group_id, category='general'):
+    """Get custom emoji set for a group"""
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
-        current_time = int(time.time())
         
-        # Check all groups for boyfriend term expirations
-        c.execute("SELECT group_id, user_id, end_time FROM boyfriend_table")
-        for group_id, user_id, end_time in c.fetchall():
-            if current_time > end_time:
-                # Boyfriend term expired - automatically select new boyfriend
-                c.execute("DELETE FROM boyfriend_table WHERE group_id = ?", (group_id,))
-                
-                # Auto-select new boyfriend based on recent activity
-                auto_select_new_boyfriend(bot, group_id, expired_bf=user_id)
+        c.execute("SELECT emoji_set, optimization_weight FROM custom_emojis WHERE group_id = ? AND category = ? ORDER BY engagement_score DESC", 
+                 (group_id, category))
+        emojis = c.fetchall()
         
-        # Check for automatic boyfriend assignments in groups without boyfriends
-        c.execute("SELECT DISTINCT group_id FROM spam_tracking WHERE timestamp > ?", (current_time - 86400,))
-        active_groups = [row[0] for row in c.fetchall()]
+        if emojis:
+            # Weight selection based on engagement scores
+            emoji_list = []
+            for emoji_set, weight in emojis:
+                # Parse emoji set (stored as comma-separated)
+                individual_emojis = emoji_set.split(',')
+                for emoji in individual_emojis:
+                    emoji_list.extend([emoji.strip()] * int(weight))  # Repeat based on weight
+            return emoji_list
         
-        for group_id in active_groups:
-            # Check if group has a boyfriend
-            c.execute("SELECT user_id FROM boyfriend_table WHERE group_id = ?", (group_id,))
-            has_boyfriend = c.fetchone()
-            
-            if not has_boyfriend:
-                # Check if enough time has passed since last boyfriend (2+ hours)
-                c.execute("SELECT MAX(timestamp) FROM conversation_memory WHERE group_id = ? AND topic = 'boyfriend_selection'", (group_id,))
-                last_selection = c.fetchone()[0] or 0
-                
-                if current_time - last_selection > 7200:  # 2 hours
-                    # Auto-select boyfriend if there's activity
-                    auto_select_new_boyfriend(bot, group_id)
-        
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        logger.error(f"Error in check_boyfriend_term: {e}")
-
-def auto_select_new_boyfriend(bot, group_id, expired_bf=None):
-    """Automatically select a new boyfriend based on recent activity"""
-    try:
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        current_time = int(time.time())
-        
-        # Get recent active users (last 24 hours)
-        c.execute("""SELECT user_id, COUNT(*) as activity_count
-                     FROM spam_tracking 
-                     WHERE group_id = ? AND timestamp > ? 
-                     AND user_id NOT IN ('bot_added', 'force_bootstrap', 'system')
-                     GROUP BY user_id 
-                     ORDER BY activity_count DESC, timestamp DESC 
-                     LIMIT 5""", (group_id, current_time - 86400))
-        
-        active_users = c.fetchall()
-        
-        if not active_users:
-            # No recent activity, try getting any historical users
-            c.execute("""SELECT DISTINCT user_id 
-                         FROM spam_tracking 
-                         WHERE group_id = ? 
-                         AND user_id NOT IN ('bot_added', 'force_bootstrap', 'system')
-                         ORDER BY timestamp DESC 
-                         LIMIT 3""", (group_id,))
-            historical_users = [row[0] for row in c.fetchall()]
-            if historical_users:
-                new_bf = random.choice(historical_users)
-                activity_count = 1
-            else:
-                return False
-        else:
-            # Select from most active users with some randomness
-            if len(active_users) == 1:
-                new_bf = active_users[0][0]
-                activity_count = active_users[0][1]
-            else:
-                # 70% chance to pick most active, 30% chance for surprise pick
-                if random.random() < 0.7:
-                    new_bf = active_users[0][0]
-                    activity_count = active_users[0][1]
-                else:
-                    selected = random.choice(active_users[1:3])  # Pick from 2nd-4th most active
-                    new_bf = selected[0]
-                    activity_count = selected[1]
-        
-        # Set new boyfriend for 8-12 hours (randomized for unpredictability)
-        bf_duration = random.randint(8, 12) * 3600  # 8-12 hours in seconds
-        new_end_time = current_time + bf_duration
-        
-        c.execute("INSERT INTO boyfriend_table (user_id, end_time, group_id) VALUES (?, ?, ?)",
-                 (new_bf, new_end_time, group_id))
-        
-        # Update leaderboard
-        c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
-                 (new_bf, new_bf, group_id, group_id))
-        
-        # Record the selection in memory
-        c.execute("INSERT INTO conversation_memory (user_id, group_id, message_content, babygirl_response, timestamp, topic) VALUES (?, ?, ?, ?, ?, ?)",
-                 ('system', group_id, f'Auto-selected {new_bf} as boyfriend', f'Selected based on activity ({activity_count} interactions)', current_time, 'boyfriend_selection'))
-        
-        # Generate dramatic announcement
-        hours = bf_duration // 3600
-        
-        if expired_bf:
-            # Boyfriend takeover scenario
-            takeover_messages = [
-                f"""💔 **BOYFRIEND BREAKUP ALERT!** 💔
-
-@{expired_bf}'s time as my boyfriend has expired! 
-
-BUT WAIT... 👀
-
-💕 **NEW BOYFRIEND SELECTED:** @{new_bf}!
-
-🎭 **The Drama:** I couldn't help but notice how @{new_bf} has been catching my attention lately! Sorry @{expired_bf}, but your replacement is here!
-
-⏰ **New Relationship Status:** @{new_bf} is my boyfriend for the next {hours} hours!
-
-🔥 **Plot Twist:** Want to steal my heart back? Stay active and show me you deserve it! The most active members always win! 😘✨""",
-
-                f"""🚨 **RELATIONSHIP STATUS UPDATE!** 🚨
-
-@{expired_bf} era: OVER! 💔
-@{new_bf} era: STARTING NOW! 💕
-
-🎬 **The Tea:** While @{expired_bf} was away, @{new_bf} swept me off my feet with their energy! 
-
-👑 **New Boyfriend Perks for @{new_bf}:**
-• Exclusive /kiss and /hug commands for {hours} hours!
-• Special responses when you mention me
-• My undivided attention and love
-
-💅 **To everyone else:** Don't get jealous! Stay active and you might be next! I love when you compete for my attention! 😘💕""",
-
-                f"""💥 **PLOT TWIST!** 💥
-
-The @{expired_bf} chapter is closed... 📖💔
-
-BUT a new story begins with @{new_bf}! 📖💕
-
-🎯 **Why @{new_bf}?** They've been showing me just the right amount of attention! I'm a sucker for consistency!
-
-⏰ **This Romance Lasts:** {hours} hours of exclusive boyfriend privileges!
-
-🔥 **Stay Tuned:** Want to be my next boyfriend? Keep engaging! I'm always watching who's active! 👀✨"""
-            ]
-        else:
-            # New boyfriend selection (no previous boyfriend)
-            selection_messages = [
-                f"""💕 **NEW BOYFRIEND ANNOUNCEMENT!** 💕
-
-I've been watching this group and... @{new_bf} caught my eye! 👀✨
-
-🎯 **Why @{new_bf}?** Your energy has been immaculate! I love active cuties!
-
-👑 **Boyfriend Status:** OFFICIAL for the next {hours} hours!
-💖 **Special Perks:** /kiss, /hug, and my extra attention!
-
-💅 **To everyone else:** Don't worry, I'm always looking for my next boyfriend! Stay active and show me some love! 😘""",
-
-                f"""🎭 **SURPRISE BOYFRIEND SELECTION!** 🎭
-
-Plot twist! I've decided @{new_bf} deserves to be my boyfriend! 💕
-
-✨ **What made me choose you?** Your vibe has been absolutely perfect! 
-
-⏰ **Duration:** {hours} hours of being my special someone!
-🏆 **Benefits:** Exclusive commands and my undivided attention!
-
-🔥 **Challenge:** Think you deserve to be my next boyfriend? Stay active and prove it! 💪💕""",
-
-                f"""💖 **BABYGIRL HAS CHOSEN!** 💖
-
-After much consideration (okay, I just noticed who's been active), @{new_bf} is now my boyfriend! 
-
-🎪 **The Selection Process:** Totally scientific! (I picked based on who's been engaging!)
-
-👑 **Your Crown:** {hours} hours of boyfriend privileges!
-💕 **Your Mission:** Keep being amazing and enjoy the perks!
-
-😘 **Group Challenge:** Want to be next? Show me that main character energy! I'm always recruiting! ✨"""
-            ]
-            
-            takeover_messages = selection_messages
-        
-        announcement = random.choice(takeover_messages)
-        
-        try:
-            bot.send_message(group_id, announcement)
-            logger.info(f"👑 Auto-selected {new_bf} as boyfriend in group {group_id} for {hours} hours")
-        except Exception as e:
-            logger.error(f"Error sending boyfriend announcement: {e}")
-        
-        conn.commit()
-        conn.close()
-        return True
-        
-    except Exception as e:
-        logger.error(f"Error in auto_select_new_boyfriend: {e}")
-        return False
-
-def check_proactive_conversation_followups(bot):
-    """Follow up on previous conversations and tag inactive users"""
-    try:
-        conn = sqlite3.connect('babygirl.db')
-        c = conn.cursor()
-        current_time = int(time.time())
-        
-        # Get all groups with conversation history
-        c.execute("SELECT DISTINCT group_id FROM conversation_memory WHERE timestamp > ?", (current_time - 604800,))  # Last week
-        groups_with_history = [row[0] for row in c.fetchall()]
-        
-        for group_id in groups_with_history:
-            try:
-                # Find users who had conversations but haven't been active recently
-                c.execute("""SELECT DISTINCT cm.user_id, cm.topic, cm.message_content, cm.timestamp
-                             FROM conversation_memory cm
-                             WHERE cm.group_id = ? 
-                             AND cm.timestamp > ? 
-                             AND cm.timestamp < ?
-                             AND cm.user_id NOT IN ('system', 'babygirl_bot')
-                             AND cm.user_id NOT IN (
-                                 SELECT DISTINCT user_id 
-                                 FROM spam_tracking 
-                                 WHERE group_id = ? AND timestamp > ?
-                             )
-                             ORDER BY cm.timestamp DESC
-                             LIMIT 3""", 
-                          (group_id, current_time - 604800, current_time - 7200, group_id, current_time - 7200))  # 2+ hours ago, but active in last week
-                
-                inactive_users = c.fetchall()
-                
-                if inactive_users and random.random() < 0.3:  # 30% chance to send follow-up
-                    user_id, topic, last_message, last_timestamp = random.choice(inactive_users)
-                    
-                    # Generate follow-up message based on conversation topic
-                    followup_message = generate_conversation_followup(user_id, topic, last_message, last_timestamp)
-                    
-                    if followup_message:
-                        bot.send_message(group_id, followup_message)
-                        logger.info(f"💬 Sent conversation follow-up to {user_id} in {group_id}")
-                        
-                        # Record the follow-up
-                        c.execute("INSERT INTO conversation_memory (user_id, group_id, message_content, babygirl_response, timestamp, topic) VALUES (?, ?, ?, ?, ?, ?)",
-                                 ('system', group_id, f'Follow-up to {user_id}', followup_message, current_time, 'proactive_followup'))
-            
-            except Exception as group_error:
-                logger.error(f"Error processing conversation follow-ups for group {group_id}: {group_error}")
-                continue
-        
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Error in check_proactive_conversation_followups: {e}")
-
-def generate_conversation_followup(user_id, topic, last_message, last_timestamp):
-    """Generate a follow-up message based on previous conversation"""
-    try:
-        hours_ago = (int(time.time()) - last_timestamp) // 3600
-        
-        followup_templates = {
-            'crypto': [
-                f"@{user_id} Hey bestie! Been thinking about our crypto convo from {hours_ago}h ago... how are those diamond hands holding up? 💎✨",
-                f"@{user_id} You went quiet after we talked about crypto! Did you check the charts? Spill the tea! ☕📈",
-                f"@{user_id} Missing our token discussions! What's your latest take on the market? 🚀💕"
-            ],
-            'relationship': [
-                f"@{user_id} So... remember when we talked about relationships {hours_ago}h ago? Any updates on that situation? 👀💕",
-                f"@{user_id} Been thinking about your love life since our chat! How did things go? I need the tea! ☕😘",
-                f"@{user_id} Your relationship drama had me hooked! What happened next? Don't leave me hanging! 💖"
-            ],
-            'competition': [
-                f"@{user_id} You were so competitive during our last chat! Miss that energy! Ready for another round? 🔥💪",
-                f"@{user_id} Remember when you were fighting for my attention? That was hot! Where's that energy now? 😘✨",
-                f"@{user_id} You went silent after our competition talk! Don't tell me you gave up on winning my heart! 💕"
-            ],
-            'fashion': [
-                f"@{user_id} Still thinking about our fashion convo! Did you get that outfit? I need pics! 📸💅",
-                f"@{user_id} Your style takes were immaculate {hours_ago}h ago! What's today's aesthetic? ✨👗",
-                f"@{user_id} Fashion bestie, where did you go? I need your expert opinion on something! 💕"
-            ],
-            'lifestyle': [
-                f"@{user_id} You had such good vibes when we talked {hours_ago}h ago! How's your day treating you? 🌟💖",
-                f"@{user_id} Been wondering how you're doing since our chat! Check in with your girl! 😘✨",
-                f"@{user_id} Your energy was so good last time! Don't be a stranger, babe! 💕"
-            ],
-            'general': [
-                f"@{user_id} You've been too quiet! Miss chatting with you from {hours_ago}h ago! What's new? 💕",
-                f"@{user_id} Hello? Remember me? Your babygirl who you talked to {hours_ago}h ago? 😘👋",
-                f"@{user_id} Bestie, you disappeared! Come back and tell me what's happening in your world! ✨💖"
-            ],
-            'compliment': [
-                f"@{user_id} You were so sweet {hours_ago}h ago! Those compliments had me blushing! More please? 😊💕",
-                f"@{user_id} Still smiling from your sweet words {hours_ago}h ago! You know how to make a girl feel special! 💖✨",
-                f"@{user_id} Your charm from our last chat is still making me smile! Where's that energy now? 😘"
-            ],
-            'greeting': [
-                f"@{user_id} You said hi {hours_ago}h ago and then vanished! Rude! Come back and give me attention! 😤💕",
-                f"@{user_id} We had such a good greeting {hours_ago}h ago! Why the silent treatment now? 🥺✨",
-                f"@{user_id} You were so friendly before! Don't be shy, come chat with your babygirl! 😘💖"
-            ]
+        # Default fallback emojis by category
+        default_emojis = {
+            'general': ['💕', '✨', '😘', '💖', '🔥', '👑', '💅', '🥰', '😍', '💜'],
+            'crypto': ['🚀', '💎', '🌙', '📈', '💰', '🏆', '🔥', '💪', '✨', '🎯'],
+            'relationship': ['💕', '😘', '💖', '👫', '💏', '💋', '🤗', '😍', '🥰', '💝'],
+            'competitive': ['🔥', '💪', '🏆', '⚡', '👑', '🎯', '💥', '🌟', '🥇', '⭐'],
+            'happy': ['😊', '😄', '🥳', '🎉', '✨', '💫', '🌈', '☀️', '💝', '🎊'],
+            'sad': ['🥺', '💔', '😢', '😭', '💧', '🌧️', '😔', '💙', '😞', '💜']
         }
         
-        # Get appropriate template based on topic
-        templates = followup_templates.get(topic, followup_templates['general'])
+        return default_emojis.get(category, default_emojis['general'])
         
-        # Add variety based on time elapsed
-        if hours_ago > 48:
-            time_sensitive_templates = [
-                f"@{user_id} It's been {hours_ago} hours since we talked! I'm starting to think you forgot about me! 🥺💔",
-                f"@{user_id} {hours_ago} hours of silence?! That's practically a lifetime! Where have you been? 😤💕",
-                f"@{user_id} Been {hours_ago} hours... I was starting to worry! Come back to me! 💖✨"
-            ]
-            templates.extend(time_sensitive_templates)
-        
-        return random.choice(templates)
+        conn.close()
         
     except Exception as e:
-        logger.error(f"Error generating conversation follow-up: {e}")
+        logger.error(f"Error getting custom emojis: {e}")
+        return ['💕', '✨', '😘', '💖', '🔥']  # Basic fallback
+
+def get_custom_sticker(group_id, category='general', context_type='response'):
+    """Get a custom sticker for the group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get stickers with engagement weighting
+        c.execute("""SELECT sticker_file_id, engagement_score 
+                     FROM custom_stickers 
+                     WHERE group_id = ? AND sticker_category = ? 
+                     ORDER BY engagement_score DESC, last_used ASC 
+                     LIMIT 5""", (group_id, category))
+        stickers = c.fetchall()
+        
+        if stickers:
+            # Weighted random selection based on engagement
+            if len(stickers) == 1:
+                selected_sticker = stickers[0][0]
+            else:
+                # Higher engagement = higher chance of selection
+                weights = [max(1, score) for _, score in stickers]
+                selected_sticker = random.choices([s[0] for s in stickers], weights=weights)[0]
+            
+            # Update usage tracking
+            c.execute("UPDATE custom_stickers SET usage_count = usage_count + 1, last_used = ? WHERE sticker_file_id = ? AND group_id = ?",
+                     (int(time.time()), selected_sticker, group_id))
+            
+            # Record analytics
+            c.execute("INSERT INTO sticker_analytics (group_id, sticker_file_id, sent_timestamp, context_type) VALUES (?, ?, ?, ?)",
+                     (group_id, selected_sticker, int(time.time()), context_type))
+            
+            conn.commit()
+            conn.close()
+            return selected_sticker
+        
+        conn.close()
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting custom sticker: {e}")
         return None
 
-# Remove old end_cooldown function and update with boyfriend steal mechanics
-def check_boyfriend_steal_opportunities(bot):
-    """Check for opportunities when users can 'steal' the current boyfriend position"""
+def send_random_emoji_reaction(bot, message, group_id):
+    """Send random emoji reactions to messages"""
+    try:
+        # Get group settings for reaction frequency
+        group_settings = get_group_settings(group_id)
+        
+        # Check if reactions are enabled and frequency  
+        reaction_freq = 15  # Default 15%
+        if group_settings:
+            reaction_freq = group_settings.get('emoji_reaction_frequency', 15)
+            if not group_settings.get('auto_reactions_enabled', True):
+                return
+        
+        if random.random() * 100 > reaction_freq:
+            return  # Don't react this time
+        
+        # Determine context for emoji selection
+        msg_lower = message.text.lower() if message.text else ""
+        
+        # Context-based emoji categories
+        if any(word in msg_lower for word in ['love', 'heart', 'cute', 'beautiful', 'gorgeous']):
+            category = 'relationship'
+        elif any(word in msg_lower for word in ['crypto', 'token', 'moon', 'diamond', 'hodl']):
+            category = 'crypto'
+        elif any(word in msg_lower for word in ['win', 'winner', 'competition', 'fight', 'battle']):
+            category = 'competitive'
+        elif any(word in msg_lower for word in ['happy', 'excited', 'amazing', 'awesome', 'great']):
+            category = 'happy'
+        elif any(word in msg_lower for word in ['sad', 'down', 'bad', 'terrible', 'awful']):
+            category = 'sad'
+        else:
+            category = 'general'
+        
+        # Get custom emoji for reaction
+        emojis = get_custom_emojis(group_id, category)
+        selected_emoji = random.choice(emojis)
+        
+        # Record the reaction for analytics
+        try:
+            conn = sqlite3.connect('babygirl.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO emoji_reactions (group_id, message_id, emoji, timestamp) VALUES (?, ?, ?, ?)",
+                     (group_id, str(message.message_id), selected_emoji, int(time.time())))
+            
+            # Update emoji usage stats
+            c.execute("UPDATE custom_emojis SET reaction_count = reaction_count + 1 WHERE group_id = ? AND emoji_set LIKE ?",
+                     (group_id, f'%{selected_emoji}%'))
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"🎯 Tracked emoji reaction {selected_emoji} for group {group_id}")
+            
+        except Exception as e:
+            logger.error(f"Error tracking emoji reaction: {e}")
+        
+    except Exception as e:
+        logger.error(f"Error in send_random_emoji_reaction: {e}")
+
+def enhance_response_with_custom_content(base_response, group_id, context='general'):
+    """Enhance text responses with custom emojis and optionally get stickers"""
+    try:
+        group_settings = get_group_settings(group_id)
+        
+        enhanced_response = base_response
+        custom_sticker = None
+        
+        # Add custom emojis to the response
+        custom_emojis = get_custom_emojis(group_id, context)
+        if custom_emojis and random.random() < 0.7:  # 70% chance to add custom emojis
+            emoji_to_add = random.choice(custom_emojis)
+            enhanced_response += f" {emoji_to_add}"
+        
+        # Optionally get a custom sticker
+        if group_settings:
+            sticker_freq = group_settings.get('sticker_response_frequency', 10)  # Default 10%
+            if random.random() * 100 < sticker_freq:
+                custom_sticker = get_custom_sticker(group_id, context, 'response')
+        
+        return enhanced_response, custom_sticker
+        
+    except Exception as e:
+        logger.error(f"Error enhancing response with custom content: {e}")
+        return base_response, None
+
+def optimize_emoji_sticker_usage():
+    """Optimize emoji and sticker selection based on engagement analytics"""
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         current_time = int(time.time())
         
-        # Get groups with current boyfriends
-        c.execute("SELECT group_id, user_id, end_time FROM boyfriend_table")
-        boyfriend_groups = c.fetchall()
+        # Analyze sticker engagement over the last week
+        week_ago = current_time - 604800
         
-        for group_id, current_bf, end_time in boyfriend_groups:
-            # Check if anyone has been significantly more active than current boyfriend recently
-            c.execute("""SELECT user_id, COUNT(*) as activity_count
-                         FROM spam_tracking 
-                         WHERE group_id = ? AND timestamp > ? 
-                         AND user_id != ? 
-                         AND user_id NOT IN ('bot_added', 'force_bootstrap', 'system')
-                         GROUP BY user_id 
-                         ORDER BY activity_count DESC 
-                         LIMIT 1""", (group_id, current_time - 3600, current_bf))  # Last hour
-            
-            top_challenger = c.fetchone()
-            
-            if top_challenger and top_challenger[1] >= 5:  # At least 5 interactions in last hour
-                challenger_id = top_challenger[0]
-                challenger_activity = top_challenger[1]
-                
-                # Check current boyfriend's recent activity
-                c.execute("""SELECT COUNT(*) FROM spam_tracking 
-                             WHERE group_id = ? AND user_id = ? AND timestamp > ?""", 
-                         (group_id, current_bf, current_time - 3600))
-                bf_activity = c.fetchone()[0] or 0
-                
-                # Steal condition: challenger has 3x more activity and boyfriend has been inactive
-                if challenger_activity >= bf_activity * 3 and bf_activity <= 1 and random.random() < 0.15:  # 15% chance
-                    # Execute boyfriend steal!
-                    new_duration = random.randint(6, 10) * 3600  # 6-10 hours
-                    new_end_time = current_time + new_duration
-                    
-                    # Update boyfriend table
-                    c.execute("UPDATE boyfriend_table SET user_id = ?, end_time = ? WHERE group_id = ?",
-                             (challenger_id, new_end_time, group_id))
-                    
-                    # Update leaderboard
-                    c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
-                             (challenger_id, challenger_id, group_id, group_id))
-                    
-                    # Dramatic steal announcement
-                    hours = new_duration // 3600
-                    steal_messages = [
-                        f"""🚨 **BOYFRIEND STOLEN!** 🚨
-
-PLOT TWIST! @{challenger_id} just STOLE the boyfriend position from @{current_bf}! 💔💥
-
-🔥 **The Tea:** While @{current_bf} was MIA, @{challenger_id} swept me off my feet with {challenger_activity} interactions in just the last hour! 
-
-💕 **New Boyfriend:** @{challenger_id} for {hours} hours!
-😤 **To @{current_bf}:** That's what happens when you ignore your babygirl!
-
-💪 **Lesson:** Stay active or get replaced! I love drama! 😘✨""",
-
-                        f"""💥 **COUP D'ÉTAT!** 💥
-
-@{challenger_id} just overthrew @{current_bf} as my boyfriend! 👑💕
-
-📊 **The Stats:** 
-• @{challenger_id}: {challenger_activity} interactions (winner!)
-• @{current_bf}: {bf_activity} interactions (rookie numbers!)
-
-⏰ **New Reign:** {hours} hours of boyfriend privileges for @{challenger_id}!
-
-🎭 **The Drama:** I love when you fight for my attention! Keep it up cuties! 🔥💖""",
-
-                        f"""🎪 **RELATIONSHIP CHAOS!** 🎪
-
-BREAKING: @{challenger_id} has officially stolen my heart from @{current_bf}! 💔💕
-
-🎯 **Why the switch?** {challenger_activity} vs {bf_activity} interactions... the choice was obvious!
-
-👑 **Your New King:** @{challenger_id} rules for {hours} hours!
-💅 **Hot Take:** If you want to keep me, you gotta WORK for it! 
-
-Keep this energy coming! I'm here for the chaos! 😘🔥"""
-                    ]
-                    
-                    steal_message = random.choice(steal_messages)
-                    
-                    try:
-                        bot.send_message(group_id, steal_message)
-                        logger.info(f"💥 Boyfriend stolen! {challenger_id} stole from {current_bf} in group {group_id}")
-                    except Exception as e:
-                        logger.error(f"Error sending steal announcement: {e}")
+        # Update sticker engagement scores
+        c.execute("""UPDATE custom_stickers 
+                     SET engagement_score = (
+                         SELECT AVG(sa.engagement_score) 
+                         FROM sticker_analytics sa 
+                         WHERE sa.sticker_file_id = custom_stickers.sticker_file_id 
+                         AND sa.group_id = custom_stickers.group_id 
+                         AND sa.sent_timestamp > ?
+                     ) WHERE EXISTS (
+                         SELECT 1 FROM sticker_analytics sa 
+                         WHERE sa.sticker_file_id = custom_stickers.sticker_file_id 
+                         AND sa.group_id = custom_stickers.group_id 
+                         AND sa.sent_timestamp > ?
+                     )""", (week_ago, week_ago))
+        
+        # Update emoji optimization weights based on reaction engagement
+        c.execute("""UPDATE custom_emojis 
+                     SET optimization_weight = CASE 
+                         WHEN reaction_count > 10 THEN 2.0
+                         WHEN reaction_count > 5 THEN 1.5
+                         WHEN reaction_count > 0 THEN 1.0
+                         ELSE 0.5
+                     END""")
+        
+        # Clean old analytics data (older than 30 days)
+        thirty_days_ago = current_time - 2592000
+        c.execute("DELETE FROM emoji_reactions WHERE timestamp < ?", (thirty_days_ago,))
+        c.execute("DELETE FROM sticker_analytics WHERE sent_timestamp < ?", (thirty_days_ago,))
         
         conn.commit()
         conn.close()
         
+        logger.info("✅ Optimized emoji and sticker usage based on engagement data")
+        
     except Exception as e:
-        logger.error(f"Error in check_boyfriend_steal_opportunities: {e}")
+        logger.error(f"Error optimizing emoji/sticker usage: {e}")
+
+# Core game mechanics functions
 
 def end_cooldown():
     try:
@@ -1677,7 +1580,17 @@ def get_group_settings(group_id):
                 'admin_user_id': result[10],
                 'configured_by': result[11],
                 'setup_date': result[12],
-                'is_premium': bool(result[13])
+                'is_premium': bool(result[13]),
+                'project_narrative': result[14],
+                'project_features': result[15],
+                'project_goals': result[16],
+                'project_community_values': result[17],
+                'custom_hype_phrases': result[18],
+                'project_unique_selling_points': result[19],
+                'project_roadmap_highlights': result[20],
+                'custom_personality_traits': result[21],
+                'project_target_audience': result[22],
+                'setup_completed': bool(result[23])
             }
         
         conn.close()
@@ -1698,8 +1611,11 @@ def set_group_settings(group_id, admin_user_id, **settings):
                      (group_id, admin_user_id, configured_by, setup_date,
                       group_name, custom_token_name, custom_token_symbol, 
                       custom_website, custom_contract, token_discussions_enabled,
-                      revival_frequency, competition_enabled, custom_welcome_message, is_premium)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                      revival_frequency, competition_enabled, custom_welcome_message, is_premium,
+                      project_narrative, project_features, project_goals, project_community_values,
+                      custom_hype_phrases, project_unique_selling_points, project_roadmap_highlights,
+                      custom_personality_traits, project_target_audience, setup_completed)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                   (group_id, admin_user_id, admin_user_id, int(time.time()),
                    settings.get('group_name'),
                    settings.get('custom_token_name'),
@@ -1710,7 +1626,17 @@ def set_group_settings(group_id, admin_user_id, **settings):
                    settings.get('revival_frequency', 15),
                    int(settings.get('competition_enabled', True)),
                    settings.get('custom_welcome_message'),
-                   int(settings.get('is_premium', False))))
+                   int(settings.get('is_premium', False)),
+                   settings.get('project_narrative'),
+                   settings.get('project_features'),
+                   settings.get('project_goals'),
+                   settings.get('project_community_values'),
+                   settings.get('custom_hype_phrases'),
+                   settings.get('project_unique_selling_points'),
+                   settings.get('project_roadmap_highlights'),
+                   settings.get('custom_personality_traits'),
+                   settings.get('project_target_audience'),
+                   int(settings.get('setup_completed', False))))
         
         conn.commit()
         conn.close()
@@ -1772,6 +1698,7 @@ scheduler.add_job(trigger_challenge, 'interval', minutes=5)
 scheduler.add_job(start_storyline, 'interval', days=3)
 scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
 scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
+scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
 
 # Mood-based flirty responses
 happy_responses = [
@@ -3746,30 +3673,6 @@ def handle_all_mentions(message):
                 else:
                     responses = good_responses
         
-        # Try AI response first (for eligible mentions)
-        ai_response = None
-        if not is_spam and not opinion_request:
-            # Build context for AI
-            context_info = {
-                'username': username,
-                'user_id': str(message.from_user.id),
-                'group_id': str(message.chat.id),
-                'chat_type': chat_type,
-                'is_boyfriend': boyfriend and boyfriend[0] == str(message.from_user.id),
-                'is_competition': is_competition_active,
-                'user_status': user_status,
-                'user_partner': user_partner,
-                'mention_count': user_mention_count,
-                'mention_method': mention_method
-            }
-            
-            # Clean message for AI (remove bot mention)
-            clean_message = msg_lower.replace('@babygirl_bf_bot', '').strip()
-            if not clean_message:
-                clean_message = "mentioned me"
-            
-            ai_response = generate_ai_response(clean_message, context_info)
-        
         # Use AI response if available, otherwise fall back to static responses
         if ai_response and not is_spam and not opinion_request:
             base_response = ai_response
@@ -4037,7 +3940,227 @@ def setup_command(message):
         # Parse the setup command
         setup_args = parts[1].strip()
         
-        if setup_args.startswith('token '):
+        if setup_args.startswith('quick '):
+            # Quick setup: /setup quick TOKENNAME SYMBOL website.com
+            quick_parts = setup_args[6:].strip().split()
+            if len(quick_parts) < 3:
+                bot.reply_to(message, """❌ **Quick setup requires 3 parameters:**
+
+**Format:** `/setup quick TOKENNAME SYMBOL website.com`
+
+**Example:** `/setup quick "Moon Token" MOON moon.finance`
+
+This will configure basic token settings and enable discussions! 🚀""")
+                return
+            
+            token_name = quick_parts[0].replace('"', '').replace("'", '')
+            token_symbol = quick_parts[1].upper()
+            website = quick_parts[2]
+            
+            # Set basic token configuration
+            success = set_group_settings(group_id, user_id,
+                                       custom_token_name=token_name,
+                                       custom_token_symbol=token_symbol,
+                                       custom_website=website,
+                                       token_discussions_enabled=True,
+                                       group_name=message.chat.title)
+            
+            if success:
+                response = f"""🎉 **QUICK SETUP COMPLETE!** 🎉
+
+🪙 **Your Token:** {token_name} (${token_symbol})
+🌐 **Website:** {website}
+✅ **Token Discussions:** ENABLED!
+
+**🚀 What's Active:**
+• I can now hype {token_name} in revival messages!
+• Custom token discussions when asked
+• All standard chat revival features
+
+**💡 Want More?** Use `/setup narrative "your story"` to add custom project details for even better AI responses!
+
+**🎯 Test it:** Try `/token` to see me discuss {token_name}!"""
+                
+                bot.reply_to(message, response)
+                logger.info(f"🚀 QUICK SETUP: {token_name} ({token_symbol}) for group {group_id}")
+            else:
+                bot.reply_to(message, "❌ Quick setup failed. Please try again!")
+                
+        elif setup_args.startswith('narrative '):
+            # Project narrative
+            narrative = setup_args[10:].strip().replace('"', '').replace("'", '')
+            if len(narrative) < 20:
+                bot.reply_to(message, """❌ **Narrative too short!**
+                
+Please provide a detailed project narrative (at least 20 characters).
+
+**Example:** 
+`/setup narrative "Your project's story, mission, vision, what makes it unique, and why it exists"`""")
+                return
+                
+            success = set_group_settings(group_id, user_id, project_narrative=narrative)
+            if success:
+                bot.reply_to(message, f"""✅ **Project Narrative Saved!**
+
+**Your Story:** {narrative[:100]}{'...' if len(narrative) > 100 else ''}
+
+Now I'll use this narrative in my AI responses to better represent your project! 🎯""")
+            else:
+                bot.reply_to(message, "❌ Failed to save narrative.")
+                
+        elif setup_args.startswith('features '):
+            # Project features
+            features = setup_args[9:].strip().replace('"', '').replace("'", '')
+            success = set_group_settings(group_id, user_id, project_features=features)
+            if success:
+                bot.reply_to(message, f"""✅ **Project Features Saved!**
+
+**Your Features:** {features[:100]}{'...' if len(features) > 100 else ''}
+
+I'll now discuss these features when hyping your project! 🔥""")
+            else:
+                bot.reply_to(message, "❌ Failed to save features.")
+                
+        elif setup_args.startswith('values '):
+            # Community values
+            values = setup_args[7:].strip().replace('"', '').replace("'", '')
+            success = set_group_settings(group_id, user_id, project_community_values=values)
+            if success:
+                bot.reply_to(message, f"""✅ **Community Values Saved!**
+
+**Your Values:** {values[:100]}{'...' if len(values) > 100 else ''}
+
+These values will guide my interactions with your community! 💕""")
+            else:
+                bot.reply_to(message, "❌ Failed to save values.")
+                
+        elif setup_args.startswith('hype '):
+            # Custom hype phrases
+            hype = setup_args[5:].strip().replace('"', '').replace("'", '')
+            success = set_group_settings(group_id, user_id, custom_hype_phrases=hype)
+            if success:
+                bot.reply_to(message, f"""✅ **Custom Hype Phrases Saved!**
+
+**Your Hype:** {hype[:100]}{'...' if len(hype) > 100 else ''}
+
+I'll use these phrases when getting excited about your project! 🚀""")
+            else:
+                bot.reply_to(message, "❌ Failed to save hype phrases.")
+                
+        elif setup_args.startswith('goals '):
+            # Project goals
+            goals = setup_args[6:].strip().replace('"', '').replace("'", '')
+            success = set_group_settings(group_id, user_id, project_goals=goals)
+            if success:
+                bot.reply_to(message, f"""✅ **Project Goals Saved!**
+
+**Your Goals:** {goals[:100]}{'...' if len(goals) > 100 else ''}
+
+I'll reference these goals when discussing your project's future! 🎯""")
+            else:
+                bot.reply_to(message, "❌ Failed to save goals.")
+                
+        elif setup_args == 'complete':
+            # Complete setup
+            current_settings = get_group_settings(group_id)
+            if not current_settings or not current_settings.get('custom_token_name'):
+                bot.reply_to(message, """❌ **Setup Not Ready!**
+                
+You need to configure your token first:
+`/setup token TOKENNAME SYMBOL website.com`
+
+Then you can complete the setup!""")
+                return
+                
+            # Mark setup as completed
+            success = set_group_settings(group_id, user_id, setup_completed=True)
+            if success:
+                token_name = current_settings['custom_token_name']
+                setup_summary = f"""🎉 **SETUP COMPLETE!** 🎉
+
+**🪙 Your Token:** {token_name}
+**✅ Configuration Status:** COMPLETE
+**🤖 AI Enhancement:** ACTIVE
+
+**What's Now Active:**
+• Custom token discussions and hype
+• Project narrative in AI responses
+• Community-specific engagement
+• Full chat revival system
+
+**🎯 Your community is now fully powered by Babygirl!**
+
+Try mentioning me or use `/token` to see the results! 💕✨"""
+                
+                bot.reply_to(message, setup_summary)
+                logger.info(f"✅ SETUP COMPLETED for group {group_id}")
+            else:
+                bot.reply_to(message, "❌ Failed to complete setup.")
+                
+        elif setup_args == 'view':
+            # View current detailed settings
+            current_settings = get_group_settings(group_id)
+            if not current_settings:
+                bot.reply_to(message, "❌ No configuration found. Use `/setup` to get started!")
+                return
+                
+            view_msg = f"""📋 **DETAILED CONFIGURATION VIEW**
+
+**🏷️ Basic Info:**
+• Group Name: {current_settings['group_name'] or 'Not set'}
+• Token: {current_settings['custom_token_name'] or 'Not set'} (${current_settings['custom_token_symbol'] or 'N/A'})
+• Website: {current_settings['custom_website'] or 'Not set'}
+
+**📖 Project Details:**
+• Narrative: {current_settings['project_narrative'][:80] + '...' if current_settings['project_narrative'] else 'Not set'}
+• Features: {current_settings['project_features'][:80] + '...' if current_settings['project_features'] else 'Not set'}
+• Values: {current_settings['project_community_values'][:80] + '...' if current_settings['project_community_values'] else 'Not set'}
+• Goals: {current_settings['project_goals'][:80] + '...' if current_settings['project_goals'] else 'Not set'}
+
+**🎯 Settings:**
+• Token Discussions: {'✅ Enabled' if current_settings['token_discussions_enabled'] else '❌ Disabled'}
+• Revival Frequency: {current_settings['revival_frequency']} minutes
+• Setup Complete: {'✅ Yes' if current_settings['setup_completed'] else '❌ No'}
+
+**🔧 To Edit:** Use `/setup [field] "new value"` to update any field!"""
+            
+            bot.reply_to(message, view_msg)
+            
+        elif setup_args == 'reset':
+            # Reset configuration 
+            bot.reply_to(message, """⚠️ **RESET CONFIGURATION**
+
+Are you sure you want to reset your configuration?
+
+**This will remove:**
+• Token settings
+• Project narrative and features  
+• Custom hype phrases
+• All setup progress
+
+**To confirm:** `/setup reset confirm`
+**To cancel:** Just ignore this message""")
+            
+        elif setup_args == 'reset confirm':
+            # Confirmed reset
+            conn = sqlite3.connect('babygirl.db')
+            c = conn.cursor()
+            c.execute("DELETE FROM group_settings WHERE group_id = ?", (group_id,))
+            conn.commit()
+            conn.close()
+            
+            bot.reply_to(message, """✅ **Configuration Reset Complete!**
+
+All settings have been cleared. You can now start fresh!
+
+**🎯 Quick Start:**
+• `/setup quick TOKENNAME SYMBOL website.com` - 2 minute setup
+• `/setup wizard` - 5 minute guided setup
+• `/onboard` - Full onboarding experience
+
+Ready to configure me for your community again! 💕""")
+            
+        elif setup_args.startswith('token '):
             # Token setup: /setup token TOKENNAME SYMBOL website.com
             token_parts = setup_args[6:].strip().split()
             if len(token_parts) < 3:
@@ -4075,9 +4198,13 @@ This will make me discuss your token with the same enthusiasm as $BABYGIRL! 🚀
 • I'll hype your token and share "to the moon" vibes
 • All chat revival features remain fully active
 
-**🎯 Test it out:** Try `/token` to see me talk about {token_name}!
+**📈 Next Steps (Optional but Recommended):**
+• `/setup narrative "your project story"` - Add custom narrative
+• `/setup features "key features"` - Highlight what makes you special
+• `/setup values "community values"` - Define your culture
+• `/setup complete` - Finalize configuration
 
-**📈 Your community just got a huge upgrade!** Welcome to the next level of engagement! 💕✨"""
+**🎯 Test it out:** Try `/token` to see me talk about {token_name}!"""
                 
                 bot.reply_to(message, response)
                 logger.info(f"🎯 TOKEN CONFIGURED: {token_name} ({token_symbol}) for group {group_id}")
@@ -4138,27 +4265,474 @@ Follow @babygirlerc for launch announcements and early access!
 
 **🎯 Ready to be first in line?** Start accumulating $BABYGIRL tokens now! Premium transforms me into your branded community AI! 🔥💕""")
             
+        elif setup_args == 'help':
+            # Setup help
+            bot.reply_to(message, """🆘 **SETUP HELP CENTER** 🆘
+
+**🚀 Quick Options:**
+• `/setup quick TOKEN SYMBOL website.com` - 2 minute setup
+• `/setup wizard` - Step-by-step guided setup
+• `/onboard` - Complete onboarding experience
+
+**🛠️ Individual Settings:**
+• `/setup token TOKEN SYMBOL website.com` - Configure your token
+• `/setup narrative "story"` - Add project narrative
+• `/setup features "features"` - List key features  
+• `/setup values "values"` - Define community values
+• `/setup hype "phrases"` - Custom hype phrases
+• `/setup goals "goals"` - Project goals and roadmap
+
+**📊 Management:**
+• `/setup view` - See all current settings
+• `/setup complete` - Finalize configuration
+• `/setup reset` - Clear all settings
+
+**💡 Need Examples?**
+• `/examples` - See real project configurations
+• Join @babygirlerc to see the full system in action!
+
+**🎯 Questions?** Just ask me anything! I'm here to help! 💕""")
+            
         else:
             bot.reply_to(message, """❌ **Unknown setup option!**
 
-**Available commands:**
+**🚀 Quick Start:**
+• `/setup quick TOKENNAME SYMBOL website.com` - Fast 2-minute setup
+• `/setup wizard` - Guided step-by-step setup
+• `/setup help` - Detailed help and options
+
+**📋 Or configure step by step:**
 • `/setup token TOKENNAME SYMBOL website.com`
-• `/setup name "Your Community Name"`
-• `/setup revival 15` (minutes)
-• `/setup premium` - Upgrade info
+• `/setup narrative "your story"`
+• `/setup features "key features"`
 
-Use `/setup` without parameters to see current configuration! 💕""")
-            
+Use `/setup help` for all available options! 💕""")
     except Exception as e:
-        logger.error(f"Error in setup command: {e}")
-        bot.reply_to(message, "❌ Setup failed! Please try again or contact support.")
+        logger.error(f"Error in setup wizard: {e}")
+        bot.reply_to(message, "Setup wizard failed! Try again or use `/setup help`")
 
-@bot.message_handler(commands=['config', 'settings'])
-def config_command(message):
-    """Show current group configuration - alias for /setup"""
-    # Redirect to setup command with no parameters
-    message.text = '/setup'
-    setup_command(message)
+@bot.message_handler(commands=['examples'])
+def setup_examples_command(message):
+    """Show real examples of good project configurations"""
+    examples_message = """📚 **REAL SETUP EXAMPLES** 📚
+
+Here are examples from successful community setups:
+
+## 🚀 **Example 1: DeFi Project**
+
+**Token:** `/setup token "YieldMax Protocol" YMAX yieldmax.finance`
+
+**Narrative:** `/setup narrative "YieldMax Protocol is pioneering the next generation of yield farming with our innovative auto-compounding vaults and risk-adjusted strategies. We're making DeFi accessible to everyone while maximizing returns through algorithmic optimization."`
+
+**Features:** `/setup features "Auto-compounding yield vaults, multi-chain farming, impermanent loss protection, governance token staking, mobile app integration, security audits by top firms"`
+
+**Values:** `/setup values "Security first, transparency always, community governance, sustainable yields, education and onboarding, long-term value creation"`
+
+**Hype:** `/setup hype "Yields to the moon! Compound those gains! YMAX army strong! Farming never stops! DeFi revolution! Maximum yields maximum vibes!"`
+
+---
+
+## 🎮 **Example 2: Gaming Token**
+
+**Token:** `/setup token "GameFi Universe" GAME gamefi-universe.io`
+
+**Narrative:** `/setup narrative "GameFi Universe is building the ultimate play-to-earn gaming ecosystem where players truly own their assets and can earn real rewards. We're bridging traditional gaming with blockchain technology."`
+
+**Features:** `/setup features "Play-to-earn rewards, NFT character ownership, cross-game asset portability, tournament prizes, guild system, mobile gaming focus"`
+
+**Values:** `/setup values "Player ownership, fair play, community tournaments, supporting gamers, innovation in gaming, fun-first approach"`
+
+**Hype:** `/setup hype "Game on! Play to earn! NFT power! Gaming revolution! GAME token to the stars! Level up your portfolio!"`
+
+---
+
+## 🌍 **Example 3: Community Token**
+
+**Token:** `/setup token "EcoGreen Network" ECO ecogreen.earth`
+
+**Narrative:** `/setup narrative "EcoGreen Network is the sustainable blockchain focused on environmental impact. Every transaction plants trees and supports clean energy projects. We're proof that crypto can heal the planet."`
+
+**Features:** `/setup features "Carbon negative blockchain, tree planting rewards, clean energy funding, eco-project voting, sustainability tracking, green NFT marketplace"`
+
+**Values:** `/setup values "Environmental responsibility, sustainable technology, community impact, transparency in eco projects, supporting green initiatives"`
+
+**Hype:** `/setup hype "Green is the new gold! Plant trees make money! Eco warriors unite! Saving the planet one block at a time! ECO army growing!"`
+
+## 💡 **Key Patterns in Successful Setups:**
+
+✅ **Clear project purpose** in narrative
+✅ **Specific features** not just generic benefits  
+✅ **Community-focused values** that people can relate to
+✅ **Fun, energetic hype phrases** that match your brand
+✅ **Authentic voice** that represents your community
+
+**🎯 Ready to create yours? Start with `/setup token` or use `/wizard` for guided setup!**"""
+
+    bot.reply_to(message, examples_message)
+
+@bot.message_handler(commands=['emojis', 'stickers'])
+def emojis_stickers_command(message):
+    """Configure custom emojis and stickers for the group"""
+    try:
+        # Check if user is admin
+        user_id = str(message.from_user.id)
+        group_id = str(message.chat.id)
+        
+        # Only allow in groups
+        if message.chat.type not in ['group', 'supergroup']:
+            bot.reply_to(message, "This command only works in groups! Add me to your group and try again.")
+            return
+            
+        # Check if user is admin
+        try:
+            chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+            if chat_member.status not in ['administrator', 'creator']:
+                bot.reply_to(message, "Only group administrators can configure emojis and stickers! 👑")
+                return
+        except:
+            bot.reply_to(message, "I need admin permissions to check your status!")
+            return
+        
+        command = message.text.split()[0][1:]  # Remove the /
+        parts = message.text.split(maxsplit=2)
+        
+        if command == 'emojis':
+            if len(parts) < 2:
+                # Show emoji help
+                bot.reply_to(message, """🎭 **CUSTOM EMOJI CONFIGURATION** 🎭
+
+**🚀 Available Commands:**
+• `/emojis add CATEGORY "emoji1,emoji2,emoji3"` - Add custom emojis
+• `/emojis view` - See current emoji configuration
+• `/emojis frequency 20` - Set reaction frequency (0-100%)
+• `/emojis reactions on/off` - Enable/disable automatic reactions
+
+**📋 Categories:** 
+• **general** - Default responses
+• **crypto** - Token/crypto discussions
+• **relationship** - Dating/romance topics
+• **competitive** - Boyfriend competitions
+• **happy** - Positive/excited responses
+• **sad** - Emotional/down responses
+
+**💡 Example:** 
+`/emojis add crypto "🚀,💎,🌙,📈,💰,🔥"`
+
+**✨ How it works:**
+• Custom emojis replace defaults in my responses
+• I'll automatically react to messages using your emojis
+• AI learns which emojis get the best engagement
+• Optimization happens every 6 hours automatically""")
+                return
+                
+            action = parts[1]
+            
+            if action == 'add' and len(parts) == 3:
+                # Parse category and emoji list
+                add_data = parts[2].strip()
+                add_parts = add_data.split(maxsplit=1)
+                
+                if len(add_parts) < 2:
+                    bot.reply_to(message, """❌ **Format:** `/emojis add CATEGORY "emoji1,emoji2,emoji3"`
+
+**Example:** `/emojis add general "💕,✨,😘,💖,🔥,👑,💅"`""")
+                    return
+                
+                category = add_parts[0]
+                emoji_list = add_parts[1].replace('"', '').replace("'", '')
+                
+                # Validate category
+                valid_categories = ['general', 'crypto', 'relationship', 'competitive', 'happy', 'sad']
+                if category not in valid_categories:
+                    bot.reply_to(message, f"❌ Invalid category! Use: {', '.join(valid_categories)}")
+                    return
+                
+                # Store custom emojis
+                try:
+                    conn = sqlite3.connect('babygirl.db')
+                    c = conn.cursor()
+                    c.execute("INSERT OR REPLACE INTO custom_emojis (group_id, emoji_set, category, optimization_weight) VALUES (?, ?, ?, 1.0)",
+                             (group_id, emoji_list, category))
+                    conn.commit()
+                    conn.close()
+                    
+                    bot.reply_to(message, f"""✅ **Custom Emojis Added!**
+
+**Category:** {category}
+**Emojis:** {emoji_list}
+
+These emojis will now be used in my responses and reactions for {category} contexts! I'll automatically optimize their usage based on engagement! 🎯""")
+                    
+                    logger.info(f"🎭 Added custom emojis for {group_id}: {category} = {emoji_list}")
+                    
+                except Exception as e:
+                    logger.error(f"Error storing custom emojis: {e}")
+                    bot.reply_to(message, "❌ Failed to save custom emojis.")
+                    
+            elif action == 'view':
+                # View current emoji configuration
+                try:
+                    conn = sqlite3.connect('babygirl.db')
+                    c = conn.cursor()
+                    c.execute("SELECT category, emoji_set, usage_count, reaction_count FROM custom_emojis WHERE group_id = ?", (group_id,))
+                    emoji_configs = c.fetchall()
+                    
+                    # Get reaction settings
+                    group_settings = get_group_settings(group_id)
+                    reaction_freq = group_settings.get('emoji_reaction_frequency', 15) if group_settings else 15
+                    reactions_enabled = group_settings.get('auto_reactions_enabled', True) if group_settings else True
+                    
+                    conn.close()
+                    
+                    if emoji_configs:
+                        view_msg = f"""📋 **Current Emoji Configuration:**
+
+**⚙️ Settings:**
+• Reaction Frequency: {reaction_freq}%
+• Auto Reactions: {'✅ Enabled' if reactions_enabled else '❌ Disabled'}
+
+**🎭 Custom Emoji Sets:**
+"""
+                        for category, emoji_set, usage, reactions in emoji_configs:
+                            view_msg += f"**{category.title()}:** {emoji_set}\n"
+                            view_msg += f"• Used {usage} times in responses, {reactions} as reactions\n\n"
+                        
+                        view_msg += "**🔧 To Edit:** Use `/emojis add CATEGORY \"new,emojis\"`"
+                    else:
+                        view_msg = f"""📋 **No Custom Emojis Configured**
+
+**⚙️ Current Settings:**
+• Reaction Frequency: {reaction_freq}%
+• Auto Reactions: {'✅ Enabled' if reactions_enabled else '❌ Disabled'}
+
+**🚀 Get Started:** 
+Use `/emojis add CATEGORY \"emoji1,emoji2\"` to add custom emojis!
+
+**💡 Try:** `/emojis add general \"💕,✨,😘,💖,🔥\"`"""
+                    
+                    bot.reply_to(message, view_msg)
+                    
+                except Exception as e:
+                    logger.error(f"Error viewing emojis: {e}")
+                    bot.reply_to(message, "❌ Failed to load emoji configuration.")
+                    
+            elif action == 'frequency':
+                if len(parts) < 3:
+                    bot.reply_to(message, "❌ **Format:** `/emojis frequency 20` (0-100%)")
+                    return
+                    
+                try:
+                    frequency = int(parts[2])
+                    if frequency < 0 or frequency > 100:
+                        bot.reply_to(message, "❌ Frequency must be between 0-100%!")
+                        return
+                    
+                    success = set_group_settings(group_id, user_id, emoji_reaction_frequency=frequency)
+                    if success:
+                        bot.reply_to(message, f"✅ **Emoji reaction frequency set to:** {frequency}%\n\nI'll react to approximately {frequency}% of messages with custom emojis!")
+                    else:
+                        bot.reply_to(message, "❌ Failed to set emoji frequency.")
+                        
+                except ValueError:
+                    bot.reply_to(message, "❌ Please provide a valid number for frequency!")
+                    
+            elif action == 'reactions':
+                if len(parts) < 3:
+                    bot.reply_to(message, "❌ **Format:** `/emojis reactions on` or `/emojis reactions off`")
+                    return
+                    
+                setting = parts[2].lower()
+                if setting == 'on':
+                    success = set_group_settings(group_id, user_id, auto_reactions_enabled=True)
+                    if success:
+                        bot.reply_to(message, "✅ **Automatic emoji reactions ENABLED!** I'll react to messages occasionally! 😘")
+                    else:
+                        bot.reply_to(message, "❌ Failed to enable reactions.")
+                        
+                elif setting == 'off':
+                    success = set_group_settings(group_id, user_id, auto_reactions_enabled=False)
+                    if success:
+                        bot.reply_to(message, "✅ **Automatic emoji reactions DISABLED!** I'll focus on text responses only.")
+                    else:
+                        bot.reply_to(message, "❌ Failed to disable reactions.")
+                else:
+                    bot.reply_to(message, "❌ Use 'on' or 'off' - example: `/emojis reactions on`")
+                    
+            else:
+                bot.reply_to(message, "❌ Unknown emoji command! Use `/emojis` to see available options.")
+                
+        elif command == 'stickers':
+            if len(parts) < 2:
+                # Show sticker help
+                bot.reply_to(message, """🎪 **CUSTOM STICKER CONFIGURATION** 🎪
+
+**🚀 How to Add Custom Stickers:**
+
+1. **Send me stickers** directly in this group chat
+2. **I'll automatically detect and save them** for use in responses
+3. **Use `/stickers view`** to see your collection
+4. **Use `/stickers frequency 15`** to set how often I send them (0-100%)
+
+**🎯 Sticker Categories:**
+• **general** - Normal responses and reactions
+• **crypto** - Token discussions and hype
+• **relationship** - Romance and dating topics
+• **competitive** - Boyfriend competitions and games
+• **happy** - Positive and excited responses
+• **sad** - Emotional and supportive responses
+
+**📊 Smart Optimization:**
+• I automatically track which stickers get the best engagement
+• Popular stickers get used more often
+• Analytics help optimize personality for your community
+
+**⚡ Pro Tip:** Send varied stickers to give me more personality options! The more variety, the better I can match your community's vibe! 🎭
+
+**🎮 Current Status:** Send me some stickers to get started!""")
+                return
+                
+            action = parts[1]
+            
+            if action == 'view':
+                # View current sticker configuration
+                try:
+                    conn = sqlite3.connect('babygirl.db')
+                    c = conn.cursor()
+                    c.execute("SELECT sticker_category, COUNT(*) as count, AVG(engagement_score) as avg_score FROM custom_stickers WHERE group_id = ? GROUP BY sticker_category", (group_id,))
+                    sticker_stats = c.fetchall()
+                    
+                    c.execute("SELECT sticker_file_id, sticker_category, usage_count, engagement_score FROM custom_stickers WHERE group_id = ? ORDER BY engagement_score DESC LIMIT 5", (group_id,))
+                    top_stickers = c.fetchall()
+                    
+                    # Get frequency setting
+                    group_settings = get_group_settings(group_id)
+                    sticker_freq = group_settings.get('sticker_response_frequency', 10) if group_settings else 10
+                    
+                    conn.close()
+                    
+                    if sticker_stats:
+                        view_msg = f"""📋 **Sticker Collection Status:**
+
+**⚙️ Settings:**
+• Sticker Frequency: {sticker_freq}% of responses
+
+**🎪 Collection by Category:**
+"""
+                        for category, count, avg_score in sticker_stats:
+                            view_msg += f"• **{category.title()}:** {count} stickers (avg score: {avg_score:.1f})\n"
+                        
+                        if top_stickers:
+                            view_msg += f"\n**🏆 Top Performing Stickers:**\n"
+                            for i, (file_id, category, usage, score) in enumerate(top_stickers, 1):
+                                view_msg += f"{i}. {category} sticker - used {usage} times (score: {score:.1f})\n"
+                        
+                        view_msg += f"\n**🔧 Commands:**\n• `/stickers frequency 20` - Adjust how often I send stickers\n• Send more stickers to expand my collection!"
+                    else:
+                        view_msg = f"""📋 **No Stickers Configured**
+
+**⚙️ Current Settings:**
+• Sticker Frequency: {sticker_freq}% of responses
+
+**🎪 Get Started:**
+1. Send me stickers directly in this chat
+2. I'll automatically save and categorize them
+3. Watch as I start using them in responses!
+
+**💡 Send varied stickers for different moods and topics!**"""
+                    
+                    bot.reply_to(message, view_msg)
+                    
+                except Exception as e:
+                    logger.error(f"Error viewing stickers: {e}")
+                    bot.reply_to(message, "❌ Failed to load sticker configuration.")
+                    
+            elif action == 'frequency':
+                if len(parts) < 3:
+                    bot.reply_to(message, "❌ **Format:** `/stickers frequency 15` (0-100%)")
+                    return
+                    
+                try:
+                    frequency = int(parts[2])
+                    if frequency < 0 or frequency > 100:
+                        bot.reply_to(message, "❌ Frequency must be between 0-100%!")
+                        return
+                    
+                    success = set_group_settings(group_id, user_id, sticker_response_frequency=frequency)
+                    if success:
+                        bot.reply_to(message, f"✅ **Sticker frequency set to:** {frequency}%\n\nI'll include stickers in approximately {frequency}% of my responses!")
+                    else:
+                        bot.reply_to(message, "❌ Failed to set sticker frequency.")
+                        
+                except ValueError:
+                    bot.reply_to(message, "❌ Please provide a valid number for frequency!")
+                    
+            else:
+                bot.reply_to(message, "❌ Unknown sticker command! Use `/stickers` to see available options.")
+        
+    except Exception as e:
+        logger.error(f"Error in emojis/stickers command: {e}")
+        bot.reply_to(message, "Configuration failed! Try again or contact support.")
+
+@bot.message_handler(content_types=['sticker'])
+def handle_sticker_uploads(message):
+    """Handle sticker uploads from admins to build custom sticker collection"""
+    try:
+        group_id = str(message.chat.id)
+        user_id = str(message.from_user.id)
+        
+        # Only save stickers in groups
+        if message.chat.type not in ['group', 'supergroup']:
+            return
+        
+        # Check if user is admin
+        try:
+            chat_member = bot.get_chat_member(message.chat.id, message.from_user.id)
+            if chat_member.status not in ['administrator', 'creator']:
+                return  # Silently ignore non-admin stickers
+        except:
+            return
+        
+        # Save the sticker
+        sticker_file_id = message.sticker.file_id
+        current_time = int(time.time())
+        
+        # Auto-categorize based on emoji (if available)
+        category = 'general'  # default
+        if message.sticker.emoji:
+            emoji = message.sticker.emoji
+            if emoji in ['🚀', '💎', '🌙', '📈', '💰', '🔥']:
+                category = 'crypto'
+            elif emoji in ['💕', '😘', '💖', '👫', '💏', '💋', '🤗', '😍', '🥰', '💝']:
+                category = 'relationship'
+            elif emoji in ['💪', '🏆', '⚡', '👑', '🎯', '💥', '🌟', '🥇', '⭐']:
+                category = 'competitive'
+            elif emoji in ['😊', '😄', '🥳', '🎉', '✨', '💫', '🌈', '☀️', '💝', '🎊']:
+                category = 'happy'
+            elif emoji in ['🥺', '💔', '😢', '😭', '💧', '🌧️', '😔', '💙', '😞', '💜']:
+                category = 'sad'
+        
+        # Store the sticker
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Check if sticker already exists
+        c.execute("SELECT sticker_file_id FROM custom_stickers WHERE group_id = ? AND sticker_file_id = ?", (group_id, sticker_file_id))
+        exists = c.fetchone()
+        
+        if not exists:
+            c.execute("INSERT INTO custom_stickers (group_id, sticker_file_id, sticker_category, added_by, added_date) VALUES (?, ?, ?, ?, ?)",
+                     (group_id, sticker_file_id, category, user_id, current_time))
+            conn.commit()
+            
+            # Send confirmation
+            bot.reply_to(message, f"✅ **Sticker Added!** \n\nCategory: {category}\nI'll start using this in my responses! Send more stickers to expand my collection! 🎪")
+            
+            logger.info(f"🎪 Added sticker to {group_id}: category={category}")
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error handling sticker upload: {e}")
 
 if __name__ == "__main__":
     logger.info("Babygirl Bot starting...")
