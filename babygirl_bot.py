@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv('BOT_TOKEN', '7618107152:AAEMPk7q7xNUhZpiDMMiVRSrTV0hkJSyV8I')
 bot = telebot.TeleBot(TOKEN)
 scheduler = BackgroundScheduler()
-scheduler.start()
 
 # Groq AI configuration
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')  # Set this in environment variables
