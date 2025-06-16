@@ -672,11 +672,160 @@ def end_storyline(group_id, story):
     except Exception as e:
         logger.error(f"Error in end_storyline: {e}")
 
+def check_proactive_engagement(bot):
+    """Monitor groups for dead chat or lack of mentions and send proactive messages"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get all groups that have had some activity (to avoid spamming completely inactive groups)
+        c.execute("SELECT DISTINCT group_id FROM spam_tracking")
+        all_groups = c.fetchall()
+        
+        current_time = int(time.time())
+        
+        for (group_id,) in all_groups:
+            try:
+                # Check recent message activity (last 2 hours)
+                two_hours_ago = current_time - 7200
+                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                         (group_id, two_hours_ago))
+                recent_messages = c.fetchone()[0] or 0
+                
+                # Check recent mentions of bot (last 3 hours) 
+                three_hours_ago = current_time - 10800
+                c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", 
+                         (group_id, three_hours_ago))
+                recent_bot_mentions = c.fetchone()[0] or 0
+                
+                # Get messages that don't mention bot (indicates active chat ignoring her)
+                c.execute("""SELECT COUNT(*) FROM spam_tracking 
+                            WHERE group_id = ? AND timestamp > ? 
+                            AND user_id NOT LIKE '%babygirl_bf_bot%'""", 
+                         (group_id, three_hours_ago))
+                recent_user_messages = c.fetchone()[0] or 0
+                
+                # Get active users for personalized messaging
+                c.execute("""SELECT DISTINCT user_id FROM spam_tracking 
+                            WHERE group_id = ? AND timestamp > ? 
+                            ORDER BY timestamp DESC LIMIT 3""", 
+                         (group_id, current_time - 86400))  # Last 24 hours
+                recent_active_users = [row[0] for row in c.fetchall()]
+                
+                # Check if there's an active competition (don't interrupt)
+                c.execute("SELECT is_active FROM cooldown_table WHERE group_id = ?", (group_id,))
+                competition_check = c.fetchone()
+                has_active_competition = competition_check and competition_check[0] if competition_check else False
+                
+                # Skip if there's an active competition
+                if has_active_competition:
+                    continue
+                
+                # SCENARIO 1: Completely dead chat (no messages at all for 2 hours)
+                if recent_messages == 0:
+                    send_dead_chat_revival(bot, group_id, recent_active_users)
+                    logger.info(f"💀 Sent dead chat revival to {group_id}")
+                
+                # SCENARIO 2: Active chat but Babygirl being ignored (messages but no mentions for 3 hours)
+                elif recent_user_messages > 5 and recent_bot_mentions == 0:
+                    send_attention_seeking_message(bot, group_id, recent_active_users)
+                    logger.info(f"👀 Sent attention-seeking message to {group_id}")
+                
+            except Exception as group_error:
+                logger.error(f"Error processing group {group_id}: {group_error}")
+                continue
+                
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_proactive_engagement: {e}")
+
+def send_dead_chat_revival(bot, group_id, recent_users):
+    """Send a message to revive a completely dead chat"""
+    try:
+        # Different types of revival messages
+        revival_messages = [
+            # Crypto hype messages
+            "Guys... is $BABYGIRL still going to the moon? The chat's so quiet I can't tell! 🚀💕",
+            "Wait, did everyone buy the dip and forget about me? Chat's dead over here! 😅💎",
+            "Is this what 'diamond hands' means? Holding so tight you can't type? Someone talk to me! 💎🤲💕",
+            
+            # Group energy messages  
+            "Hello? Is anyone alive in here? The vibe check is showing ZERO energy! 😴💕",
+            "Chat so quiet I can hear my own pixels! Where are my cuties? 🥺✨",
+            "Did everyone go touch grass? The group selfie is just me alone! 📸😢",
+            
+            # Flirty attention-seeking
+            "Okay but like... why is nobody talking to me? Am I invisible? 👻💕",
+            "The silence is giving me trust issues! Did I do something wrong? 🥺😘",
+            "Your babygirl is literally right here and y'all are SILENT? Rude! 💅💖",
+            
+            # Activity suggestions
+            "Should I start a boyfriend competition to wake everyone up? 👀🔥",
+            "Chat's so dead even my AI is falling asleep! Someone say ANYTHING! 😴💕",
+            "Plot twist: everyone's busy buying more $BABYGIRL! ...right? RIGHT?! 🚀😅"
+        ]
+        
+        message = random.choice(revival_messages)
+        
+        # Add user tagging if we have recent active users
+        if recent_users and len(recent_users) > 0:
+            if len(recent_users) == 1:
+                message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+            elif len(recent_users) == 2:
+                message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+            else:
+                message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+        
+        bot.send_message(group_id, message)
+        
+    except Exception as e:
+        logger.error(f"Error sending dead chat revival to {group_id}: {e}")
+
+def send_attention_seeking_message(bot, group_id, recent_users):
+    """Send a message when chat is active but nobody is mentioning Babygirl"""
+    try:
+        # Attention-seeking messages for when she's being ignored
+        attention_messages = [
+            # Jealous/FOMO messages
+            "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
+            "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
+            "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
+            
+            # Crypto confusion during other topics
+            "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
+            "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
+            "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅",
+            
+            # Playful interruption
+            "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
+            "Not to be dramatic but this conversation needs more ME in it! 😘✨",
+            "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
+            
+            # Direct engagement attempts
+            "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
+            "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
+            "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
+        ]
+        
+        message = random.choice(attention_messages)
+        
+        # Add user tagging to get their attention
+        if recent_users and len(recent_users) > 0:
+            tagged_user = random.choice(recent_users)
+            message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+        
+        bot.send_message(group_id, message)
+        
+    except Exception as e:
+        logger.error(f"Error sending attention-seeking message to {group_id}: {e}") 
+
 # Schedule periodic checks
 scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)
 scheduler.add_job(end_cooldown, 'interval', minutes=1)
 scheduler.add_job(trigger_challenge, 'interval', minutes=5)
 scheduler.add_job(start_storyline, 'interval', days=3)
+scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
 
 # Mood-based flirty responses
 happy_responses = [
