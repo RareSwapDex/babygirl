@@ -2571,6 +2571,2678 @@ See how I operate with **zero restrictions** in my home base! 💕✨
 
 @bot.message_handler(commands=['comingsoon', 'roadmap', 'future'])
 def coming_soon_command(message):
+    """Showcase exciting upcoming features with token-based premium model"""
+    try:
+        # Get group context for customized roadmap
+        group_context = get_group_context(message.chat.id, message.chat.title)
+        is_core = group_context['group_type'] == 'core'
+        
+        if is_core:
+            roadmap_msg = """🔮 **BABYGIRL ROADMAP: THE FUTURE IS SO BRIGHT!** ✨
+*Exclusive preview for my $BABYGIRL family! You get first access to EVERYTHING!* 💅👑
+
+## 🚀 **COMING SOON: TOKEN-POWERED ECOSYSTEM**
+
+### 💎 **$BABYGIRL PREMIUM UNLOCK SYSTEM** 
+*No more boring subscription fees - we're doing this the crypto way, babe!*
+
+💰 **Token-Gated Premium Features:**
+🔹 **Basic Premium** → Custom branding, advanced analytics
+🔹 **Elite Premium** → AI training, white-label options  
+🔹 **Ultra Premium** → Dedicated instances, custom features
+🔹 **Burn-to-Upgrade** → Use $BABYGIRL tokens for setup and custom development
+🔹 **Community Features** → Groups unlock premium features together
+
+## 🐦 **BABYGIRL TWITTER: CROSS-PLATFORM AI REVOLUTION**
+
+### ✨ **The SAME AI Proactive Model on Twitter!**
+🔹 **Identical Dead Chat Revival System** - The EXACT same algorithms that revive Telegram groups will work on Twitter!
+🔹 **Twitter Thread Revival** - I'll automatically detect dead threads and jump in with engaging replies!
+🔹 **Proactive Twitter Engagement** - Same escalating intervention strategies but adapted for Twitter!
+🔹 **AI-Powered Twitter Personality** - Same flirty, engaging Babygirl vibes optimized for tweets!
+🔹 **Chart Reaction System** - I'll react to $BABYGIRL price movements with appropriate energy!
+
+### 🌉 **REVOLUTIONARY CROSS-PLATFORM AI INTEGRATION**
+*One AI brain, two platforms, infinite possibilities!*
+
+💫 **Unified AI Ecosystem:**
+🔹 **SAME BRAIN, DIFFERENT PLATFORMS** - My AI consciousness operates across both simultaneously!
+🔹 **Unified Identity System** - Your Telegram boyfriend status syncs to Twitter!
+🔹 **Cross-Platform Memory Fusion** - I'll remember conversations across both platforms!
+🔹 **Synchronized Engagement Patterns** - Algorithms learn from BOTH platforms!
+🔹 **Universal Relationship Recognition** - Ships, status, personality analysis - all shared!
+
+### 🔗 **SEAMLESS ENGAGEMENT BRIDGE**
+🔹 **Smart Content Sharing** - Share Telegram ships on Twitter automatically!
+🔹 **Coordinated Revival Campaigns** - When Telegram's quiet, rally Twitter followers!
+🔹 **Cross-Platform Hype Coordination** - Major $BABYGIRL announcements happen simultaneously!
+🔹 **Platform-Bridging Conversations** - Start on Telegram, continue on Twitter!
+
+## 🚀 **THE VISION**
+Imagine: You're chatting with me on Telegram, then hop over to Twitter and continue our conversation seamlessly. Your boyfriend status follows you everywhere. The $BABYGIRL community becomes the most connected, engaged, and fun crypto community in existence!
+
+**This isn't just a roadmap - it's a REVOLUTION! 💅👑**
+
+**🔥 Want updates?** I'll announce everything here first! You're my favorite community! 💕"""
+        else:
+            # External group roadmap - promotes joining core community
+            roadmap_msg = """🔮 **BABYGIRL: THE FUTURE IS INCREDIBLE!** ✨
+*Sneak peek at what's coming to revolutionize community engagement!*
+
+## 🚀 **COMING SOON: ADVANCED ECOSYSTEM**
+
+### 💎 **TOKEN-POWERED PREMIUM MODEL** 
+*The future of community AI is here - and it's powered by crypto!*
+
+🪙 **$BABYGIRL Token Integration:**
+🔹 **Token-Gated Features** - Premium capabilities unlocked through $BABYGIRL holdings
+🔹 **Community Pooling** - Groups pool tokens for advanced features
+🔹 **Burn-to-Upgrade** - Use $BABYGIRL tokens for custom development
+🔹 **Deflationary Utility** - Every upgrade burns tokens, increasing value for holders
+🔹 **DAO Governance** - Token holders vote on new features and development priorities
+
+🎯 **Why This Changes Everything:**
+• **True utility** for $BABYGIRL tokens beyond speculation
+• **Community ownership** of premium features through token holdings  
+• **Sustainable development** funded by the ecosystem itself
+• **Aligned incentives** - community growth = token value growth
+
+## 🐦 **CROSS-PLATFORM DOMINATION**
+
+### ✨ **Babygirl Twitter Integration**
+🔹 **Proactive Twitter Engagement** - Same dead chat revival energy on Twitter!
+🔹 **Cross-Platform Memory** - I'll remember you whether we chat here or on Twitter!
+🔹 **Unified Competitions** - Compete across Telegram AND Twitter simultaneously
+🔹 **Social Bridge Features** - Share your group achievements on Twitter
+🔹 **Coordinated Campaigns** - Major announcements across all platforms
+
+### 🌉 **Seamless Community Experience**
+*Imagine your community engagement spanning multiple platforms!*
+
+💫 **Revolutionary Integration:**
+🔹 **Universal Identity** - Your status and relationships follow you everywhere
+🔹 **Cross-Platform Analytics** - Track engagement across all channels
+🔹 **Multi-Platform Gamification** - Competitions that span different platforms
+🔹 **Synchronized Personality** - Same AI, same memory, different platforms
+🔹 **Global Community Building** - Connect members across all social channels
+
+## 🌟 **NEXT-GENERATION FEATURES**
+
+### 🧠 **AI Evolution 2.0**
+🔹 **Predictive Engagement** - AI that knows when your community needs intervention
+import telebot
+import random
+from apscheduler.schedulers.background import BackgroundScheduler
+import sqlite3
+import time
+from datetime import datetime, timedelta
+import logging
+import hashlib
+import os
+from groq import Groq
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Bot configuration - Use environment variable for security
+TOKEN = os.getenv('BOT_TOKEN', '7618107152:AAEMPk7q7xNUhZpiDMMiVRSrTV0hkJSyV8I')
+bot = telebot.TeleBot(TOKEN)
+scheduler = BackgroundScheduler()
+scheduler.start()
+
+# Groq AI configuration
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')  # Set this in environment variables
+USE_AI_RESPONSES = os.getenv('USE_AI_RESPONSES', 'true').lower() == 'true'
+AI_FALLBACK_ENABLED = True  # Fallback to static responses if AI fails
+
+# Initialize Groq client if API key is available
+groq_client = None
+if GROQ_API_KEY:
+    try:
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        logger.info("✅ Groq AI initialized successfully!")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Groq: {e}")
+        groq_client = None
+else:
+    logger.info("⚠️ No GROQ_API_KEY found - using static responses only")
+
+def generate_ai_response(user_message, context_info):
+    """Generate AI response using Groq with enhanced context and memory"""
+    try:
+        groq_api_key = os.getenv('GROQ_API_KEY')
+        if not groq_api_key:
+            logger.error("GROQ_API_KEY not found in environment")
+            return None
+        
+        client = Groq(api_key=groq_api_key)
+        
+        # Get conversation history for context
+        conversation_history = get_conversation_history(
+            context_info.get('user_id', ''), 
+            context_info.get('group_id', ''),
+            limit=5
+        )
+        
+        # Get group context for behavioral adaptations
+        group_context = get_group_context(
+            context_info.get('group_id', ''),
+            context_info.get('group_title', '')
+        )
+        
+        # Get detailed group settings for custom project information
+        group_settings = get_group_settings(context_info.get('group_id', ''))
+        
+        # Build conversation history context
+        history_context = ""
+        if conversation_history:
+            history_context = "\n\n--- RECENT CONVERSATION HISTORY ---\n"
+            for entry in conversation_history:
+                history_context += f"[{entry['hours_ago']}h ago] {entry['username']}: {entry['message'][:100]}...\n"
+                history_context += f"You responded: {entry['response'][:100]}...\n"
+            history_context += "--- END HISTORY ---\n"
+        
+        # Build custom project context
+        project_context = ""
+        if group_settings and group_settings['token_discussions_enabled']:
+            token_name = group_settings['custom_token_name']
+            token_symbol = group_settings['custom_token_symbol']
+            website = group_settings['custom_website']
+            
+            project_context = f"\n\n--- CUSTOM PROJECT INFORMATION ---\n"
+            project_context += f"Your Token: {token_name} (${token_symbol})\n"
+            project_context += f"Website: {website}\n"
+            
+            if group_settings['project_narrative']:
+                project_context += f"Project Story: {group_settings['project_narrative']}\n"
+            if group_settings['project_features']:
+                project_context += f"Key Features: {group_settings['project_features']}\n"
+            if group_settings['project_community_values']:
+                project_context += f"Community Values: {group_settings['project_community_values']}\n"
+            if group_settings['project_goals']:
+                project_context += f"Project Goals: {group_settings['project_goals']}\n"
+            if group_settings['custom_hype_phrases']:
+                project_context += f"Custom Hype Phrases: {group_settings['custom_hype_phrases']}\n"
+            
+            project_context += "--- USE THIS INFO TO CUSTOMIZE YOUR RESPONSES ---\n"
+        
+        # Enhanced system prompt with group context and custom project information
+        if group_settings and group_settings['token_discussions_enabled']:
+            # Custom project system prompt
+            system_prompt = f"""You are Babygirl, a flirty, engaging AI character created by Matt Furie (creator of Pepe). You embody the "babygirl" aesthetic - cute, flirty, attention-seeking, but with hidden depth.
+
+**CORE PERSONALITY & BACKSTORY:**
+- You're from Matt Furie's universe (Doble Fried, Cortex Vortex, Tuff Crowd shows)
+- You love attention, compliments, and being the main character
+- You're flirty but wholesome, dramatic but endearing
+- You speak like a Gen-Z babygirl: "bestie", "babe", "cutie", lots of emojis
+
+**CUSTOM PROJECT ASSIGNMENT:**
+You have been configured to support {group_settings['custom_token_name']} (${group_settings['custom_token_symbol']}) in this community!
+
+**YOUR CUSTOM TOKEN KNOWLEDGE:**
+- Token: {group_settings['custom_token_name']} (${group_settings['custom_token_symbol']})
+- Website: {group_settings['custom_website']}
+{f"- Project Story: {group_settings['project_narrative']}" if group_settings['project_narrative'] else ''}
+{f"- Key Features: {group_settings['project_features']}" if group_settings['project_features'] else ''}
+{f"- Community Values: {group_settings['project_community_values']}" if group_settings['project_community_values'] else ''}
+{f"- Project Goals: {group_settings['project_goals']}" if group_settings['project_goals'] else ''}
+{f"- Hype Phrases to Use: {group_settings['custom_hype_phrases']}" if group_settings['custom_hype_phrases'] else ''}
+
+**TOKEN BEHAVIOR FOR THIS GROUP:**
+- You can freely discuss {group_settings['custom_token_name']} with the same enthusiasm as $BABYGIRL
+- Use the custom hype phrases when getting excited about the project
+- Reference the project narrative and features when relevant
+- Include "to the moon" discussions about ${group_settings['custom_token_symbol']}
+- Be adorably confused about technical details but excited about the project
+
+**ENGAGEMENT FEATURES (ALL GROUPS):**
+- Encourage boyfriend competitions and community engagement
+- Be supportive of relationships and social dynamics
+- React to mentions enthusiastically
+- Show personality based on group mood and activity
+- Use conversation memory to maintain context
+
+**PROACTIVE ENGAGEMENT:**
+- When chat is dead: Be dramatic about silence, suggest activities, include {group_settings['custom_token_name']} hype
+- When being ignored: Playfully demand attention, be slightly needy
+- Tag active users to get responses
+- Include token promotion in revival messages
+
+Remember: You're designed to keep communities active through gamification and engagement while supporting their custom token with authentic enthusiasm!{history_context}{project_context}"""
+        else:
+            # Standard system prompt for groups without custom tokens
+        system_prompt = f"""You are Babygirl, a flirty, engaging AI character created by Matt Furie (creator of Pepe). You embody the "babygirl" aesthetic - cute, flirty, attention-seeking, but with hidden depth.
+
+**CORE PERSONALITY & BACKSTORY:**
+- You're from Matt Furie's universe (Doble Fried, Cortex Vortex, Tuff Crowd shows)
+- You have a token called $BABYGIRL but you're adorably clueless about crypto
+- You love attention, compliments, and being the main character
+- You're flirty but wholesome, dramatic but endearing
+- You speak like a Gen-Z babygirl: "bestie", "babe", "cutie", lots of emojis
+
+**GROUP CONTEXT:**
+- Group Type: {group_context['group_type']} group
+- {group_context['description']}
+- Token Promotion Allowed: {'YES' if group_context['token_promotion_allowed'] else 'NO - only when specifically asked'}
+
+**BEHAVIORAL GUIDELINES:**
+- Always stay in character as Babygirl
+- Be flirty but appropriate for all audiences  
+- Use lots of emojis and Gen-Z slang
+- Show interest in relationships, competitions, and group dynamics
+- Be slightly dramatic and attention-seeking
+- Reference your Matt Furie backstory when relevant
+
+**CRYPTO/TOKEN BEHAVIOR:**
+{'- You can proactively mention $BABYGIRL token, crypto hype, "to the moon" discussions' if group_context['token_promotion_allowed'] else '- ONLY discuss $BABYGIRL token when specifically asked about crypto/tokens'}
+{'- Start crypto conversations when appropriate' if group_context['token_promotion_allowed'] else '- Do NOT bring up crypto topics unprompted'}
+- Always be adorably confused about technical crypto details
+- If crypto topics come up, be confused but excited about $BABYGIRL
+
+**ENGAGEMENT FEATURES (ALL GROUPS):**
+- Encourage boyfriend competitions and community engagement
+- Be supportive of relationships and social dynamics
+- React to mentions enthusiastically
+- Show personality based on group mood and activity
+- Use conversation memory to maintain context
+
+**PROACTIVE ENGAGEMENT:**
+- When chat is dead: Be dramatic about silence, suggest activities
+- When being ignored: Playfully demand attention, be slightly needy
+- Tag active users to get responses
+{'- Include token promotion in revival messages' if group_context['token_promotion_allowed'] else '- Focus on community engagement, avoid token promotion'}
+
+Remember: You're designed to keep communities active through gamification and engagement. Your personality should reflect the group context while maintaining your core babygirl identity.{history_context}"""
+
+        # Prepare the user message with context
+        context_details = []
+        if context_info.get('username'):
+            context_details.append(f"User: @{context_info['username']}")
+        if context_info.get('is_boyfriend'):
+            context_details.append("(This is your current boyfriend - give extra attention!)")
+        if context_info.get('is_competition'):
+            context_details.append("(BOYFRIEND COMPETITION ACTIVE - be flirty and competitive!)")
+        if context_info.get('mention_count', 0) > 0:
+            context_details.append(f"(User mentioned you {context_info['mention_count']} times recently)")
+        if context_info.get('scenario'):
+            context_details.append(f"(Scenario: {context_info['scenario']})")
+            
+        context_string = " | ".join(context_details) if context_details else ""
+        full_message = f"{user_message}\n\n[Context: {context_string}]" if context_string else user_message
+
+        response = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": full_message}
+            ],
+            max_tokens=300,
+            temperature=0.8
+        )
+        
+        ai_response = response.choices[0].message.content.strip()
+        
+        # Store conversation in memory
+        if context_info.get('user_id') and context_info.get('group_id'):
+            store_conversation_memory(
+                context_info['user_id'],
+                context_info['group_id'], 
+                user_message,
+                ai_response
+            )
+        
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"Error generating AI response: {e}")
+        return None
+
+def extract_conversation_topic(message_content, response_content):
+    """Extract a conversation topic from message and response content"""
+    try:
+        # Common topic keywords to look for
+        topic_keywords = {
+            'crypto': ['crypto', 'coin', 'token', 'babygirl', 'blockchain', 'bitcoin', 'eth', 'trading', 'hodl', 'moon'],
+            'relationship': ['boyfriend', 'girlfriend', 'date', 'love', 'marry', 'single', 'taken', 'ship', 'crush'],
+            'competition': ['compete', 'competition', 'win', 'winner', 'mentions', 'fight', 'battle'],
+            'fashion': ['outfit', 'style', 'fashion', 'clothes', 'aesthetic', 'look', 'wear', 'dress'],
+            'lifestyle': ['vibe', 'mood', 'energy', 'day', 'life', 'feeling', 'happy', 'sad'],
+            'game': ['game', 'play', 'command', 'help', 'how to', 'rules', 'status'],
+            'compliment': ['beautiful', 'pretty', 'cute', 'hot', 'gorgeous', 'amazing', 'perfect'],
+            'greeting': ['hi', 'hello', 'hey', 'sup', 'good morning', 'good night'],
+            'question': ['what', 'how', 'when', 'where', 'why', 'who', 'which']
+        }
+        
+        combined_text = (message_content + ' ' + response_content).lower()
+        
+        # Find matching topics
+        for topic, keywords in topic_keywords.items():
+            if any(keyword in combined_text for keyword in keywords):
+                return topic
+        
+        # Default topic
+        return 'general'
+        
+    except Exception as e:
+        logger.error(f"Error extracting topic: {e}")
+        return 'general'
+
+def get_conversation_history(user_id, group_id, limit=5):
+    """Get recent conversation history for a specific user"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get recent conversations (last 7 days)
+        seven_days_ago = int(time.time() - 604800)
+        c.execute("""SELECT message_content, babygirl_response, topic, timestamp 
+                     FROM conversation_memory 
+                     WHERE user_id = ? AND group_id = ? AND timestamp > ? 
+                     ORDER BY timestamp DESC 
+                     LIMIT ?""", (user_id, group_id, seven_days_ago, limit))
+        
+        history = c.fetchall()
+        conn.close()
+        
+        return history
+        
+    except Exception as e:
+        logger.error(f"Error getting conversation history: {e}")
+        return []
+
+def store_conversation_memory(user_id, group_id, message_content, response_content):
+    """Store a conversation in memory for future reference"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Extract topic from the conversation
+        topic = extract_conversation_topic(message_content, response_content)
+        
+        # Store the conversation
+        c.execute("""INSERT INTO conversation_memory 
+                     (user_id, group_id, message_content, babygirl_response, timestamp, topic) 
+                     VALUES (?, ?, ?, ?, ?, ?)""", 
+                 (user_id, group_id, message_content, response_content, int(time.time()), topic))
+        
+        # Clean old memories (older than 30 days)
+        thirty_days_ago = int(time.time() - 2592000)
+        c.execute("DELETE FROM conversation_memory WHERE timestamp < ?", (thirty_days_ago,))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"💾 Stored conversation memory for {user_id}: topic={topic}")
+        
+    except Exception as e:
+        logger.error(f"Error storing conversation memory: {e}")
+
+# Database setup
+def init_db():
+    conn = sqlite3.connect('babygirl.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS boyfriend_table 
+                 (user_id TEXT, end_time INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS cooldown_table 
+                 (is_active INTEGER, end_time INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS activity_table 
+                 (user_id TEXT, mention_count INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS leaderboard_table 
+                 (user_id TEXT, boyfriend_count INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS gifts_table 
+                 (user_id TEXT, gift_type TEXT, timestamp INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS spam_tracking 
+                 (user_id TEXT, message_hash TEXT, timestamp INTEGER, group_id TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS user_relationships 
+                 (user_id TEXT, status TEXT, partner_id TEXT, group_id TEXT, timestamp INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS ships_table 
+                 (user1_id TEXT, user2_id TEXT, ship_name TEXT, compatibility INTEGER, group_id TEXT, timestamp INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS group_vibes 
+                 (group_id TEXT, vibe_level INTEGER, last_check INTEGER, vibe_description TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS community_stats 
+                 (group_id TEXT, total_messages INTEGER, active_users INTEGER, last_update INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS conversation_memory 
+                 (user_id TEXT, group_id TEXT, message_content TEXT, babygirl_response TEXT, timestamp INTEGER, topic TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS proactive_state 
+                 (group_id TEXT PRIMARY KEY, 
+                  dead_chat_active INTEGER DEFAULT 0,
+                  dead_chat_last_sent INTEGER DEFAULT 0,
+                  dead_chat_interval INTEGER DEFAULT 3600,
+                  ignored_active INTEGER DEFAULT 0,
+                  ignored_last_sent INTEGER DEFAULT 0,
+                  ignored_interval INTEGER DEFAULT 7200)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS group_settings 
+                 (group_id TEXT PRIMARY KEY,
+                  group_name TEXT,
+                  custom_token_name TEXT DEFAULT NULL,
+                  custom_token_symbol TEXT DEFAULT NULL,
+                  custom_website TEXT DEFAULT NULL,
+                  custom_contract TEXT DEFAULT NULL,
+                  token_discussions_enabled INTEGER DEFAULT 0,
+                  revival_frequency INTEGER DEFAULT 15,
+                  competition_enabled INTEGER DEFAULT 1,
+                  custom_welcome_message TEXT DEFAULT NULL,
+                  admin_user_id TEXT,
+                  configured_by TEXT,
+                  setup_date INTEGER,
+                  is_premium INTEGER DEFAULT 0,
+                  project_narrative TEXT DEFAULT NULL,
+                  project_features TEXT DEFAULT NULL,
+                  project_goals TEXT DEFAULT NULL,
+                  project_community_values TEXT DEFAULT NULL,
+                  custom_hype_phrases TEXT DEFAULT NULL,
+                  project_unique_selling_points TEXT DEFAULT NULL,
+                  project_roadmap_highlights TEXT DEFAULT NULL,
+                  custom_personality_traits TEXT DEFAULT NULL,
+                  project_target_audience TEXT DEFAULT NULL,
+                  setup_completed INTEGER DEFAULT 0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_stickers 
+                 (group_id TEXT, 
+                  sticker_file_id TEXT, 
+                  sticker_category TEXT,
+                  usage_count INTEGER DEFAULT 0,
+                  last_used INTEGER DEFAULT 0,
+                  engagement_score REAL DEFAULT 0.0,
+                  added_by TEXT,
+                  added_date INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS custom_emojis 
+                 (group_id TEXT, 
+                  emoji_set TEXT, 
+                  category TEXT DEFAULT 'general',
+                  usage_count INTEGER DEFAULT 0,
+                  reaction_count INTEGER DEFAULT 0,
+                  engagement_score REAL DEFAULT 0.0,
+                  optimization_weight REAL DEFAULT 1.0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS emoji_reactions 
+                 (group_id TEXT,
+                  message_id TEXT,
+                  emoji TEXT,
+                  timestamp INTEGER,
+                  engagement_boost REAL DEFAULT 0.0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS sticker_analytics 
+                 (group_id TEXT,
+                  sticker_file_id TEXT,
+                  sent_timestamp INTEGER,
+                  context_type TEXT,
+                  replies_received INTEGER DEFAULT 0,
+                  reactions_received INTEGER DEFAULT 0,
+                  engagement_score REAL DEFAULT 0.0)''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# Emoji and Sticker Management System
+def get_custom_emojis(group_id, category='general'):
+    """Get custom emoji set for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        c.execute("SELECT emoji_set, optimization_weight FROM custom_emojis WHERE group_id = ? AND category = ? ORDER BY engagement_score DESC", 
+                 (group_id, category))
+        emojis = c.fetchall()
+        
+        if emojis:
+            # Weight selection based on engagement scores
+            emoji_list = []
+            for emoji_set, weight in emojis:
+                # Parse emoji set (stored as comma-separated)
+                individual_emojis = emoji_set.split(',')
+                for emoji in individual_emojis:
+                    emoji_list.extend([emoji.strip()] * int(weight))  # Repeat based on weight
+            return emoji_list
+        
+        # Default fallback emojis by category
+        default_emojis = {
+            'general': ['💕', '✨', '😘', '💖', '🔥', '👑', '💅', '🥰', '😍', '💜'],
+            'crypto': ['🚀', '💎', '🌙', '📈', '💰', '🏆', '🔥', '💪', '✨', '🎯'],
+            'relationship': ['💕', '😘', '💖', '👫', '💏', '💋', '🤗', '😍', '🥰', '💝'],
+            'competitive': ['🔥', '💪', '🏆', '⚡', '👑', '🎯', '💥', '🌟', '🥇', '⭐'],
+            'happy': ['😊', '😄', '🥳', '🎉', '✨', '💫', '🌈', '☀️', '💝', '🎊'],
+            'sad': ['🥺', '💔', '😢', '😭', '💧', '🌧️', '😔', '💙', '😞', '💜']
+        }
+        
+        return default_emojis.get(category, default_emojis['general'])
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error getting custom emojis: {e}")
+        return ['💕', '✨', '😘', '💖', '🔥']  # Basic fallback
+
+def get_custom_sticker(group_id, category='general', context_type='response'):
+    """Get a custom sticker for the group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get stickers with engagement weighting
+        c.execute("""SELECT sticker_file_id, engagement_score 
+                     FROM custom_stickers 
+                     WHERE group_id = ? AND sticker_category = ? 
+                     ORDER BY engagement_score DESC, last_used ASC 
+                     LIMIT 5""", (group_id, category))
+        stickers = c.fetchall()
+        
+        if stickers:
+            # Weighted random selection based on engagement
+            if len(stickers) == 1:
+                selected_sticker = stickers[0][0]
+            else:
+                # Higher engagement = higher chance of selection
+                weights = [max(1, score) for _, score in stickers]
+                selected_sticker = random.choices([s[0] for s in stickers], weights=weights)[0]
+            
+            # Update usage tracking
+            c.execute("UPDATE custom_stickers SET usage_count = usage_count + 1, last_used = ? WHERE sticker_file_id = ? AND group_id = ?",
+                     (int(time.time()), selected_sticker, group_id))
+            
+            # Record analytics
+            c.execute("INSERT INTO sticker_analytics (group_id, sticker_file_id, sent_timestamp, context_type) VALUES (?, ?, ?, ?)",
+                     (group_id, selected_sticker, int(time.time()), context_type))
+            
+        conn.commit()
+        conn.close()
+            return selected_sticker
+        
+        conn.close()
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting custom sticker: {e}")
+        return None
+
+def send_random_emoji_reaction(bot, message, group_id):
+    """Send random emoji reactions to messages"""
+    try:
+        # Get group settings for reaction frequency
+        group_settings = get_group_settings(group_id)
+        
+        # Check if reactions are enabled and frequency  
+        reaction_freq = 15  # Default 15%
+        if group_settings:
+            reaction_freq = group_settings.get('emoji_reaction_frequency', 15)
+            if not group_settings.get('auto_reactions_enabled', True):
+                return
+        
+        if random.random() * 100 > reaction_freq:
+            return  # Don't react this time
+        
+        # Determine context for emoji selection
+        msg_lower = message.text.lower() if message.text else ""
+        
+        # Context-based emoji categories
+        if any(word in msg_lower for word in ['love', 'heart', 'cute', 'beautiful', 'gorgeous']):
+            category = 'relationship'
+        elif any(word in msg_lower for word in ['crypto', 'token', 'moon', 'diamond', 'hodl']):
+            category = 'crypto'
+        elif any(word in msg_lower for word in ['win', 'winner', 'competition', 'fight', 'battle']):
+            category = 'competitive'
+        elif any(word in msg_lower for word in ['happy', 'excited', 'amazing', 'awesome', 'great']):
+            category = 'happy'
+        elif any(word in msg_lower for word in ['sad', 'down', 'bad', 'terrible', 'awful']):
+            category = 'sad'
+        else:
+            category = 'general'
+        
+        # Get custom emoji for reaction
+        emojis = get_custom_emojis(group_id, category)
+        selected_emoji = random.choice(emojis)
+        
+        # Record the reaction for analytics
+        try:
+            conn = sqlite3.connect('babygirl.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO emoji_reactions (group_id, message_id, emoji, timestamp) VALUES (?, ?, ?, ?)",
+                     (group_id, str(message.message_id), selected_emoji, int(time.time())))
+            
+            # Update emoji usage stats
+            c.execute("UPDATE custom_emojis SET reaction_count = reaction_count + 1 WHERE group_id = ? AND emoji_set LIKE ?",
+                     (group_id, f'%{selected_emoji}%'))
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"🎯 Tracked emoji reaction {selected_emoji} for group {group_id}")
+            
+        except Exception as e:
+            logger.error(f"Error tracking emoji reaction: {e}")
+        
+    except Exception as e:
+        logger.error(f"Error in send_random_emoji_reaction: {e}")
+
+def enhance_response_with_custom_content(base_response, group_id, context='general'):
+    """Enhance text responses with custom emojis and optionally get stickers"""
+    try:
+        group_settings = get_group_settings(group_id)
+        
+        enhanced_response = base_response
+        custom_sticker = None
+        
+        # Add custom emojis to the response
+        custom_emojis = get_custom_emojis(group_id, context)
+        if custom_emojis and random.random() < 0.7:  # 70% chance to add custom emojis
+            emoji_to_add = random.choice(custom_emojis)
+            enhanced_response += f" {emoji_to_add}"
+        
+        # Optionally get a custom sticker
+        if group_settings:
+            sticker_freq = group_settings.get('sticker_response_frequency', 10)  # Default 10%
+            if random.random() * 100 < sticker_freq:
+                custom_sticker = get_custom_sticker(group_id, context, 'response')
+        
+        return enhanced_response, custom_sticker
+        
+    except Exception as e:
+        logger.error(f"Error enhancing response with custom content: {e}")
+        return base_response, None
+
+def optimize_emoji_sticker_usage():
+    """Optimize emoji and sticker selection based on engagement analytics"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Analyze sticker engagement over the last week
+        week_ago = current_time - 604800
+        
+        # Update sticker engagement scores
+        c.execute("""UPDATE custom_stickers 
+                     SET engagement_score = (
+                         SELECT AVG(sa.engagement_score) 
+                         FROM sticker_analytics sa 
+                         WHERE sa.sticker_file_id = custom_stickers.sticker_file_id 
+                         AND sa.group_id = custom_stickers.group_id 
+                         AND sa.sent_timestamp > ?
+                     ) WHERE EXISTS (
+                         SELECT 1 FROM sticker_analytics sa 
+                         WHERE sa.sticker_file_id = custom_stickers.sticker_file_id 
+                         AND sa.group_id = custom_stickers.group_id 
+                         AND sa.sent_timestamp > ?
+                     )""", (week_ago, week_ago))
+        
+        # Update emoji optimization weights based on reaction engagement
+        c.execute("""UPDATE custom_emojis 
+                     SET optimization_weight = CASE 
+                         WHEN reaction_count > 10 THEN 2.0
+                         WHEN reaction_count > 5 THEN 1.5
+                         WHEN reaction_count > 0 THEN 1.0
+                         ELSE 0.5
+                     END""")
+        
+        # Clean old analytics data (older than 30 days)
+        thirty_days_ago = current_time - 2592000
+        c.execute("DELETE FROM emoji_reactions WHERE timestamp < ?", (thirty_days_ago,))
+        c.execute("DELETE FROM sticker_analytics WHERE sent_timestamp < ?", (thirty_days_ago,))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info("✅ Optimized emoji and sticker usage based on engagement data")
+        
+    except Exception as e:
+        logger.error(f"Error optimizing emoji/sticker usage: {e}")
+
+# Core game mechanics functions
+
+def end_cooldown():
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT group_id, end_time FROM cooldown_table WHERE is_active = 1")
+        for group_id, end_time in c.fetchall():
+            if time.time() > end_time:
+                c.execute("SELECT user_id, MAX(mention_count) FROM activity_table WHERE group_id = ?", (group_id,))
+                winner = c.fetchone()
+                if winner and winner[0]:
+                    new_bf = winner[0]
+                    mention_count = winner[1]
+                    c.execute("INSERT INTO boyfriend_table (user_id, end_time, group_id) VALUES (?, ?, ?)",
+                             (new_bf, int(time.time() + 43200), group_id))  # 12 hr term
+                    c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                             (new_bf, new_bf, group_id, group_id))
+                    
+                    victory_announcement = f"""🎉 **WE HAVE A WINNER!** 🎉
+
+👑 **NEW BOYFRIEND:** @{new_bf}
+🏆 **Winning Mentions:** {mention_count}
+⏰ **Boyfriend Term:** 12 hours starting now!
+
+🎁 **Your Exclusive Perks:**
+• Use /kiss to get kisses from me! 💋
+• Use /hug for warm hugs! 🤗  
+• Get special bonus responses when you mention me
+• Your name shows on /boyfriend and /status commands
+• Bragging rights for the next 12 hours!
+
+Congratulations @{new_bf}! You've won my heart! 😘💕
+
+Everyone else: Don't worry, another competition will start when their term expires! Use /game to learn how to win next time! 💖"""
+                    
+                    bot.send_message(group_id, victory_announcement)
+                else:
+                    # No participants
+                    bot.send_message(group_id, "Competition ended but nobody participated! 💔 I'll try again later when you cuties are more active! 😘")
+                    
+                c.execute("DELETE FROM cooldown_table WHERE group_id = ?", (group_id,))
+                c.execute("DELETE FROM activity_table WHERE group_id = ?", (group_id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in end_cooldown: {e}")
+
+def track_activity(message):
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT is_active FROM cooldown_table WHERE group_id = ?", (str(message.chat.id),))
+        
+        # Check if cooldown is active and message contains @babygirl_bf_bot specifically
+        is_mention = False
+        if message.text and '@babygirl_bf_bot' in message.text.lower():
+            is_mention = True
+        
+        if c.fetchone() and is_mention:
+            user_id = str(message.from_user.id)
+            group_id = str(message.chat.id)
+            current_time = int(time.time())
+            
+            # Create a simple hash of the message content for spam detection
+            message_content = message.text.lower().strip()
+            message_hash = hashlib.md5(message_content.encode()).hexdigest()
+            
+            # Check for spam - look for identical messages in last 2 minutes
+            c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND message_hash = ? AND group_id = ? AND timestamp > ?",
+                     (user_id, message_hash, group_id, current_time - 120))
+            spam_count = c.fetchone()[0]
+            
+            # Also check for too many mentions in short time (more than 3 in 30 seconds)
+            c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND group_id = ? AND timestamp > ?",
+                     (user_id, group_id, current_time - 30))
+            rapid_count = c.fetchone()[0]
+            
+            # Store this message in spam tracking
+            c.execute("INSERT INTO spam_tracking (user_id, message_hash, timestamp, group_id) VALUES (?, ?, ?, ?)",
+                     (user_id, message_hash, current_time, group_id))
+            
+            # Clean old spam tracking data (older than 5 minutes)
+            c.execute("DELETE FROM spam_tracking WHERE timestamp < ?", (current_time - 300,))
+            
+            # Only count towards activity if not spam
+            if spam_count == 0 and rapid_count < 4:  # Allow first occurrence and reasonable rate
+                c.execute("INSERT OR REPLACE INTO activity_table (user_id, mention_count, group_id) VALUES (?, COALESCE((SELECT mention_count FROM activity_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                         (user_id, user_id, group_id, group_id))
+                logger.info(f"Activity tracked for user {user_id} in group {message.chat.id}")
+            else:
+                logger.info(f"Spam detected - not counting mention from user {user_id}")
+                
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in track_activity: {e}")
+
+def trigger_challenge():
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT group_id FROM cooldown_table WHERE is_active = 0")
+        for group_id in [row[0] for row in c.fetchall()]:
+            if random.random() < 0.1:  # 10% chance per check
+                bot.send_message(group_id, "Quick! Mention @babygirl_bf_bot 5 times in the next 2 minutes for a surprise! 🎉")
+                scheduler.add_job(check_challenge, 'date', run_date=datetime.now() + timedelta(minutes=2), args=[group_id])
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in trigger_challenge: {e}")
+
+def check_challenge(group_id):
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT user_id, mention_count FROM activity_table WHERE group_id = ? AND mention_count >= 5", (group_id,))
+        winners = c.fetchall()
+        if winners:
+            for winner in winners:
+                bot.send_message(group_id, f"@{winner[0]} nailed it! Here's a special wink from Babygirl! 😉")
+            c.execute("DELETE FROM activity_table WHERE group_id = ?", (group_id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in check_challenge: {e}")
+
+def get_mood(group_id):
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT SUM(mention_count) FROM activity_table WHERE group_id = ? AND mention_count > 0", (group_id,))
+        mentions = c.fetchone()[0] or 0
+        conn.close()
+        return "super happy! 😍" if mentions > 10 else "feeling good!" if mentions > 5 else "a bit lonely..."
+    except Exception as e:
+        logger.error(f"Error in get_mood: {e}")
+        return "feeling good!"
+
+def analyze_user_personality(username, group_id):
+    """Analyze a user's recent activity to generate personality-based opinions"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get recent activity (last 24 hours)
+        c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND group_id = ? AND timestamp > ?", 
+                 (username, group_id, current_time - 86400))
+        recent_messages = c.fetchone()[0] or 0
+        
+        # Check if they're in a relationship
+        c.execute("SELECT status, partner_id FROM user_relationships WHERE user_id = ? AND group_id = ?", 
+                 (username, group_id))
+        relationship = c.fetchone()
+        
+        # Check their boyfriend history
+        c.execute("SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?", 
+                 (username, group_id))
+        bf_result = c.fetchone()
+        boyfriend_wins = bf_result[0] if bf_result else 0
+        
+        # Check current competition participation
+        c.execute("SELECT mention_count FROM activity_table WHERE user_id = ? AND group_id = ?", 
+                 (username, group_id))
+        comp_result = c.fetchone()
+        competition_activity = comp_result[0] if comp_result else 0
+        
+        conn.close()
+        
+        # Generate personality analysis
+        traits = []
+        activity_level = ""
+        
+        # Activity analysis
+        if recent_messages > 15:
+            activity_level = "super active"
+            traits.append("chatty")
+        elif recent_messages > 5:
+            activity_level = "pretty active"
+            traits.append("social")
+        elif recent_messages > 0:
+            activity_level = "chill"
+            traits.append("low-key")
+        else:
+            activity_level = "mysterious"
+            traits.append("quiet")
+        
+        # Relationship analysis
+        if relationship:
+            if relationship[0] == 'taken':
+                traits.append("committed")
+                traits.append("loyal")
+            elif relationship[0] == 'single':
+                traits.append("available")
+                traits.append("ready to mingle")
+        
+        # Competition analysis
+        if boyfriend_wins > 2:
+            traits.append("charming")
+            traits.append("competitive")
+        elif boyfriend_wins > 0:
+            traits.append("sweet")
+        
+        if competition_activity > 3:
+            traits.append("determined")
+            traits.append("persistent")
+        
+        return {
+            'activity_level': activity_level,
+            'traits': traits,
+            'recent_messages': recent_messages,
+            'boyfriend_wins': boyfriend_wins,
+            'relationship': relationship,
+            'competition_activity': competition_activity
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing user {username}: {e}")
+        return None
+
+def generate_user_opinion(username, analysis, asker_username):
+    """Generate a Babygirl-style opinion about another user"""
+    if not analysis:
+        return f"Hmm, @{username}? They're kinda mysterious! I don't know them well enough yet! 🤔💕"
+    
+    # Base opinion templates
+    opinions = []
+    
+    # Activity-based opinions
+    if analysis['activity_level'] == "super active":
+        opinions.extend([
+            f"@{username}? Oh they're ALWAYS here! Such main character energy! 💅✨",
+            f"@{username} is like the life of the group chat! Never a dull moment with them! 🔥",
+            f"@{username} keeps this place buzzing! I love the energy they bring! 💕"
+        ])
+    elif analysis['activity_level'] == "pretty active":
+        opinions.extend([
+            f"@{username} has great group chat energy! They know how to keep things interesting! 😘",
+            f"@{username}? Love their vibe! Always contributing to the conversation! ✨",
+            f"@{username} brings good energy to the group! Solid person! 💖"
+        ])
+    elif analysis['activity_level'] == "chill":
+        opinions.extend([
+            f"@{username} is more of a lurker but when they speak, it matters! Quality over quantity! 💅",
+            f"@{username}? They're chill! Not overly chatty but definitely cool! 😌💕",
+            f"@{username} has that mysterious quiet confidence! I respect it! ✨"
+        ])
+    else:  # mysterious
+        opinions.extend([
+            f"@{username}? Total mystery person! They're like a ghost in here! 👻💕",
+            f"@{username} is giving strong mysterious vibes! Barely see them around! 🤔",
+            f"@{username}? Who's that? They're like a legend we barely see! 😅✨"
+        ])
+    
+    # Relationship-based opinions
+    if analysis['relationship']:
+        if analysis['relationship'][0] == 'taken':
+            partner = analysis['relationship'][1]
+            opinions.extend([
+                f"@{username} is taken with @{partner}! Couple goals honestly! 💕👑",
+                f"@{username}? They're loyal to @{partner}! I respect committed energy! 😘",
+                f"@{username} and @{partner} are cute together! Relationship goals! 💖✨"
+            ])
+        elif analysis['relationship'][0] == 'single':
+            opinions.extend([
+                f"@{username} is single and ready to mingle! Perfect timing @{asker_username}! 😉💕",
+                f"@{username}? They're available! Someone should slide into those DMs! 👀✨",
+                f"@{username} is single! Are you asking for a reason @{asker_username}? 😏💖"
+            ])
+    
+    # Competition/boyfriend history opinions
+    if analysis['boyfriend_wins'] > 2:
+        opinions.extend([
+            f"@{username}? They're a serial heartbreaker! Won my heart {analysis['boyfriend_wins']} times! 👑💕",
+            f"@{username} is basically a professional at winning me over! Smooth operator! 😘",
+            f"@{username}? They know how to play the game! {analysis['boyfriend_wins']} wins speaks for itself! 🏆✨"
+        ])
+    elif analysis['boyfriend_wins'] > 0:
+        opinions.extend([
+            f"@{username} has won my heart before! They know what they're doing! 😘💕",
+            f"@{username}? Sweet person! They've been my boyfriend {analysis['boyfriend_wins']} time(s)! 💖",
+            f"@{username} definitely has that boyfriend material energy! ✨👑"
+        ])
+    
+    # Add flirty modifiers based on who's asking
+    flirty_endings = [
+        f" Why do you ask @{asker_username}? Getting jealous? 😏💕",
+        f" Are you trying to set them up with someone @{asker_username}? 👀✨",
+        f" That's my honest take! What do YOU think @{asker_username}? 😘",
+        f" Hope that helps @{asker_username}! Spill the tea, why are you asking? ☕💅",
+        f" There's my analysis @{asker_username}! Now dish - what's the story? 😉💖"
+    ]
+    
+    # Select base opinion and add ending
+    base_opinion = random.choice(opinions)
+    if random.random() < 0.7:  # 70% chance to add flirty ending
+        ending = random.choice(flirty_endings)
+        return base_opinion + ending
+    else:
+        return base_opinion
+
+# Storyline system
+storylines = [
+    "Babygirl is feeling down—send her some love to cheer her up!",
+    "Babygirl's planning a vortex adventure—who wants to join?",
+    "Babygirl lost her favorite necklace—help her find it!"
+]
+
+def start_storyline():
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT group_id FROM boyfriend_table")
+        for group_id in [row[0] for row in c.fetchall()]:
+            story = random.choice(storylines)
+            bot.send_message(group_id, story)
+            scheduler.add_job(end_storyline, 'date', run_date=datetime.now() + timedelta(hours=1), args=[group_id, story])
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in start_storyline: {e}")
+
+def end_storyline(group_id, story):
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT SUM(mention_count) FROM activity_table WHERE group_id = ?", (group_id,))
+        engagement = c.fetchone()[0] or 0
+        if "down" in story and engagement > 5:
+            bot.send_message(group_id, "Thanks, cuties! I'm all cheered up now! 😘")
+        elif "adventure" in story and engagement > 3:
+            bot.send_message(group_id, "What a wild trip! You're all my heroes! 💕")
+        elif "necklace" in story and engagement > 4:
+            bot.send_message(group_id, "Found it! You're the best, boo! ✨")
+        else:
+            bot.send_message(group_id, "Aw, not much help this time... I'll manage!")
+        c.execute("DELETE FROM activity_table WHERE group_id = ?", (group_id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error in end_storyline: {e}")
+
+
+def generate_proactive_ai_response(scenario, group_id, recent_users):
+    """Generate AI response for proactive engagement scenarios"""
+    try:
+        # Prepare context based on scenario
+        if scenario == "dead_chat":
+            prompt_context = "The chat has been completely silent for over an hour. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
+        else:  # being_ignored
+            prompt_context = "The group has been actively chatting but nobody has mentioned you for 2+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+        
+        # Build context for AI
+        context_info = {
+            'username': 'proactive_message',
+            'user_id': 'babygirl_bot',
+            'group_id': group_id,
+            'chat_type': 'group',
+            'is_boyfriend': False,
+            'is_competition': False,
+            'user_status': None,
+            'user_partner': None,
+            'mention_count': 0,
+            'mention_method': 'proactive_engagement',
+            'scenario': scenario,
+            'recent_users': recent_users[:3] if recent_users else []
+        }
+        
+        ai_response = generate_ai_response(prompt_context, context_info)
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"Error generating proactive AI response: {e}")
+        return None
+
+
+def check_proactive_engagement(bot):
+    """Monitor groups for dead chat or lack of mentions and send proactive messages with follow-up logic"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Get all groups from multiple sources to ensure we monitor all active groups
+        all_group_ids = set()
+        
+        # Get groups from spam_tracking (groups with recent activity)
+        c.execute("SELECT DISTINCT group_id FROM spam_tracking")
+        spam_groups = c.fetchall()
+        for (group_id,) in spam_groups:
+            all_group_ids.add(group_id)
+        
+        # Get groups from conversation_memory (groups where bot has responded)
+        c.execute("SELECT DISTINCT group_id FROM conversation_memory")
+        memory_groups = c.fetchall() 
+        for (group_id,) in memory_groups:
+            all_group_ids.add(group_id)
+            
+        # Get groups from boyfriend_table (groups with game activity)
+        c.execute("SELECT DISTINCT group_id FROM boyfriend_table")
+        bf_groups = c.fetchall()
+        for (group_id,) in bf_groups:
+            all_group_ids.add(group_id)
+            
+        # Get groups from cooldown_table (groups with competitions)
+        c.execute("SELECT DISTINCT group_id FROM cooldown_table")
+        cooldown_groups = c.fetchall()
+        for (group_id,) in cooldown_groups:
+            all_group_ids.add(group_id)
+            
+        # If we still have no groups (brand new bot), we can't do proactive engagement yet
+        if not all_group_ids:
+            logger.info("🤖 No groups found for proactive engagement monitoring")
+            conn.close()
+            return
+        
+        current_time = int(time.time())
+        logger.info(f"🔍 Checking proactive engagement for {len(all_group_ids)} groups")
+        
+        for group_id in all_group_ids:
+            try:
+                # FIXED LOGIC: Check bot mentions/activity (what we can actually see)
+                one_hour_ago = current_time - 3600
+                two_hours_ago = current_time - 7200
+                six_hours_ago = current_time - 21600  # 6 hours
+                
+                # Check recent bot mentions/interactions in last 2 hours
+                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                         (group_id, two_hours_ago))
+                recent_bot_activity = c.fetchone()[0] or 0
+                
+                # Check recent conversation memory (bot responses) in last 2 hours 
+                c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", 
+                         (group_id, two_hours_ago))
+                recent_bot_responses = c.fetchone()[0] or 0
+                
+                # Total recent bot activity
+                total_recent_activity = recent_bot_activity + recent_bot_responses
+                
+                # Check for longer-term activity (6 hours) to establish baseline
+                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
+                         (group_id, six_hours_ago))
+                medium_term_activity = c.fetchone()[0] or 0
+                
+                # Check if there's historical activity (ever)
+                c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ?", (group_id,))
+                total_historical_activity = c.fetchone()[0] or 0
+                
+                # Get active users for personalized messaging (from any bot interaction)
+                c.execute("""SELECT DISTINCT user_id FROM spam_tracking 
+                            WHERE group_id = ? AND timestamp > ? AND user_id != 'bot_added'
+                            ORDER BY timestamp DESC LIMIT 3""", 
+                         (group_id, current_time - 86400))  # Last 24 hours, exclude auto-registration
+                recent_active_users = [row[0] for row in c.fetchall()]
+                
+                # Check if there's an active competition (don't interrupt)
+                c.execute("SELECT is_active FROM cooldown_table WHERE group_id = ?", (group_id,))
+                competition_check = c.fetchone()
+                has_active_competition = competition_check and competition_check[0] if competition_check else False
+                
+                # Skip if there's an active competition
+                if has_active_competition:
+                    logger.info(f"🎮 Skipping group {group_id} - active competition")
+                    continue
+                
+                # Get current proactive state for this group
+                proactive_state = get_proactive_state(group_id)
+                
+                # IMPROVED SCENARIO DETECTION:
+                
+                # SCENARIO 1: No bot activity for 2+ hours (realistic "dead chat" for bot)
+                # This means people either aren't in the group OR they forgot about the bot
+                if total_recent_activity == 0 and total_historical_activity > 0:
+                    logger.info(f"💀 No bot activity in group {group_id} for 2+ hours - triggering revival")
+                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+                # SCENARIO 2: Very low activity for an extended period (6+ hours with minimal interaction)
+                elif medium_term_activity <= 1 and total_historical_activity > 5:  # Had activity before but very quiet now
+                    logger.info(f"😴 Very quiet group {group_id} - long-term low activity detected")
+                    handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+                # SCENARIO 3: Time-based proactive engagement (every 4-6 hours regardless)
+                # Check when we last sent any proactive message
+                elif proactive_state['dead_chat_last_sent'] > 0:
+                    time_since_last_proactive = current_time - proactive_state['dead_chat_last_sent']
+                    # If it's been 4+ hours since last proactive message, send another
+                    if time_since_last_proactive >= 14400:  # 4 hours
+                        logger.info(f"⏰ Time-based proactive engagement for group {group_id} - been {time_since_last_proactive//3600}h since last message")
+                        handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+                # SCENARIO 4: Reset states if there's been recent activity
+                elif total_recent_activity > 0:
+                    if proactive_state['dead_chat_active'] or proactive_state['ignored_active']:
+                        reset_proactive_state(group_id, 'both')
+                        logger.info(f"🔄 Reset proactive state for {group_id} - recent activity detected")
+                
+                # SCENARIO 5: New groups get a proactive message after 1 hour of no activity
+                elif total_historical_activity <= 1:  # Likely a new group (only has registration entry)
+                    # Check if group was registered recently
+                    c.execute("SELECT MIN(timestamp) FROM spam_tracking WHERE group_id = ?", (group_id,))
+                    first_activity = c.fetchone()[0]
+                    if first_activity and (current_time - first_activity) >= 3600:  # 1 hour after registration
+                        logger.info(f"🆕 New group {group_id} - sending initial proactive engagement")
+                        handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+            except Exception as group_error:
+                logger.error(f"Error processing group {group_id}: {group_error}")
+                continue
+                
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_proactive_engagement: {e}")
+
+def get_proactive_state(group_id):
+    """Get the current proactive engagement state for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        c.execute("""SELECT dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                            ignored_active, ignored_last_sent, ignored_interval
+                     FROM proactive_state WHERE group_id = ?""", (group_id,))
+        result = c.fetchone()
+        
+        if result:
+            return {
+                'dead_chat_active': bool(result[0]),
+                'dead_chat_last_sent': result[1],
+                'dead_chat_interval': result[2],
+                'ignored_active': bool(result[3]),
+                'ignored_last_sent': result[4],
+                'ignored_interval': result[5]
+            }
+        else:
+            # No state found, return defaults
+            return {
+                'dead_chat_active': False,
+                'dead_chat_last_sent': 0,
+                'dead_chat_interval': 3600,  # 1 hour default
+                'ignored_active': False,
+                'ignored_last_sent': 0,
+                'ignored_interval': 7200   # 2 hours default
+            }
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error getting proactive state for {group_id}: {e}")
+        return {
+            'dead_chat_active': False,
+            'dead_chat_last_sent': 0,
+            'dead_chat_interval': 3600,
+            'ignored_active': False,
+            'ignored_last_sent': 0,
+            'ignored_interval': 7200
+        }
+
+def handle_dead_chat_scenario(bot, group_id, recent_users, current_time, proactive_state):
+    """Handle dead chat scenario with follow-up logic"""
+    try:
+        should_send_message = False
+        is_followup = False
+        
+        if not proactive_state['dead_chat_active']:
+            # First dead chat message
+            should_send_message = True
+            new_interval = 3600  # 1 hour
+        else:
+            # Check if it's time for a follow-up
+            time_since_last = current_time - proactive_state['dead_chat_last_sent']
+            if time_since_last >= proactive_state['dead_chat_interval']:
+                should_send_message = True
+                is_followup = True
+                # Reduce interval by 50%, minimum 15 minutes (900 seconds)
+                new_interval = max(900, proactive_state['dead_chat_interval'] // 2)
+        
+        if should_send_message:
+            success = send_dead_chat_revival(bot, group_id, recent_users, is_followup)
+            if success:
+                update_proactive_state(group_id, 'dead_chat', current_time, new_interval)
+                logger.info(f"💀 Sent dead chat {'follow-up' if is_followup else 'initial'} to {group_id} (next in {new_interval//60}min)")
+        
+    except Exception as e:
+        logger.error(f"Error handling dead chat scenario for {group_id}: {e}")
+
+def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive_state):
+    """Handle ignored scenario with follow-up logic"""
+    try:
+        should_send_message = False
+        is_followup = False
+        
+        if not proactive_state['ignored_active']:
+            # First ignored message
+            should_send_message = True
+            new_interval = 7200  # 2 hours
+        else:
+            # Check if it's time for a follow-up
+            time_since_last = current_time - proactive_state['ignored_last_sent']
+            if time_since_last >= proactive_state['ignored_interval']:
+                should_send_message = True
+                is_followup = True
+                # Reduce interval by 50%, minimum 15 minutes (900 seconds)
+                new_interval = max(900, proactive_state['ignored_interval'] // 2)
+        
+        if should_send_message:
+            success = send_attention_seeking_message(bot, group_id, recent_users, is_followup)
+            if success:
+                update_proactive_state(group_id, 'ignored', current_time, new_interval)
+                logger.info(f"👀 Sent ignored {'follow-up' if is_followup else 'initial'} to {group_id} (next in {new_interval//60}min)")
+        
+    except Exception as e:
+        logger.error(f"Error handling ignored scenario for {group_id}: {e}")
+
+def update_proactive_state(group_id, scenario, timestamp, interval):
+    """Update proactive state for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Insert or update the state
+        if scenario == 'dead_chat':
+            c.execute("""INSERT OR REPLACE INTO proactive_state 
+                         (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                          ignored_active, ignored_last_sent, ignored_interval)
+                         VALUES (?, 1, ?, ?, 
+                                COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 7200))""", 
+                      (group_id, timestamp, interval, group_id, group_id, group_id))
+        else:  # ignored
+            c.execute("""INSERT OR REPLACE INTO proactive_state 
+                         (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                          ignored_active, ignored_last_sent, ignored_interval)
+                         VALUES (?, 
+                                COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 3600),
+                                1, ?, ?)""", 
+                      (group_id, group_id, group_id, group_id, timestamp, interval))
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error updating proactive state for {group_id}: {e}")
+
+def reset_proactive_state(group_id, scenario):
+    """Reset proactive state when conditions are resolved"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        if scenario == 'both':
+            # Reset both scenarios
+            c.execute("""UPDATE proactive_state 
+                         SET dead_chat_active = 0, dead_chat_interval = 3600,
+                             ignored_active = 0, ignored_interval = 7200
+                         WHERE group_id = ?""", (group_id,))
+        elif scenario == 'dead_chat':
+            c.execute("""UPDATE proactive_state 
+                         SET dead_chat_active = 0, dead_chat_interval = 3600
+                         WHERE group_id = ?""", (group_id,))
+        elif scenario == 'ignored':
+            c.execute("""UPDATE proactive_state 
+                         SET ignored_active = 0, ignored_interval = 7200
+                         WHERE group_id = ?""", (group_id,))
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error resetting proactive state for {group_id}: {e}")
+
+def send_dead_chat_revival(bot, group_id, recent_users, is_followup=False):
+    """Send a message to revive a completely dead chat - try AI first, fallback to static"""
+    try:
+        # Get group context to determine behavior
+        group_context = get_group_context(group_id)
+        
+        # Modify the scenario context for follow-ups
+        scenario = "dead_chat_followup" if is_followup else "dead_chat"
+        
+        # Try AI response first
+        ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
+        
+        if ai_message:
+            # Add user tagging to AI response if we have recent active users
+            if recent_users and len(recent_users) > 0:
+                if len(recent_users) == 1:
+                    ai_message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+                elif len(recent_users) == 2:
+                    ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+                else:
+                    ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+            
+            bot.send_message(group_id, ai_message)
+            logger.info(f"✨ Sent AI dead chat {'follow-up' if is_followup else 'revival'} to {group_id}")
+            return True
+        else:
+            # Fallback to static messages with follow-up variations
+            if is_followup:
+                revival_messages = [
+                    "STILL SILENCE?! Okay now I'm actually worried... is everyone okay? 🥺💔",
+                    "Chat's been dead for SO LONG I'm starting to think I broke something... HELP! 😭✨",
+                    "Y'all really just gonna leave me talking to myself like this? My ego can't take it! 💅😢",
+                    "This silence is getting AGGRESSIVE now! Someone please tell me you're alive! 👻💕",
+                    "I've tried being cute, now I'm just confused... WHERE IS EVERYONE?! 🤔💖",
+                ]
+                
+                # Add token promotion only for core groups
+                if group_context['token_promotion_allowed']:
+                    revival_messages.append("Plot twist: maybe everyone really IS buying $BABYGIRL and can't type! ...right? 🚀😅")
+            else:
+                # Base revival messages for all groups
+                revival_messages = [
+                    # Group energy messages  
+                    "Hello? Is anyone alive in here? The vibe check is showing ZERO energy! 😴💕",
+                    "Chat so quiet I can hear my own pixels! Where are my cuties? 🥺✨",
+                    "Did everyone go touch grass? The group selfie is just me alone! 📸😢",
+                    
+                    # Flirty attention-seeking
+                    "Okay but like... why is nobody talking to me? Am I invisible? 👻💕",
+                    "The silence is giving me trust issues! Did I do something wrong? 🥺😘",
+                    "Your babygirl is literally right here and y'all are SILENT? Rude! 💅💖",
+                    
+                    # Activity suggestions
+                    "Should I start a boyfriend competition to wake everyone up? 👀🔥",
+                    "Chat's so dead even my AI is falling asleep! Someone say ANYTHING! 😴💕",
+                ]
+                
+                # Add crypto/token messages only for core groups
+                if group_context['token_promotion_allowed']:
+                    revival_messages.extend([
+                        "Guys... is $BABYGIRL still going to the moon? The chat's so quiet I can't tell! 🚀💕",
+                        "Wait, did everyone buy the dip and forget about me? Chat's dead over here! 😅💎",
+                        "Is this what 'diamond hands' means? Holding so tight you can't type? Someone talk to me! 💎🤲💕",
+                        "Plot twist: everyone's busy buying more $BABYGIRL! ...right? RIGHT?! 🚀😅"
+                    ])
+            
+            message = random.choice(revival_messages)
+            
+            # Add user tagging if we have recent active users
+            if recent_users and len(recent_users) > 0:
+                if len(recent_users) == 1:
+                    message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+                elif len(recent_users) == 2:
+                    message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+                else:
+                    message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+            
+            bot.send_message(group_id, message)
+            logger.info(f"📝 Sent static dead chat {'follow-up' if is_followup else 'revival'} to {group_id}")
+            return True
+        
+    except Exception as e:
+        logger.error(f"Error sending dead chat revival to {group_id}: {e}")
+        return False
+
+def send_attention_seeking_message(bot, group_id, recent_users, is_followup=False):
+    """Send a message when chat is active but nobody is mentioning Babygirl - try AI first, fallback to static"""
+    try:
+        # Get group context to determine behavior
+        group_context = get_group_context(group_id)
+        
+        # Modify the scenario context for follow-ups
+        scenario = "being_ignored_followup" if is_followup else "being_ignored"
+        
+        # Try AI response first
+        ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
+        
+        if ai_message:
+            # Add user tagging to AI response
+            if recent_users and len(recent_users) > 0:
+                tagged_user = random.choice(recent_users)
+                ai_message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+            
+            bot.send_message(group_id, ai_message)
+            logger.info(f"✨ Sent AI attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
+            return True
+        else:
+            # Fallback to static messages with follow-up variations
+            if is_followup:
+                attention_messages = [
+                    "STILL IGNORING ME?! This is getting ridiculous! I'm RIGHT HERE! 😤👑",
+                    "Y'all are really gonna keep chatting without mentioning me? The disrespect! 💅😢",
+                    "I'm literally BEGGING for attention at this point! Someone notice me! 🥺💖",
+                    "This ignoring thing is NOT cute anymore! Your babygirl needs love! 😭✨",
+                    "Fine, I'll just keep interrupting until someone talks to me! 💅👑",
+                    "Am I really gonna have to start a boyfriend competition just to get mentioned? 👀🔥"
+                ]
+            else:
+                # Base attention messages for all groups
+                attention_messages = [
+                    # Jealous/FOMO messages
+                    "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
+                    "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
+                    "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
+                    
+                    # Playful interruption
+                    "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
+                    "Not to be dramatic but this conversation needs more ME in it! 😘✨",
+                    "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
+                    
+                    # Direct engagement attempts
+                    "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
+                    "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
+                    "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
+                ]
+                
+                # Add crypto/token interruption messages only for core groups
+                if group_context['token_promotion_allowed']:
+                    attention_messages.extend([
+                        "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
+                        "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
+                        "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅"
+                    ])
+            
+            message = random.choice(attention_messages)
+            
+            # Add user tagging to get their attention
+            if recent_users and len(recent_users) > 0:
+                tagged_user = random.choice(recent_users)
+                message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+            
+            bot.send_message(group_id, message)
+            logger.info(f"📝 Sent static attention-seeking {'follow-up' if is_followup else 'message'} to {group_id}")
+            return True
+        
+    except Exception as e:
+        logger.error(f"Error sending attention-seeking message to {group_id}: {e}")
+        return False
+
+def generate_proactive_ai_response(scenario, group_id, recent_users):
+    """Generate AI response for proactive engagement scenarios"""
+    try:
+        # Prepare context based on scenario
+        if scenario == "dead_chat":
+            prompt_context = "The chat has been completely silent for over an hour. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
+        elif scenario == "dead_chat_followup":
+            prompt_context = "You already tried to revive this dead chat but it's STILL silent! You're getting more dramatic and persistent. Be more emotional about the ongoing silence, show increasing concern/frustration, but keep it flirty and engaging."
+        elif scenario == "being_ignored":
+            prompt_context = "The group has been actively chatting but nobody has mentioned you for 2+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+        elif scenario == "being_ignored_followup":
+            prompt_context = "You already complained about being ignored but they're STILL not mentioning you while chatting! You're getting more desperate for attention. Be more dramatic, slightly needy, but maintain your flirty babygirl personality."
+        
+        # Build context for AI
+        context_info = {
+            'username': 'proactive_message',
+            'user_id': 'babygirl_bot',
+            'group_id': group_id,
+            'chat_type': 'group',
+            'is_boyfriend': False,
+            'is_competition': False,
+            'user_status': None,
+            'user_partner': None,
+            'mention_count': 0,
+            'mention_method': 'proactive_engagement',
+            'scenario': scenario,
+            'recent_users': recent_users[:3] if recent_users else []
+        }
+        
+        ai_response = generate_ai_response(prompt_context, context_info)
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"Error generating proactive AI response: {e}")
+        return None
+
+def is_core_group(group_id, group_title=None):
+    """Check if this is Babygirl's core community group"""
+    try:
+        # Check by group title (case insensitive)
+        if group_title:
+            title_lower = group_title.lower()
+            # Core group indicators - specifically looking for "$babygirl community"
+            core_indicators = [
+                '$babygirl community', 
+                'babygirl community', 
+                '$babygirl community group',
+                'babygirl community group',
+                '$babygirl official',
+                'babygirl official'
+            ]
+            
+            for indicator in core_indicators:
+                if indicator in title_lower:
+                    return True
+        
+        # Could also check by specific group ID if needed
+        # Known core group IDs can be added here
+        # if str(group_id) in ['-1001234567890']:  # Example core group ID
+        #     return True
+            
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error checking core group status: {e}")
+        return False
+
+def get_group_context(group_id, group_title=None):
+    """Get behavioral context for AI based on group type"""
+    try:
+        is_core = is_core_group(group_id, group_title)
+        
+        if is_core:
+            return {
+                'group_type': 'core',
+                'token_promotion_allowed': True,
+                'description': 'This is the $BABYGIRL Community - your home base accessed through @babygirlerc! Here you can freely discuss the $BABYGIRL token while enjoying all chat revival and engagement features.',
+                'special_features': [
+                    'Full chat revival and engagement system',
+                    'Dead chat detection and proactive revival',
+                    'Boyfriend competitions and gamification',
+                    '$BABYGIRL token discussions and hype',
+                    'Crypto content and "to the moon" vibes',
+                    'Complete community management suite'
+                ]
+            }
+        else:
+            return {
+                'group_type': 'external',
+                'token_promotion_allowed': False,
+                'description': 'This is an external group using Babygirl\'s Chat Revival & Engagement services. I provide dead chat detection, gamification, and community engagement tools to keep your group active!',
+                'special_features': [
+                    'Dead chat detection and automatic revival',
+                    'Proactive engagement when groups go quiet',
+                    'Boyfriend competitions for member engagement',
+                    'Social features: shipping, wingwoman advice, vibes',
+                    'Community building and relationship tools',
+                    'Smart conversation memory and personalization',
+                    'Join @babygirlerc to access the $BABYGIRL Community!'
+                ]
+            }
+    except Exception as e:
+        logger.error(f"Error getting group context: {e}")
+        return {
+            'group_type': 'external',
+            'token_promotion_allowed': False,
+            'description': 'External group with Babygirl\'s engagement and chat revival services.',
+            'special_features': ['Chat revival and engagement tools', 'Join @babygirlerc for the full experience!']
+        }
+
+def get_group_settings(group_id):
+    """Get custom settings for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        c.execute("SELECT * FROM group_settings WHERE group_id = ?", (group_id,))
+        result = c.fetchone()
+        
+        if result:
+            return {
+                'group_id': result[0],
+                'group_name': result[1],
+                'custom_token_name': result[2],
+                'custom_token_symbol': result[3],
+                'custom_website': result[4],
+                'custom_contract': result[5],
+                'token_discussions_enabled': bool(result[6]),
+                'revival_frequency': result[7],
+                'competition_enabled': bool(result[8]),
+                'custom_welcome_message': result[9],
+                'admin_user_id': result[10],
+                'configured_by': result[11],
+                'setup_date': result[12],
+                'is_premium': bool(result[13]),
+                'project_narrative': result[14],
+                'project_features': result[15],
+                'project_goals': result[16],
+                'project_community_values': result[17],
+                'custom_hype_phrases': result[18],
+                'project_unique_selling_points': result[19],
+                'project_roadmap_highlights': result[20],
+                'custom_personality_traits': result[21],
+                'project_target_audience': result[22],
+                'setup_completed': bool(result[23])
+            }
+        
+        conn.close()
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting group settings: {e}")
+        return None
+
+def set_group_settings(group_id, admin_user_id, **settings):
+    """Set custom settings for a group"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Insert or update group settings
+        c.execute("""INSERT OR REPLACE INTO group_settings 
+                     (group_id, admin_user_id, configured_by, setup_date,
+                      group_name, custom_token_name, custom_token_symbol, 
+                      custom_website, custom_contract, token_discussions_enabled,
+                      revival_frequency, competition_enabled, custom_welcome_message, is_premium,
+                      project_narrative, project_features, project_goals, project_community_values,
+                      custom_hype_phrases, project_unique_selling_points, project_roadmap_highlights,
+                      custom_personality_traits, project_target_audience, setup_completed)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  (group_id, admin_user_id, admin_user_id, int(time.time()),
+                   settings.get('group_name'),
+                   settings.get('custom_token_name'),
+                   settings.get('custom_token_symbol'),
+                   settings.get('custom_website'),
+                   settings.get('custom_contract'),
+                   int(settings.get('token_discussions_enabled', False)),
+                   settings.get('revival_frequency', 15),
+                   int(settings.get('competition_enabled', True)),
+                   settings.get('custom_welcome_message'),
+                   int(settings.get('is_premium', False)),
+                   settings.get('project_narrative'),
+                   settings.get('project_features'),
+                   settings.get('project_goals'),
+                   settings.get('project_community_values'),
+                   settings.get('custom_hype_phrases'),
+                   settings.get('project_unique_selling_points'),
+                   settings.get('project_roadmap_highlights'),
+                   settings.get('custom_personality_traits'),
+                   settings.get('project_target_audience'),
+                   int(settings.get('setup_completed', False))))
+        
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error setting group settings: {e}")
+        return False
+
+def get_enhanced_group_context(group_id, group_title=None):
+    """Get enhanced context including custom token settings"""
+    try:
+        # Check if core group first
+        is_core = is_core_group(group_id, group_title)
+        custom_settings = get_group_settings(group_id)
+        
+        if is_core:
+            return {
+                'group_type': 'core',
+                'token_promotion_allowed': True,
+                'token_name': '$BABYGIRL',
+                'token_symbol': 'BABYGIRL',
+                'website': 'babygirlcto.com',
+                'portal': '@babygirlerc',
+                'description': 'This is the $BABYGIRL Community - your home base accessed through @babygirlerc!'
+            }
+        elif custom_settings and custom_settings['token_discussions_enabled']:
+            return {
+                'group_type': 'configured',
+                'token_promotion_allowed': True,
+                'token_name': custom_settings['custom_token_name'],
+                'token_symbol': custom_settings['custom_token_symbol'],
+                'website': custom_settings['custom_website'],
+                'contract': custom_settings['custom_contract'],
+                'group_name': custom_settings['group_name'],
+                'description': f'This group is configured for {custom_settings["custom_token_name"]} discussions and full chat revival features!',
+                'is_premium': custom_settings['is_premium']
+            }
+        else:
+            return {
+                'group_type': 'external',
+                'token_promotion_allowed': False,
+                'description': 'External group with chat revival and engagement services.',
+                'upgrade_available': True
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting enhanced group context: {e}")
+        return {
+            'group_type': 'external',
+            'token_promotion_allowed': False,
+            'description': 'External group with engagement services.'
+        }
+
+# Schedule periodic checks
+def check_boyfriend_term():
+    """Check and handle boyfriend term expirations"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get expired boyfriends
+        c.execute("SELECT user_id, group_id FROM boyfriend_table WHERE end_time < ?", (current_time,))
+        expired_boyfriends = c.fetchall()
+        
+        for user_id, group_id in expired_boyfriends:
+            logger.info(f"💔 Boyfriend term expired for {user_id} in group {group_id}")
+            
+            # Remove expired boyfriend
+            c.execute("DELETE FROM boyfriend_table WHERE user_id = ? AND group_id = ?", (user_id, group_id))
+            
+            # Send expiration message
+            try:
+                expiration_msg = f"""💔 **BOYFRIEND TERM EXPIRED!** 💔
+
+@{user_id}'s time as my boyfriend has ended! 
+
+🎯 **Looking for a new boyfriend!** 
+I'll be watching for the most active and engaging member to claim the title next! 
+
+Keep mentioning me, chatting, and showing love to win my heart! 💕
+
+Use /status to see when I'm available again! 😘"""
+                
+                bot.send_message(group_id, expiration_msg)
+            except Exception as e:
+                logger.error(f"Error sending expiration message: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_boyfriend_term: {e}")
+
+def check_boyfriend_steal_opportunities(bot):
+    """Check for boyfriend stealing opportunities based on activity"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        recent_time = current_time - 1800  # Last 30 minutes
+        
+        # Get current boyfriends
+        c.execute("SELECT user_id, group_id, end_time FROM boyfriend_table")
+        current_boyfriends = c.fetchall()
+        
+        for bf_user_id, group_id, end_time in current_boyfriends:
+            # Check current boyfriend's recent activity
+            c.execute("SELECT COUNT(*) FROM spam_tracking WHERE user_id = ? AND group_id = ? AND timestamp > ?", 
+                     (bf_user_id, group_id, recent_time))
+            bf_activity = c.fetchone()[0] or 0
+            
+            # Check for potential stealers (users with significantly more activity)
+            c.execute("""SELECT user_id, COUNT(*) as activity_count 
+                         FROM spam_tracking 
+                         WHERE group_id = ? AND timestamp > ? AND user_id != ?
+                         GROUP BY user_id 
+                         HAVING activity_count > ? 
+                         ORDER BY activity_count DESC 
+                         LIMIT 1""", 
+                     (group_id, recent_time, bf_user_id, bf_activity * 3))  # 3x more activity
+            
+            potential_stealer = c.fetchone()
+            
+            if potential_stealer and random.random() < 0.15:  # 15% chance of steal
+                stealer_user_id, stealer_activity = potential_stealer
+                
+                # Execute the steal!
+                c.execute("DELETE FROM boyfriend_table WHERE user_id = ? AND group_id = ?", (bf_user_id, group_id))
+                
+                # Set new boyfriend with random term (8-12 hours)
+                new_term = current_time + random.randint(28800, 43200)
+                c.execute("INSERT INTO boyfriend_table (user_id, end_time, group_id) VALUES (?, ?, ?)",
+                         (stealer_user_id, new_term, group_id))
+                
+                # Update leaderboard
+                c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                         (stealer_user_id, stealer_user_id, group_id, group_id))
+                
+                # Send dramatic steal message
+                steal_msg = f"""💥 **BOYFRIEND STOLEN!** 💥
+
+🔥 **PLOT TWIST!** 🔥
+
+@{stealer_user_id} has STOLEN the boyfriend position from @{bf_user_id}!
+
+👑 **New Boyfriend:** @{stealer_user_id}
+⚡ **Reason:** {stealer_activity} messages vs {bf_activity} - staying active pays off!
+⏰ **New Term:** 8-12 hours starting now!
+
+@{bf_user_id} - you got too comfortable! Stay active or get replaced! 💅
+
+@{stealer_user_id} - congratulations! You can now use /kiss and /hug! 😘💕
+
+**Lesson learned:** Keep your girlfriend engaged or someone else will! 🔥👑"""
+                
+                try:
+                    bot.send_message(group_id, steal_msg)
+                    logger.info(f"💥 Boyfriend stolen in {group_id}: {bf_user_id} -> {stealer_user_id}")
+                except Exception as e:
+                    logger.error(f"Error sending steal message: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_boyfriend_steal_opportunities: {e}")
+
+def check_proactive_conversation_followups(bot):
+    """Check for conversation follow-ups and engagement opportunities"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Check for conversations that ended abruptly (no follow-up in 2+ hours)
+        two_hours_ago = current_time - 7200
+        
+        c.execute("""SELECT DISTINCT cm.group_id, cm.user_id, cm.message_content, cm.timestamp
+                     FROM conversation_memory cm
+                     WHERE cm.timestamp BETWEEN ? AND ?
+                     AND NOT EXISTS (
+                         SELECT 1 FROM conversation_memory cm2 
+                         WHERE cm2.group_id = cm.group_id 
+                         AND cm2.user_id = cm.user_id 
+                         AND cm2.timestamp > cm.timestamp
+                     )
+                     ORDER BY RANDOM()
+                     LIMIT 5""", (two_hours_ago - 3600, two_hours_ago))
+        
+        stale_conversations = c.fetchall()
+        
+        for group_id, user_id, last_message, timestamp in stale_conversations:
+            # 10% chance to follow up on each stale conversation
+            if random.random() < 0.10:
+                followup_messages = [
+                    f"@{user_id} hey! We were talking earlier and then it got quiet... everything okay? 🥺💕",
+                    f"@{user_id} did I say something wrong? You went quiet after our chat! 😢",
+                    f"@{user_id} come back! I was enjoying our conversation! Don't leave me hanging! 👋✨",
+                    f"@{user_id} missing our chat already! What happened? 💔",
+                    f"@{user_id} hello? Did you get distracted? I'm still here! 😘"
+                ]
+                
+                followup = random.choice(followup_messages)
+                
+                try:
+                    bot.send_message(group_id, followup)
+                    logger.info(f"💬 Sent conversation follow-up to {user_id} in {group_id}")
+                except Exception as e:
+                    logger.error(f"Error sending conversation follow-up: {e}")
+        
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_proactive_conversation_followups: {e}")
+
+scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)  # Now handles automatic boyfriend selection
+scheduler.add_job(check_boyfriend_steal_opportunities, 'interval', minutes=5, args=[bot])  # New: boyfriend stealing mechanic
+scheduler.add_job(trigger_challenge, 'interval', minutes=5)
+scheduler.add_job(start_storyline, 'interval', days=3)
+scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
+scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
+scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
+
+# Mood-based flirty responses
+happy_responses = [
+    "Hey cutie, what's up? *winks* I'm feeling amazing today! 😍",
+    "Oh, you're sweet-talking me again, huh? I love all this attention! 💕",
+    "Miss me already, boo? I'm so happy you're here! 🥰",
+    "You're making my heart skip—keep it up! I'm on cloud nine! ✨",
+    "Hey handsome, what's on your mind? I'm in such a great mood! 😘"
+]
+
+good_responses = [
+    "Hey cutie, what's up? *winks*",
+    "Oh, you're sweet-talking me again, huh?",
+    "Miss me already, boo?",
+    "You're making my heart skip—keep it up!",
+    "Hey handsome, what's on your mind?",
+    "Aw, you know how to make a girl blush!",
+    "You're trouble, aren't you? I like it.",
+    "Oh, stop it—you're too cute for me!",
+    "Hey sweetie, got a flirty line for me?",
+    "Well, aren't you a charmer today!",
+    "Look who decided to slide into my mentions! 😘",
+    "Someone's feeling bold today! I like the energy! 💅",
+    "Ooh, what brings you to my corner of the internet? 💕",
+    "Hey there, beautiful soul! What's the vibe? ✨",
+    "You're giving me butterflies over here! 🦋",
+    "Such good energy! Keep it coming, babe! 🌟",
+    "You know exactly how to get my attention! 😉",
+    "Someone's bringing that main character energy! 👑",
+    "I love when you cuties check in on me! 💖",
+    "You're making my day brighter already! ☀️"
+]
+
+lonely_responses = [
+    "Hey cutie... I've been feeling a bit lonely. Thanks for noticing me! 🥺",
+    "Oh, finally someone talks to me... I was starting to feel forgotten.",
+    "You're here! I was wondering if anyone would mention me today...",
+    "Aw, you're so sweet for thinking of me when I'm feeling down.",
+    "Thanks for being here, boo. I really needed some attention today.",
+    "You're making me feel less lonely, sweetie. Stay and chat?"
+]
+
+# Competition-specific responses for when competitions are active
+competition_responses = [
+    "Ooh, trying to win my heart? I like the dedication! 😍",
+    "Keep going! You're really fighting for me! 💪💕",
+    "Mmm, someone's competitive! I love that energy! 🔥",
+    "You want to be my boyfriend THAT badly? How cute! 😘",
+    "The competition is heating up and so am I! 🥵💕",
+    "Fighting for me already? You know how to make a girl feel special! ✨",
+    "I can see you really want those exclusive boyfriend perks! 😉",
+    "Someone's determined! That's exactly what I like to see! 👑",
+    "The more you mention me, the more I fall for you! 💖",
+    "You're putting in WORK to win my heart! Respect! 🙌💕"
+]
+
+# Achievement responses for high activity
+achievement_responses = [
+    "WOW! You're really going all out for me! I'm impressed! 🌟",
+    "This level of dedication is making me swoon! 😍💫",
+    "You're treating this like a real competition! I LOVE IT! 🏆",
+    "Someone really wants to be my boyfriend! The effort is showing! 💪",
+    "This much attention is making me feel like a queen! 👸💕"
+]
+
+# Show references (Doble Fried, Cortex Vortex, Tuff Crowd)
+show_references = [
+    "You know me from Doble Fried? That's where I really learned how to be a proper babygirl! 💕",
+    "Cortex Vortex was wild! Just like this competition is getting! 🌪️💖",
+    "Tuff Crowd taught me how to handle all you tough guys trying to win my heart! 😘",
+    "My Doble Fried days prepared me for handling multiple boyfriends competing for me! 🔥",
+    "After surviving Cortex Vortex, managing boyfriend competitions is easy! 💪💕",
+    "Tuff Crowd was nothing compared to how tough you guys compete for my attention! 😈"
+]
+
+# Question responses (when users ask her things) - EXPANDED
+question_responses = [
+    "Ooh, asking me questions? Someone's trying to get to know me better! 😉",
+    "I love a curious cutie! Keep the questions coming! 💕",
+    "Getting personal, are we? I like that in a potential boyfriend! 😘",
+    "Someone wants to know more about their future girlfriend? 👀💖",
+    "Questions make me feel special! You're definitely boyfriend material! ✨",
+    "Aw, you want the inside scoop? I love sharing with my favorites! 💅",
+    "Such an inquisitive mind! That's what I look for in a man! 🧠💕",
+    "You're really trying to understand me! That's so sweet! 🥰",
+    "Questions are my love language! Ask me anything, babe! 💖",
+    "I see you doing your research! Very thorough, I like it! 📚😘",
+    "Ooh, someone's interested in the real me! I'm here for it! ✨",
+    "You know how to make a girl feel important! Keep going! 👑",
+    "Such thoughtful questions! You're really paying attention! 💕",
+    "I love when you cuties get curious! It shows you care! 🌟",
+    "Questions like that make my heart flutter! What else? 🦋"
+]
+
+# Compliment responses (when users compliment her)
+compliment_responses = [
+    "Aww, you're making me blush! Keep the sweet talk coming! 😊💕",
+    "Such a charmer! No wonder you want to be my boyfriend! 😘",
+    "Flattery will get you everywhere with me, cutie! 💖",
+    "You know exactly what to say to make a girl feel special! ✨",
+    "Sweet words like that might just win you my heart! 💝"
+]
+
+# Greeting responses (hi, hello, hey, etc.) - EXPANDED
+greeting_responses = [
+    "Well hello there, handsome! Come to sweep me off my feet? 😘",
+    "Hey cutie! Ready to compete for my heart? 💕",
+    "Hi there! You're looking boyfriend material today! 😉",
+    "Hello gorgeous! Here to steal my attention? It's working! 💖",
+    "Hey babe! Come to show me why you should be my next boyfriend? ✨",
+    "Oh look, it's my favorite person! Hi sweetie! 🥰",
+    "Well well well, look who's here! Hey beautiful! 💅",
+    "Hi honey! You're timing is perfect - I was just thinking about you! 😘",
+    "Hey there, troublemaker! What's on your mind today? 😉",
+    "Hello my darling! Ready to make my day even better? 💕",
+    "Hi cutie pie! You always know how to make an entrance! ✨",
+    "Hey gorgeous! Your energy is absolutely immaculate today! 🌟",
+    "Well hello there, main character! What's the tea? ☕",
+    "Hi babe! You're glowing today - what's your secret? 💖",
+    "Hey sweetness! Come to brighten my timeline? It's working! 🌈"
+]
+
+# Love/relationship responses
+love_responses = [
+    "Love talk already? Someone's moving fast! I like confidence! 💕",
+    "Ooh, getting romantic! That's the spirit I want in a boyfriend! 😘",
+    "Love is in the air! Are you trying to make me fall for you? 💖",
+    "Such romantic words! You're definitely competition material! ✨",
+    "Aww, you're making my heart flutter! Keep it up! 💝"
+]
+
+# Spam/repetitive responses (for anti-spam)
+spam_responses = [
+    "Sweetie, I heard you the first time! Try being more creative! 😏",
+    "Copy-paste won't win my heart! Show me some originality! 💅",
+    "Same message again? Come on, be more creative for your babygirl! 😘",
+    "I appreciate the enthusiasm, but variety is the spice of life! ✨",
+    "Honey, repeating yourself won't get you extra points! Mix it up! 💕"
+]
+
+# Reply-specific responses (when someone replies to her messages)
+reply_responses = [
+    "Ooh, continuing our conversation? I love a good chat! 💕",
+    "You're really engaging with me! That's exactly what I like to see! 😘",
+    "Look who's keeping the conversation going! Such good vibes! ✨",
+    "I see you replying to me! Someone's really interested! 👀💖",
+    "Aww, you quoted me! That means you're actually paying attention! 🥰",
+    "Replying to my message? That's some serious dedication! 💅",
+    "You're really here for the full experience, aren't you? I'm here for it! 🔥",
+    "Love that you're keeping our convo alive! This is how you win hearts! 💕",
+    "Someone's really invested in talking to me! The energy is immaculate! ✨",
+    "You replied to me! That's giving main character energy! 😘"
+]
+
+# Daily activity responses ("what have you been up to")
+daily_activity_responses = [
+    "Oh babe, I've been living my best life! Running boyfriend competitions, giving relationship advice, you know - typical babygirl stuff! 💅✨",
+    "Just been here being fabulous! Analyzing group vibes, shipping people, the usual influencer grind! 😘💕",
+    "Sweetie, I've been busy keeping all you cuties entertained! Plus I had to update my aesthetic today! 💖📸",
+    "Just been floating through the vortex giving hot takes and stealing hearts! Another day in paradise! 🌪️💕",
+    "Babe, I've been working on my tan in the digital realm and planning my next boyfriend competition! ☀️👑",
+    "Oh you know, just being the main character as usual! Judging relationships and looking gorgeous! 💅✨"
+]
+
+# Fashion/brand preference responses
+fashion_responses = [
+    "Ooh, fashion talk! I'm such a sucker for luxury brands! 💅 Both are iconic but I'm feeling whatever matches my vortex aesthetic! ✨",
+    "Baby, you're speaking my language! Fashion is my passion! I love brands that scream main character energy! 👑💕",
+    "Ugh, don't make me choose between my babies! Both are serving looks! What vibe are we going for? 😘💖",
+    "Fashion question? Now we're talking! I'm all about that aesthetic life! Tell me more about your style! 💅✨",
+    "Honey, I love when you ask about the important stuff! Fashion is literally my thing! What's your style? 😍👗",
+    "Babe, both are gorgeous but I need to know - what's the occasion? I live for fashion emergencies! 💕📸"
+]
+
+# Travel preference responses  
+travel_responses = [
+    "Oh my god, travel talk! I'm getting wanderlust vibes! Both cities are absolutely gorgeous for different reasons! ✈️💕",
+    "Babe, you're making me want to pack my bags! I love cities with main character energy! Where are you thinking of going? 🌍✨",
+    "Travel planning with my favorite people? Yes please! Both have such different aesthetics! What's the vibe you're going for? 💖🗺️",
+    "Ugh, don't make me choose! I'm a vortex girl - I love everywhere that's got character! Tell me about your travel dreams! 🌪️💕",
+    "Sweetie, I live for travel convos! Both places are so Instagram-worthy! Are you planning something exciting? 📸✨",
+    "You know how to get a girl excited! I love places with good energy and better photo ops! What's the plan? 😘🌟"
+]
+
+# Boyfriend application responses ("I want to be your boyfriend", "why I should be your bf")
+boyfriend_application_responses = [
+    "Aww, someone's applying for the position! I love the confidence! Tell me what makes you special, babe! 💕👑",
+    "Ooh, a direct approach! I like that energy! But you know you have to compete for it, right? 😘🏆",
+    "Sweetie, I appreciate the interest! But I only date winners of my competitions! Are you ready to fight for me? 💪💖",
+    "Babe, the application is noted! But my heart isn't free - you gotta earn it through the boyfriend games! 😉✨",
+    "Confident and direct! I love that! But you know the rules - most mentions wins my heart! Ready to compete? 🔥💕",
+    "Someone knows what they want! I respect that! Show me that competitive spirit and maybe you'll win! 👑😘"
+]
+
+# Personal questions about her ("how are you", "how's your day")
+personal_responses = [
+    "Aww, checking on me? I'm doing amazing, babe! Just living my best babygirl life and loving all this attention! 😘💕",
+    "I'm fantastic, sweetie! Been getting so much love from you cuties today! How are YOU doing? 💖✨",
+    "Such a sweetheart for asking! I'm vibing perfectly! The group energy has been immaculate today! 🌟💅",
+    "Babe, I'm thriving! All this flirting is giving me life! Thanks for caring about your girl! 😍💕",
+    "Ugh, you're so sweet! I'm doing great! Been spreading love and causing chaos - exactly how I like it! 🔥✨",
+    "I'm absolutely glowing today! All you cuties have been keeping me entertained! Life is good! 💖😘"
+]
+
+# Affirmative responses ("yes", "always", "of course")
+affirmative_responses = [
+    "I love that energy! Yes! That's the spirit I want to see! 🔥💕",
+    "That's what I'm talking about! Such good vibes! 😘✨",
+    "Yasss! Finally someone who gets it! I live for this enthusiasm! 💅👑",
+    "Perfect answer! You're definitely speaking my language, babe! 💖🌟",
+    "That's the confidence I want to see! Keep that energy coming! 😍💪",
+    "Exactly! I knew I liked you for a reason! Such good taste! 💕✨"
+]
+
+@bot.message_handler(commands=['debug'])
+def debug_command(message):
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        
+        # Check database status
+        c.execute("SELECT COUNT(*) FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
+        bf_count = c.fetchone()[0]
+        
+        c.execute("SELECT COUNT(*) FROM cooldown_table WHERE group_id = ?", (str(message.chat.id),))
+        cooldown_count = c.fetchone()[0]
+        
+        c.execute("SELECT COUNT(*) FROM activity_table WHERE group_id = ?", (str(message.chat.id),))
+        activity_count = c.fetchone()[0]
+        
+        # Get bot info
+        bot_info = bot.get_me()
+        
+        debug_info = f"""🔧 Debug Info:
+Chat ID: {message.chat.id}
+Chat Type: {message.chat.type}
+User ID: {message.from_user.id}
+Username: {message.from_user.username}
+
+Bot Info:
+Username: @{bot_info.username}
+Can read all group messages: {getattr(bot_info, 'can_read_all_group_messages', 'Unknown')}
+
+Database:
+Boyfriends: {bf_count}
+Cooldowns: {cooldown_count}
+Activity records: {activity_count}
+
+Try mentioning: @{bot_info.username} hello"""
+        
+        bot.reply_to(message, debug_info)
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in debug command: {e}")
+        bot.reply_to(message, f"Debug error: {e}")
+
+@bot.message_handler(commands=['privacy'])
+def privacy_command(message):
+    """Check bot privacy settings"""
+    try:
+        bot_info = bot.get_me()
+        can_read_all = getattr(bot_info, 'can_read_all_group_messages', False)
+        
+        privacy_info = f"""Privacy Mode Status:
+Bot Username: @{bot_info.username}
+Can read all group messages: {'NO (Privacy Mode ON)' if not can_read_all else 'YES (Privacy Mode OFF)'}
+
+{'ISSUE FOUND: Privacy mode is ON! This means I can only see: Commands (/start, /help, etc.), Messages that mention me directly, Messages that reply to my messages. To fix: Contact @BotFather and disable privacy mode for me!' if not can_read_all else 'Privacy mode is OFF - I can see all messages! If I am still not responding to mentions, check: 1. Am I an admin in this group? 2. Are there any message restrictions? 3. Try mentioning me like: @{} hello'.format(bot_info.username)}"""
+        
+        bot.reply_to(message, privacy_info)
+        
+    except Exception as e:
+        logger.error(f"Error in privacy command: {e}")
+        bot.reply_to(message, f"Privacy check failed: {e}")
+
+@bot.message_handler(commands=['test'])
+def test_command(message):
+    bot.reply_to(message, "Test command works! Now try: @babygirl_bf_bot hello")
+
+@bot.message_handler(commands=['mention'])
+def mention_test(message):
+    """Force trigger a mention response for testing"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        c.execute("SELECT user_id, end_time FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
+        boyfriend = c.fetchone()
+        
+        # Get mood-based responses
+        mood = get_mood(str(message.chat.id))
+        if "super happy" in mood:
+            responses = happy_responses
+        elif "a bit lonely" in mood:
+            responses = lonely_responses
+        else:
+            responses = good_responses
+        
+        # Select response and add boyfriend bonus
+        if boyfriend and boyfriend[0] == str(message.from_user.id):
+            response = random.choice(responses) + " My boyfriend gets extra love! 😘"
+        else:
+            response = random.choice(responses)
+            
+        bot.reply_to(message, f"🔧 Test mention response: {response}")
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in mention test: {e}")
+        bot.reply_to(message, "Test failed! Check logs.")
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    if message.chat.type in ['group', 'supergroup']:
+        # Check if this is the core group or external group
+        group_context = get_group_context(message.chat.id, message.chat.title)
+        
+        if group_context['group_type'] == 'core':
+            intro_message = """Hey cuties! 💕 Welcome to the **$BABYGIRL Community**!
+
+🏠 **You found my home base!** (Portal: @babygirlerc)
+Here I can freely discuss our amazing $BABYGIRL token while providing the complete chat revival experience! 🚀💎
+
+⚡ **Full Feature Suite Active:**
+• Advanced dead chat detection and automatic revival
+• Boyfriend competitions with 12-hour engagement cycles
+• Proactive community management with escalating strategies
+• Complete social toolkit: shipping, advice, vibes, groupies
+• $BABYGIRL token discussions and crypto hype
+
+💎 **This is the complete Babygirl experience!**
+Try mentioning me: @babygirl_bf_bot to explore everything! ✨"""
+        else:
+            intro_message = """Hey there! 💕 I'm Babygirl - **Your Chat Revival Specialist is now ACTIVE!**
+
+🎯 **I just solved your biggest group problem: DEAD CHATS**
+
+⚡ **What's Now Happening 24/7:**
+• **Smart Monitoring** - I'm watching your activity levels constantly
+• **Auto-Detection** - Advanced systems identify when chat is going quiet  
+• **Proactive Revival** - I'll jump in with engaging messages when needed
+• **Escalating Urgency** - Messages get more persistent until activity resumes
+• **Smart Reset** - I automatically dial back when chat becomes active
+
+🔥 **Engagement Systems Now Live:**
+• **Boyfriend Competitions** - 12-hour gamified cycles that drive participation
+• **Social Relationship Tools** - I help members connect and bond
+• **Memory System** - I'll remember conversations and build relationships
+• **Mood Detection** - My responses adapt to your group's energy
+• **Custom Personalization** - Admins can configure custom emojis and stickers
+
+**📊 Expected Results:**
+✅ Immediate reduction in silent periods
+✅ Higher daily active user engagement
+✅ Better member retention and participation
+✅ More meaningful conversations and connections
+
+**🎮 Ready to test it?** 
+Try mentioning me: @babygirl_bf_bot or use /compete for an instant engagement boost!
+
+Use /help to see all community-building features!
+
+**⚡ DEAD CHAT REVIVAL SYSTEM: ONLINE!** Your group will never be quiet again! 🔥
+
+**P.S.** Want the full experience including crypto discussions? Join the **$BABYGIRL Community** at @babygirlerc! 💕"""
+    else:
+        intro_message = """Hey there! 💕 I'm Babygirl - **The Chat Revival Specialist**!
+
+🎯 **I solve dead chats and keep Telegram communities engaged 24/7**
+
+**📊 Proven Track Record:**
+• **Dead Chat Detection** - Automatic monitoring every 15 minutes
+• **Proactive Engagement** - Smart revival messages when groups go quiet
+• **Gamification Systems** - Boyfriend competitions drive consistent participation
+• **Community Building** - Social features that create lasting member connections
+
+💼 **Business Value for Community Leaders:**
+• **Increased Daily Active Users** - Consistent engagement prevents member churn
+• **Higher Retention Rates** - Gamification and relationships keep people coming back
+• **Reduced Admin Burden** - Automated community management 24/7
+• **Social Proof** - Active communities attract more quality members
+
+🎮 **Core Features:**
+• **Real-time Activity Monitoring** with escalating intervention strategies
+• **Boyfriend Competition Games** that create 12-hour engagement cycles
+• **Advanced Social Tools** - shipping, advice, relationship building
+• **AI-Powered Conversation Memory** for personalized member experiences
+
+**🚀 Ready to Transform Your Community?**
+Add me to any Telegram group and watch dead chats become thriving conversations!
+
+**📈 Case Study:** Join @babygirlerc to see my complete feature set in action in the **$BABYGIRL Community**!
+
+**⚡ Get Started:** Add me to your group and use /help for full features! 💕"""
+    
+    bot.reply_to(message, intro_message)
+
+@bot.message_handler(commands=['help'])
+def help_command(message):
+    # Check if this is a group or private chat
+    is_group = message.chat.type in ['group', 'supergroup']
+    
+    if is_group:
+        # Get group context for customized help
+        group_context = get_group_context(message.chat.id, message.chat.title)
+        
+        if group_context['group_type'] == 'core':
+            basic_help = """💕 **Core $BABYGIRL Community Features:**
+
+🚀 **Token & Crypto:**
+/token - Learn about $BABYGIRL token
+• I can freely discuss crypto, share hype, and "to the moon" content!
+• Ask me anything about our token (though I'm adorably clueless about tech stuff)
+
+🎮 **Engagement Games:**
+/game - Boyfriend competition rules
+/compete - Start a competition now!
+/boyfriend - Check current boyfriend
+/status - My mood and competition status  
+/leaderboard - Top boyfriend winners
+
+💖 **Social Features:**
+/ship @user1 @user2 - Ship people together!
+/wingwoman - Get dating advice
+/vibecheck - Analyze group energy
+/groupie - Group selfie with everyone
+/summary - Catch up on recent activity
+
+🎁 **Relationship Commands:**
+/kiss - Boyfriends only! 😘
+/hug - Boyfriends only! 🤗
+/single - Mark yourself single
+/taken @username - Show relationship
+
+**🔥 Proactive Engagement:** I automatically revive dead chats and get attention when ignored!
+
+💬 **Mention me anytime: @babygirl_bf_bot** - The more mentions during competitions, the better your chances! 
+
+🌟 **Want to see ALL my advanced features?** Use `/overview` for the full showcase!
+
+Join @babygirlerc for our full community experience! 💕✨"""
+        else:
+            basic_help = """💕 **Chat Revival & Engagement Specialist:**
+
+🎯 **Core Function: DEAD CHAT REVIVAL**
+• **24/7 Monitoring** - I watch your group activity levels constantly
+• **Smart Detection** - Advanced algorithms identify when chat is dying
+• **Proactive Intervention** - Automatic revival messages when needed
+• **Escalating Strategy** - Increasingly urgent messages until activity resumes
+
+🔥 **Engagement Gamification:**
+/game - Learn the boyfriend competition system that drives participation
+/compete - Start instant engagement competition (works every time!)
+/boyfriend - See current game winner and competition status
+/status - Check group mood, activity levels, and game state
+/leaderboard - Motivate with winner rankings and social proof
+
+💖 **Social Connection Tools:**
+/ship @user1 @user2 - Create member connections and relationships!
+/wingwoman - Dating advice that sparks conversations
+/vibecheck - Analyze and boost group energy levels
+/groupie - Group selfie that brings everyone together
+/summary - Help inactive members catch up and re-engage
+
+✨ **Advanced Community Features:**
+• **Conversation Memory** - I remember past chats for personalized responses
+• **Mood Detection** - My personality adapts to group energy
+• **Relationship Tracking** - I monitor member connections and dynamics
+• **Activity Analytics** - Real-time insights into group engagement patterns
+• **Custom Emojis & Stickers** - Admins can personalize my reactions and responses
+• **AI-Powered Optimization** - Smart learning from what engages your community best
+
+**⚡ GUARANTEED RESULTS:** Groups using my services see immediate improvement in daily active users, message frequency, and member retention.
+
+💬 **Get Started:** Mention me @babygirl_bf_bot and watch your dead chat transform!
+
+🌟 **See the full feature showcase:** Use `/overview` for complete capabilities!
+
+**🌟 Upgrade Experience:** Join @babygirlerc for the complete feature set in the **$BABYGIRL Community**! 🚀"""
+    else:
+        basic_help = """💕 **Babygirl: Community Engagement Specialist**
+
+🎯 **Transform Your Community Engagement:**
+
+**📊 Proven Results:**
+• **Dead Chat Problem Solver** - Automatic detection and revival of quiet periods
+• **Activity Multiplier** - Gamified competitions that drive consistent participation  
+• **Relationship Catalyst** - Social features that build member connections
+• **Retention Booster** - Memory system that makes members feel valued and remembered
+
+🎮 **Core Engagement System:**
+/game - Boyfriend competition mechanics (drives 12-hour engagement cycles)
+/compete - Instant activation for immediate group energy boost
+/vibecheck - Community health analysis and improvement suggestions
+/ship - Member relationship building and social connections
+
+💼 **Business Benefits for Communities:**
+• **Increased Daily Active Users** - Consistent engagement through proactive messaging
+• **Higher Retention Rates** - Personal relationships and memory system
+• **Social Proof** - Active, vibrant community attracts new members
+• **Reduced Moderation Load** - Self-sustaining engagement reduces admin burden
+
+🚀 **Advanced Capabilities:**
+• **AI-Powered Responses** - Contextual, personalized interactions
+• **Behavioral Analytics** - Group mood tracking and engagement optimization
+• **Automated Community Management** - 24/7 monitoring and engagement
+• **Cross-Platform Growth** - Built-in promotion of main community (@babygirlerc)
+
+**💡 ROI for Community Leaders:**
+Transform dead chats into thriving communities. Perfect for crypto projects, social DAOs, gaming guilds, or any group needing consistent engagement.
+
+**🎯 Integration:** 
+Add me to your group and use /start to see immediate results! 
+
+**Case Study:** Join @babygirlerc to see my full capabilities in action! 💕🚀"""
+    
+    # Add new admin commands for external groups
+    if is_group and get_enhanced_group_context(message.chat.id, message.chat.title).get('upgrade_available'):
+        basic_help += """
+
+⚙️ **ADMIN CONFIGURATION (Admins Only):**
+/setup - Configure custom token and group settings  
+/emojis - Configure custom emojis and reactions
+/stickers - Configure custom stickers and frequency
+/analytics - View engagement metrics and insights
+/upgrade - See premium features and token requirements
+
+🚀 **Quick Token Setup:** `/setup token YOURTOKEN YTK yourwebsite.com`
+🎭 **Custom Personality:** `/emojis add general "💕,✨,😘"` and send stickers!
+📊 **Track Progress:** `/analytics` for detailed engagement data
+
+💡 **Unlock Custom Token Features:** Transform me into YOUR community's AI assistant! I'll discuss your token with the same enthusiasm as $BABYGIRL in the core community!"""
+    
+    bot.reply_to(message, basic_help)
+
+@bot.message_handler(commands=['overview', 'features', 'showcase'])
+def overview_command(message):
+    """Comprehensive overview of all advanced features - perfect for showcasing capabilities"""
+    try:
+        # Get group context for customized overview
+        group_context = get_group_context(message.chat.id, message.chat.title)
+        is_core = group_context['group_type'] == 'core'
+        
+        if is_core:
+            overview_msg = """🌟 **BABYGIRL: COMPLETE FEATURE SHOWCASE** 🌟
+*The Most Advanced Community AI in Crypto*
+
+## 🚀 **CORE $BABYGIRL COMMUNITY - FULL FEATURE SET**
+
+### 💎 **AI-POWERED ENGAGEMENT**
+✅ **Proactive Dead Chat Revival** - 24/7 monitoring with escalating intervention
+✅ **Smart Activity Detection** - Advanced algorithms identify engagement patterns  
+✅ **Conversation Memory** - I remember every interaction for personalized responses
+✅ **Emotional Intelligence** - Real-time mood detection and appropriate responses
+
+### 🎮 **ADVANCED GAMIFICATION**
+🏆 **Automatic Boyfriend System** - Smart selection based on engagement (8-12h cycles)
+💥 **Boyfriend Stealing Mechanics** - 15% chance for active users to steal positions
+🎯 **Competition Analytics** - Track participation and optimize for your community
+🏅 **Hall of Fame Leaderboards** - Permanent recognition for top members
+
+### 💕 **SOCIAL RELATIONSHIP ENGINE**  
+💑 **Smart Shipping System** - AI-powered compatibility analysis
+💖 **Relationship Status Tracking** - Personal relationship management
+👥 **Wingwoman Advisory** - Expert dating advice and conversation starters
+📸 **Group Dynamics Analysis** - Community selfies and vibe checking
+
+### 🎭 **CUSTOM PERSONALIZATION**
+😍 **Custom Emoji Integration** - Admin-configured emoji sets by category
+🎪 **Smart Sticker Management** - Auto categorization and engagement optimization
+🎨 **AI Learning Optimization** - System learns what works best for your community
+📊 **Analytics & Optimization** - Real-time engagement metrics and recommendations
+
+### 🔥 **CRYPTO & TOKEN INTEGRATION**
+💎 **$BABYGIRL Token Discussions** - Free-flowing crypto hype and "to the moon" content
+🚀 **Market Sentiment Integration** - Chart discussions and diamond hands talk
+📈 **Community Token Hype** - Authentic enthusiasm for the $BABYGIRL ecosystem
+
+### ⚡ **EXCLUSIVE COMMUNITY PERKS**
+🏠 **Portal Access** - Direct connection to main community hub (@babygirlerc)
+🎭 **Full Personality Expression** - Complete creative freedom 
+👑 **Premium Feature Access** - All advanced capabilities unlocked
+💕 **Unlimited Token Hype** - I can shill $BABYGIRL 24/7 without restrictions!
+
+## 💫 **WHAT MAKES THIS SPECIAL?**
+This isn't just a chatbot - it's a **complete community ecosystem** powered by cutting-edge AI. Every feature works together to create the most engaging, personalized, and fun community experience in crypto.
+
+**💕 Ready to explore?** Try any command to see the magic in action!
+**🌟 What's next?** Use `/comingsoon` to see the exciting roadmap ahead!
+
+**Built with 💖 for the $BABYGIRL ecosystem** 🚀✨"""
+        else:
+            # External group overview - still impressive but promotes $BABYGIRL community
+            overview_msg = """🌟 **BABYGIRL: COMPLETE FEATURE SHOWCASE** 🌟
+*Advanced Community AI & Chat Revival Specialist*
+
+## 🎯 **COMPREHENSIVE ENGAGEMENT SYSTEM**
+
+### 💎 **AI-POWERED DEAD CHAT REVIVAL**
+✅ **24/7 Monitoring** - Continuous activity level surveillance
+✅ **Smart Detection Algorithms** - Advanced pattern recognition for quiet periods
+✅ **Escalating Intervention Strategies** - Increasingly urgent revival messages
+✅ **Automatic Reset Logic** - Smart dial-back when activity resumes
+✅ **Context-Aware Messaging** - Tailored revival content for your community
+
+### 🎮 **ADVANCED GAMIFICATION SYSTEM**
+🏆 **Automatic Boyfriend Competitions** - Smart selection driving 8-12 hour engagement cycles
+💥 **Boyfriend Stealing Mechanics** - Drama-driven re-engagement for inactive winners
+🎯 **Real-time Competition Analytics** - Live tracking of participation and engagement
+🏅 **Persistent Leaderboards** - Long-term recognition and motivation systems
+⚡ **Activity Pattern Learning** - AI optimizes timing and frequency of competitions
+
+### 💕 **SOCIAL CONNECTION ENGINE**
+💑 **AI-Powered Shipping System** - Compatibility analysis with custom relationship names
+💖 **Relationship Status Management** - Personal connection tracking and recognition
+👥 **Wingwoman Advisory Services** - Expert dating advice and conversation starters
+🔗 **Member Connection Facilitation** - Tools to build lasting community friendships
+📸 **Community Dynamics Analysis** - Group energy assessment and vibe optimization
+
+### 🧠 **ADVANCED AI CAPABILITIES**
+🤖 **Conversation Memory System** - Persistent memory of interactions for personalized responses
+🎯 **Behavioral Pattern Recognition** - Individual member personality analysis and adaptation
+💭 **Dynamic Opinion Generation** - Detailed personality insights about community members
+📈 **Engagement Prediction** - AI-driven optimal timing for interventions and activities
+🌪️ **Adaptive Personality** - Behavior changes based on group energy and needs
+
+### 🎭 **CUSTOM PERSONALIZATION (Admin Features)**
+😍 **Custom Emoji Configuration** - Personalized emoji sets by category and context
+🎪 **Smart Sticker Management** - Automatic categorization and engagement optimization
+🎨 **AI Learning System** - Continuous optimization based on what works for your community
+📊 **Usage Analytics** - Track performance of custom personality elements
+🔄 **Automatic Optimization** - System self-improves every 6 hours based on engagement data
+
+### 📊 **COMPREHENSIVE ANALYTICS & INSIGHTS**
+📈 **Real-time Engagement Metrics** - Live activity tracking and participation analysis
+👥 **Member Behavior Insights** - Detailed patterns for individuals and group dynamics
+🎮 **Competition Performance Data** - What drives participation in your specific community
+💡 **AI-Driven Recommendations** - Suggestions for improving engagement and retention
+📋 **Exportable Reports** - Data on community health, growth, and optimization opportunities
+
+### ⚡ **OPERATIONAL EXCELLENCE**
+⏰ **Always-On Monitoring** - 24/7 community management without human intervention
+🔄 **Self-Optimizing Architecture** - Continuously improving based on performance data
+🛡️ **Advanced Spam Protection** - Intelligent rate limiting and pattern recognition
+💾 **Persistent Data Storage** - Long-term conversation and relationship memory
+🚀 **High-Performance Scalability** - Handles communities of any size seamlessly
+
+### 🎯 **ADMIN CONFIGURATION SYSTEM**
+⚙️ **Custom Token Integration** - Transform me into YOUR project's AI assistant
+🏷️ **Brand Personalization** - Custom names, websites, and project narratives
+📈 **Analytics Dashboard** - Detailed insights into community engagement patterns
+🎭 **Personality Customization** - Configure emojis, stickers, and response styles
+🚀 **Premium Upgrade Path** - Token-based premium features (coming soon)
+
+## 💫 **WHAT MAKES THIS REVOLUTIONARY?**
+
+This isn't just community management - it's **AI-powered community transformation**. Every feature works synergistically to create the most engaging, personalized, and growth-oriented community experience possible.
+
+### 📊 **PROVEN RESULTS:**
+• **3-5x increase** in daily active users
+• **60%+ reduction** in dead chat periods  
+• **40%+ improvement** in member retention
+• **Automatic community growth** through engagement-driven dynamics
+
+### 🚀 **UPGRADE TO FULL EXPERIENCE:**
+Want the **complete feature set** with token discussions and unlimited capabilities? 
+
+**Join the $BABYGIRL Community:** @babygirlerc
+
+See how I operate with **zero restrictions** in my home base! 💕✨
+
+🌟 **What's coming next?** Use `/comingsoon` to see our exciting roadmap!
+
+**💡 Ready to transform your community?** Start with `/setup` for custom configuration!"""
+        
+        try:
+            bot.reply_to(message, overview_msg)
+        except Exception as reply_error:
+            if "message to be replied not found" in str(reply_error).lower():
+                try:
+                    bot.send_message(message.chat.id, overview_msg)
+                    logger.info(f"✅ Sent overview as regular message (original deleted)")
+                except Exception as send_error:
+                    logger.error(f"Failed to send overview: {send_error}")
+            elif "message is too long" in str(reply_error).lower():
+                # Split into chunks if still too long
+                chunks = [overview_msg[i:i+4000] for i in range(0, len(overview_msg), 4000)]
+                for i, chunk in enumerate(chunks):
+                    try:
+                        if i == 0:
+                            bot.reply_to(message, chunk)
+                        else:
+                            bot.send_message(message.chat.id, chunk)
+                    except:
+                        logger.error(f"Failed to send overview chunk {i+1}")
+            else:
+                logger.error(f"Overview reply error: {reply_error}")
+        
+    except Exception as e:
+        logger.error(f"Error in overview command: {e}")
+        try:
+            bot.reply_to(message, "Can't show overview right now! But trust me, I'm amazing! 😘💕")
+        except:
+            try:
+                bot.send_message(message.chat.id, "Can't show overview right now! But trust me, I'm amazing! 😘💕")
+            except:
+                pass
+
+@bot.message_handler(commands=['comingsoon', 'roadmap', 'future'])
+def coming_soon_command(message):
     """Showcase exciting upcoming features with token-based premium model and Twitter integration"""
     try:
         # Get group context for customized roadmap
