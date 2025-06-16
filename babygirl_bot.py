@@ -4845,7 +4845,7 @@ This will make me discuss your token with the same enthusiasm as $BABYGIRL! 🚀
 **🔮 COMING SOON:**
 We're building the token integration system! Follow @babygirlerc for updates on launch!
 
-**🆓 Current Features:** Chat revival, competitions, basic token support remain free forever! 💕"""
+**🆓 Current Features:** Chat revival, competitions, basic token support remain free forever! 💕""")
             
         elif setup_args == 'help':
             # Setup help
