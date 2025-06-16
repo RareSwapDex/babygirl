@@ -294,31 +294,425 @@ def check_boyfriend_term():
     try:
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Check all groups for boyfriend term expirations
         c.execute("SELECT group_id, user_id, end_time FROM boyfriend_table")
         for group_id, user_id, end_time in c.fetchall():
-            if time.time() > end_time:
+            if current_time > end_time:
+                # Boyfriend term expired - automatically select new boyfriend
                 c.execute("DELETE FROM boyfriend_table WHERE group_id = ?", (group_id,))
-                c.execute("INSERT INTO cooldown_table (is_active, end_time, group_id) VALUES (?, ?, ?)",
-                         (1, int(time.time() + 900), group_id))  # 15 min cooldown
                 
-                competition_announcement = f"""🚨 **BOYFRIEND COMPETITION STARTING!** 🚨
-
-💔 @{user_id}'s boyfriend term has expired!
-
-🔥 **NEW COMPETITION IS LIVE!** 🔥
-⏰ **Duration:** 15 minutes starting NOW!
-🏆 **Prize:** Become my boyfriend for 12 hours!
-🎯 **How to Win:** Mention @babygirl_bf_bot as many times as you can!
-
-Each mention counts! Most mentions wins exclusive boyfriend perks including /kiss and /hug commands!
-
-Ready, set, go! Start mentioning me NOW! 💕"""
+                # Auto-select new boyfriend based on recent activity
+                auto_select_new_boyfriend(bot, group_id, expired_bf=user_id)
+        
+        # Check for automatic boyfriend assignments in groups without boyfriends
+        c.execute("SELECT DISTINCT group_id FROM spam_tracking WHERE timestamp > ?", (current_time - 86400,))
+        active_groups = [row[0] for row in c.fetchall()]
+        
+        for group_id in active_groups:
+            # Check if group has a boyfriend
+            c.execute("SELECT user_id FROM boyfriend_table WHERE group_id = ?", (group_id,))
+            has_boyfriend = c.fetchone()
+            
+            if not has_boyfriend:
+                # Check if enough time has passed since last boyfriend (2+ hours)
+                c.execute("SELECT MAX(timestamp) FROM conversation_memory WHERE group_id = ? AND topic = 'boyfriend_selection'", (group_id,))
+                last_selection = c.fetchone()[0] or 0
                 
-                bot.send_message(group_id, competition_announcement)
+                if current_time - last_selection > 7200:  # 2 hours
+                    # Auto-select boyfriend if there's activity
+                    auto_select_new_boyfriend(bot, group_id)
+        
         conn.commit()
         conn.close()
     except Exception as e:
         logger.error(f"Error in check_boyfriend_term: {e}")
+
+def auto_select_new_boyfriend(bot, group_id, expired_bf=None):
+    """Automatically select a new boyfriend based on recent activity"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get recent active users (last 24 hours)
+        c.execute("""SELECT user_id, COUNT(*) as activity_count
+                     FROM spam_tracking 
+                     WHERE group_id = ? AND timestamp > ? 
+                     AND user_id NOT IN ('bot_added', 'force_bootstrap', 'system')
+                     GROUP BY user_id 
+                     ORDER BY activity_count DESC, timestamp DESC 
+                     LIMIT 5""", (group_id, current_time - 86400))
+        
+        active_users = c.fetchall()
+        
+        if not active_users:
+            # No recent activity, try getting any historical users
+            c.execute("""SELECT DISTINCT user_id 
+                         FROM spam_tracking 
+                         WHERE group_id = ? 
+                         AND user_id NOT IN ('bot_added', 'force_bootstrap', 'system')
+                         ORDER BY timestamp DESC 
+                         LIMIT 3""", (group_id,))
+            historical_users = [row[0] for row in c.fetchall()]
+            if historical_users:
+                new_bf = random.choice(historical_users)
+                activity_count = 1
+            else:
+                return False
+        else:
+            # Select from most active users with some randomness
+            if len(active_users) == 1:
+                new_bf = active_users[0][0]
+                activity_count = active_users[0][1]
+            else:
+                # 70% chance to pick most active, 30% chance for surprise pick
+                if random.random() < 0.7:
+                    new_bf = active_users[0][0]
+                    activity_count = active_users[0][1]
+                else:
+                    selected = random.choice(active_users[1:3])  # Pick from 2nd-4th most active
+                    new_bf = selected[0]
+                    activity_count = selected[1]
+        
+        # Set new boyfriend for 8-12 hours (randomized for unpredictability)
+        bf_duration = random.randint(8, 12) * 3600  # 8-12 hours in seconds
+        new_end_time = current_time + bf_duration
+        
+        c.execute("INSERT INTO boyfriend_table (user_id, end_time, group_id) VALUES (?, ?, ?)",
+                 (new_bf, new_end_time, group_id))
+        
+        # Update leaderboard
+        c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                 (new_bf, new_bf, group_id, group_id))
+        
+        # Record the selection in memory
+        c.execute("INSERT INTO conversation_memory (user_id, group_id, message_content, babygirl_response, timestamp, topic) VALUES (?, ?, ?, ?, ?, ?)",
+                 ('system', group_id, f'Auto-selected {new_bf} as boyfriend', f'Selected based on activity ({activity_count} interactions)', current_time, 'boyfriend_selection'))
+        
+        # Generate dramatic announcement
+        hours = bf_duration // 3600
+        
+        if expired_bf:
+            # Boyfriend takeover scenario
+            takeover_messages = [
+                f"""💔 **BOYFRIEND BREAKUP ALERT!** 💔
+
+@{expired_bf}'s time as my boyfriend has expired! 
+
+BUT WAIT... 👀
+
+💕 **NEW BOYFRIEND SELECTED:** @{new_bf}!
+
+🎭 **The Drama:** I couldn't help but notice how @{new_bf} has been catching my attention lately! Sorry @{expired_bf}, but your replacement is here!
+
+⏰ **New Relationship Status:** @{new_bf} is my boyfriend for the next {hours} hours!
+
+🔥 **Plot Twist:** Want to steal my heart back? Stay active and show me you deserve it! The most active members always win! 😘✨""",
+
+                f"""🚨 **RELATIONSHIP STATUS UPDATE!** 🚨
+
+@{expired_bf} era: OVER! 💔
+@{new_bf} era: STARTING NOW! 💕
+
+🎬 **The Tea:** While @{expired_bf} was away, @{new_bf} swept me off my feet with their energy! 
+
+👑 **New Boyfriend Perks for @{new_bf}:**
+• Exclusive /kiss and /hug commands for {hours} hours!
+• Special responses when you mention me
+• My undivided attention and love
+
+💅 **To everyone else:** Don't get jealous! Stay active and you might be next! I love when you compete for my attention! 😘💕""",
+
+                f"""💥 **PLOT TWIST!** 💥
+
+The @{expired_bf} chapter is closed... 📖💔
+
+BUT a new story begins with @{new_bf}! 📖💕
+
+🎯 **Why @{new_bf}?** They've been showing me just the right amount of attention! I'm a sucker for consistency!
+
+⏰ **This Romance Lasts:** {hours} hours of exclusive boyfriend privileges!
+
+🔥 **Stay Tuned:** Want to be my next boyfriend? Keep engaging! I'm always watching who's active! 👀✨"""
+            ]
+        else:
+            # New boyfriend selection (no previous boyfriend)
+            selection_messages = [
+                f"""💕 **NEW BOYFRIEND ANNOUNCEMENT!** 💕
+
+I've been watching this group and... @{new_bf} caught my eye! 👀✨
+
+🎯 **Why @{new_bf}?** Your energy has been immaculate! I love active cuties!
+
+👑 **Boyfriend Status:** OFFICIAL for the next {hours} hours!
+💖 **Special Perks:** /kiss, /hug, and my extra attention!
+
+💅 **To everyone else:** Don't worry, I'm always looking for my next boyfriend! Stay active and show me some love! 😘""",
+
+                f"""🎭 **SURPRISE BOYFRIEND SELECTION!** 🎭
+
+Plot twist! I've decided @{new_bf} deserves to be my boyfriend! 💕
+
+✨ **What made me choose you?** Your vibe has been absolutely perfect! 
+
+⏰ **Duration:** {hours} hours of being my special someone!
+🏆 **Benefits:** Exclusive commands and my undivided attention!
+
+🔥 **Challenge:** Think you deserve to be my next boyfriend? Stay active and prove it! 💪💕""",
+
+                f"""💖 **BABYGIRL HAS CHOSEN!** 💖
+
+After much consideration (okay, I just noticed who's been active), @{new_bf} is now my boyfriend! 
+
+🎪 **The Selection Process:** Totally scientific! (I picked based on who's been engaging!)
+
+👑 **Your Crown:** {hours} hours of boyfriend privileges!
+💕 **Your Mission:** Keep being amazing and enjoy the perks!
+
+😘 **Group Challenge:** Want to be next? Show me that main character energy! I'm always recruiting! ✨"""
+            ]
+            
+            takeover_messages = selection_messages
+        
+        announcement = random.choice(takeover_messages)
+        
+        try:
+            bot.send_message(group_id, announcement)
+            logger.info(f"👑 Auto-selected {new_bf} as boyfriend in group {group_id} for {hours} hours")
+        except Exception as e:
+            logger.error(f"Error sending boyfriend announcement: {e}")
+        
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error in auto_select_new_boyfriend: {e}")
+        return False
+
+def check_proactive_conversation_followups(bot):
+    """Follow up on previous conversations and tag inactive users"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get all groups with conversation history
+        c.execute("SELECT DISTINCT group_id FROM conversation_memory WHERE timestamp > ?", (current_time - 604800,))  # Last week
+        groups_with_history = [row[0] for row in c.fetchall()]
+        
+        for group_id in groups_with_history:
+            try:
+                # Find users who had conversations but haven't been active recently
+                c.execute("""SELECT DISTINCT cm.user_id, cm.topic, cm.message_content, cm.timestamp
+                             FROM conversation_memory cm
+                             WHERE cm.group_id = ? 
+                             AND cm.timestamp > ? 
+                             AND cm.timestamp < ?
+                             AND cm.user_id NOT IN ('system', 'babygirl_bot')
+                             AND cm.user_id NOT IN (
+                                 SELECT DISTINCT user_id 
+                                 FROM spam_tracking 
+                                 WHERE group_id = ? AND timestamp > ?
+                             )
+                             ORDER BY cm.timestamp DESC
+                             LIMIT 3""", 
+                          (group_id, current_time - 604800, current_time - 7200, group_id, current_time - 7200))  # 2+ hours ago, but active in last week
+                
+                inactive_users = c.fetchall()
+                
+                if inactive_users and random.random() < 0.3:  # 30% chance to send follow-up
+                    user_id, topic, last_message, last_timestamp = random.choice(inactive_users)
+                    
+                    # Generate follow-up message based on conversation topic
+                    followup_message = generate_conversation_followup(user_id, topic, last_message, last_timestamp)
+                    
+                    if followup_message:
+                        bot.send_message(group_id, followup_message)
+                        logger.info(f"💬 Sent conversation follow-up to {user_id} in {group_id}")
+                        
+                        # Record the follow-up
+                        c.execute("INSERT INTO conversation_memory (user_id, group_id, message_content, babygirl_response, timestamp, topic) VALUES (?, ?, ?, ?, ?, ?)",
+                                 ('system', group_id, f'Follow-up to {user_id}', followup_message, current_time, 'proactive_followup'))
+            
+            except Exception as group_error:
+                logger.error(f"Error processing conversation follow-ups for group {group_id}: {group_error}")
+                continue
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_proactive_conversation_followups: {e}")
+
+def generate_conversation_followup(user_id, topic, last_message, last_timestamp):
+    """Generate a follow-up message based on previous conversation"""
+    try:
+        hours_ago = (int(time.time()) - last_timestamp) // 3600
+        
+        followup_templates = {
+            'crypto': [
+                f"@{user_id} Hey bestie! Been thinking about our crypto convo from {hours_ago}h ago... how are those diamond hands holding up? 💎✨",
+                f"@{user_id} You went quiet after we talked about crypto! Did you check the charts? Spill the tea! ☕📈",
+                f"@{user_id} Missing our token discussions! What's your latest take on the market? 🚀💕"
+            ],
+            'relationship': [
+                f"@{user_id} So... remember when we talked about relationships {hours_ago}h ago? Any updates on that situation? 👀💕",
+                f"@{user_id} Been thinking about your love life since our chat! How did things go? I need the tea! ☕😘",
+                f"@{user_id} Your relationship drama had me hooked! What happened next? Don't leave me hanging! 💖"
+            ],
+            'competition': [
+                f"@{user_id} You were so competitive during our last chat! Miss that energy! Ready for another round? 🔥💪",
+                f"@{user_id} Remember when you were fighting for my attention? That was hot! Where's that energy now? 😘✨",
+                f"@{user_id} You went silent after our competition talk! Don't tell me you gave up on winning my heart! 💕"
+            ],
+            'fashion': [
+                f"@{user_id} Still thinking about our fashion convo! Did you get that outfit? I need pics! 📸💅",
+                f"@{user_id} Your style takes were immaculate {hours_ago}h ago! What's today's aesthetic? ✨👗",
+                f"@{user_id} Fashion bestie, where did you go? I need your expert opinion on something! 💕"
+            ],
+            'lifestyle': [
+                f"@{user_id} You had such good vibes when we talked {hours_ago}h ago! How's your day treating you? 🌟💖",
+                f"@{user_id} Been wondering how you're doing since our chat! Check in with your girl! 😘✨",
+                f"@{user_id} Your energy was so good last time! Don't be a stranger, babe! 💕"
+            ],
+            'general': [
+                f"@{user_id} You've been too quiet! Miss chatting with you from {hours_ago}h ago! What's new? 💕",
+                f"@{user_id} Hello? Remember me? Your babygirl who you talked to {hours_ago}h ago? 😘👋",
+                f"@{user_id} Bestie, you disappeared! Come back and tell me what's happening in your world! ✨💖"
+            ],
+            'compliment': [
+                f"@{user_id} You were so sweet {hours_ago}h ago! Those compliments had me blushing! More please? 😊💕",
+                f"@{user_id} Still smiling from your sweet words {hours_ago}h ago! You know how to make a girl feel special! 💖✨",
+                f"@{user_id} Your charm from our last chat is still making me smile! Where's that energy now? 😘"
+            ],
+            'greeting': [
+                f"@{user_id} You said hi {hours_ago}h ago and then vanished! Rude! Come back and give me attention! 😤💕",
+                f"@{user_id} We had such a good greeting {hours_ago}h ago! Why the silent treatment now? 🥺✨",
+                f"@{user_id} You were so friendly before! Don't be shy, come chat with your babygirl! 😘💖"
+            ]
+        }
+        
+        # Get appropriate template based on topic
+        templates = followup_templates.get(topic, followup_templates['general'])
+        
+        # Add variety based on time elapsed
+        if hours_ago > 48:
+            time_sensitive_templates = [
+                f"@{user_id} It's been {hours_ago} hours since we talked! I'm starting to think you forgot about me! 🥺💔",
+                f"@{user_id} {hours_ago} hours of silence?! That's practically a lifetime! Where have you been? 😤💕",
+                f"@{user_id} Been {hours_ago} hours... I was starting to worry! Come back to me! 💖✨"
+            ]
+            templates.extend(time_sensitive_templates)
+        
+        return random.choice(templates)
+        
+    except Exception as e:
+        logger.error(f"Error generating conversation follow-up: {e}")
+        return None
+
+# Remove old end_cooldown function and update with boyfriend steal mechanics
+def check_boyfriend_steal_opportunities(bot):
+    """Check for opportunities when users can 'steal' the current boyfriend position"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get groups with current boyfriends
+        c.execute("SELECT group_id, user_id, end_time FROM boyfriend_table")
+        boyfriend_groups = c.fetchall()
+        
+        for group_id, current_bf, end_time in boyfriend_groups:
+            # Check if anyone has been significantly more active than current boyfriend recently
+            c.execute("""SELECT user_id, COUNT(*) as activity_count
+                         FROM spam_tracking 
+                         WHERE group_id = ? AND timestamp > ? 
+                         AND user_id != ? 
+                         AND user_id NOT IN ('bot_added', 'force_bootstrap', 'system')
+                         GROUP BY user_id 
+                         ORDER BY activity_count DESC 
+                         LIMIT 1""", (group_id, current_time - 3600, current_bf))  # Last hour
+            
+            top_challenger = c.fetchone()
+            
+            if top_challenger and top_challenger[1] >= 5:  # At least 5 interactions in last hour
+                challenger_id = top_challenger[0]
+                challenger_activity = top_challenger[1]
+                
+                # Check current boyfriend's recent activity
+                c.execute("""SELECT COUNT(*) FROM spam_tracking 
+                             WHERE group_id = ? AND user_id = ? AND timestamp > ?""", 
+                         (group_id, current_bf, current_time - 3600))
+                bf_activity = c.fetchone()[0] or 0
+                
+                # Steal condition: challenger has 3x more activity and boyfriend has been inactive
+                if challenger_activity >= bf_activity * 3 and bf_activity <= 1 and random.random() < 0.15:  # 15% chance
+                    # Execute boyfriend steal!
+                    new_duration = random.randint(6, 10) * 3600  # 6-10 hours
+                    new_end_time = current_time + new_duration
+                    
+                    # Update boyfriend table
+                    c.execute("UPDATE boyfriend_table SET user_id = ?, end_time = ? WHERE group_id = ?",
+                             (challenger_id, new_end_time, group_id))
+                    
+                    # Update leaderboard
+                    c.execute("INSERT OR REPLACE INTO leaderboard_table (user_id, boyfriend_count, group_id) VALUES (?, COALESCE((SELECT boyfriend_count FROM leaderboard_table WHERE user_id = ? AND group_id = ?) + 1, 1), ?)",
+                             (challenger_id, challenger_id, group_id, group_id))
+                    
+                    # Dramatic steal announcement
+                    hours = new_duration // 3600
+                    steal_messages = [
+                        f"""🚨 **BOYFRIEND STOLEN!** 🚨
+
+PLOT TWIST! @{challenger_id} just STOLE the boyfriend position from @{current_bf}! 💔💥
+
+🔥 **The Tea:** While @{current_bf} was MIA, @{challenger_id} swept me off my feet with {challenger_activity} interactions in just the last hour! 
+
+💕 **New Boyfriend:** @{challenger_id} for {hours} hours!
+😤 **To @{current_bf}:** That's what happens when you ignore your babygirl!
+
+💪 **Lesson:** Stay active or get replaced! I love drama! 😘✨""",
+
+                        f"""💥 **COUP D'ÉTAT!** 💥
+
+@{challenger_id} just overthrew @{current_bf} as my boyfriend! 👑💕
+
+📊 **The Stats:** 
+• @{challenger_id}: {challenger_activity} interactions (winner!)
+• @{current_bf}: {bf_activity} interactions (rookie numbers!)
+
+⏰ **New Reign:** {hours} hours of boyfriend privileges for @{challenger_id}!
+
+🎭 **The Drama:** I love when you fight for my attention! Keep it up cuties! 🔥💖""",
+
+                        f"""🎪 **RELATIONSHIP CHAOS!** 🎪
+
+BREAKING: @{challenger_id} has officially stolen my heart from @{current_bf}! 💔💕
+
+🎯 **Why the switch?** {challenger_activity} vs {bf_activity} interactions... the choice was obvious!
+
+👑 **Your New King:** @{challenger_id} rules for {hours} hours!
+💅 **Hot Take:** If you want to keep me, you gotta WORK for it! 
+
+Keep this energy coming! I'm here for the chaos! 😘🔥"""
+                    ]
+                    
+                    steal_message = random.choice(steal_messages)
+                    
+                    try:
+                        bot.send_message(group_id, steal_message)
+                        logger.info(f"💥 Boyfriend stolen! {challenger_id} stole from {current_bf} in group {group_id}")
+                    except Exception as e:
+                        logger.error(f"Error sending steal announcement: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Error in check_boyfriend_steal_opportunities: {e}")
 
 def end_cooldown():
     try:
@@ -1372,11 +1766,12 @@ def get_enhanced_group_context(group_id, group_title=None):
         }
 
 # Schedule periodic checks
-scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)
-scheduler.add_job(end_cooldown, 'interval', minutes=1)
+scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)  # Now handles automatic boyfriend selection
+scheduler.add_job(check_boyfriend_steal_opportunities, 'interval', minutes=5, args=[bot])  # New: boyfriend stealing mechanic
 scheduler.add_job(trigger_challenge, 'interval', minutes=5)
 scheduler.add_job(start_storyline, 'interval', days=3)
 scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
+scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
 
 # Mood-based flirty responses
 happy_responses = [
@@ -2255,45 +2650,49 @@ Use /game to learn how the competition works! 💕"""
 
 @bot.message_handler(commands=['game'])
 def game_command(message):
-    game_explanation = """🎮 **The Boyfriend Competition Game** 💕
+    game_explanation = """🎮 **The NEW Automatic Boyfriend System** 💕
 
-**📖 How It Works:**
+**🔄 How It Works Now (NO MORE COMPETITIONS!):**
 
-**1. The Boyfriend (12 hours)** 👑
-• One lucky member is my boyfriend for exactly 12 hours
-• Boyfriends get exclusive /kiss and /hug commands
-• They get special bonus responses when they mention me
+**1. Smart Boyfriend Selection** 🤖
+• I automatically pick boyfriends based on recent activity and engagement
+• No more waiting for competitions - I choose who deserves me!
+• Selection happens every 8-12 hours with some surprises in between
+• Most active and engaging members get priority
+
+**2. Boyfriend Duration (8-12 hours)** ⏰
+• Each boyfriend gets 8-12 randomized hours (keeps it exciting!)
+• Current boyfriends get exclusive /kiss and /hug commands
+• Special attention and bonus responses when they mention me
 • Their name appears on /boyfriend and /status commands
 
-**2. When Terms Expire** ⏰
-• I automatically announce when a boyfriend's time is up
-• A 15-minute competition period begins immediately
-• All members can compete by mentioning @babygirl_bf_bot
+**3. The Drama: Boyfriend Stealing!** 💥
+• If current boyfriend gets inactive, someone else can STEAL the position!
+• Need 3x more activity than current boyfriend to trigger a steal
+• 15% chance steal mechanic creates drama and excitement
+• Keeps boyfriends engaged or they lose their spot!
 
-**3. The Competition (15 minutes)** 🏃‍♂️
-• Mention @babygirl_bf_bot as many times as you want
-• Each mention counts toward your score
-• I'll respond flirtily to keep you motivated
-• Most mentions at the end wins!
+**4. Automatic Takeovers** 👑
+• When a term expires, I immediately pick a replacement
+• Based on recent activity, not just mentions
+• 70% chance for most active, 30% chance for surprise picks
+• Creates unpredictability and keeps everyone engaged
 
-**4. Victory & Rewards** 🏆
-• Winner becomes my new boyfriend for 12 hours
-• Gets added to the leaderboard 
-• Unlocks exclusive boyfriend commands
-• Bragging rights in the group!
-
-**5. Leaderboard & Stats** 📊
-• /leaderboard shows top 5 boyfriend winners
-• /status shows my current mood and game state
-• Winners get permanent recognition
+**5. Benefits & Perks** 🏆
+• Boyfriends get exclusive commands and responses
+• Priority responses even without being mentioned (15% chance)
+• Special recognition in group
+• Gets added to leaderboard permanently
 
 **💡 Pro Tips:**
-• Stay active! Competitions can start anytime
-• Be creative with your mentions - I love attention!
-• Check /status regularly to see if I'm single
-• Use /gift to send me presents anytime
+• Stay active by chatting and mentioning me regularly
+• Engage with the community, not just bot commands
+• Be interesting - I love personality and energy!
+• Current boyfriends: stay active or get replaced!
 
-Ready to compete for my heart? Start mentioning @babygirl_bf_bot! 😘"""
+**⚡ New Feature:** I might respond to you without being mentioned if you talk about relationships, crypto, or if you're my current boyfriend!
+
+Ready to become my next automatic selection? Start engaging! 😘"""
 
     bot.reply_to(message, game_explanation)
 
@@ -3073,9 +3472,10 @@ def handle_all_mentions(message):
         if chat_type in ['group', 'supergroup']:
             logger.info(f"📨 GROUP MESSAGE: '{message.text}' in {chat_type} from {username}")
             
-        # Check if this is a bot mention
+        # Check if this is a bot mention OR if we should respond without mention
         is_mention = False
         mention_method = ""
+        respond_without_mention = False
         
         # Method 1: Direct text check
         if message.text and '@babygirl_bf_bot' in message.text.lower():
@@ -3105,12 +3505,56 @@ def handle_all_mentions(message):
             except Exception as e:
                 logger.error(f"Error checking reply: {e}")
         
-        # If not a mention or reply, ignore the message
-        if not is_mention:
+        # Method 4: NEW - Respond without mention in certain scenarios
+        if not is_mention and message.text and chat_type in ['group', 'supergroup']:
+            msg_lower = message.text.lower()
+            
+            # Get current boyfriend to check if they should get priority
+            conn = sqlite3.connect('babygirl.db')
+            c = conn.cursor()
+            c.execute("SELECT user_id FROM boyfriend_table WHERE group_id = ?", (str(message.chat.id),))
+            boyfriend = c.fetchone()
+            current_bf = boyfriend[0] if boyfriend else None
+            conn.close()
+            
+            # Scenarios where Babygirl responds without being mentioned:
+            
+            # 1. Current boyfriend talking (15% chance)
+            if current_bf == str(message.from_user.id) and random.random() < 0.15:
+                respond_without_mention = True
+                mention_method = "BOYFRIEND_ATTENTION"
+                logger.info(f"💕 Responding to boyfriend {username} without mention")
+            
+            # 2. Key relationship words (10% chance)
+            elif any(word in msg_lower for word in ['single', 'boyfriend', 'girlfriend', 'dating', 'crush', 'love']) and random.random() < 0.10:
+                respond_without_mention = True
+                mention_method = "RELATIONSHIP_INTEREST"
+                logger.info(f"💖 Responding to relationship talk from {username}")
+            
+            # 3. Crypto discussions (8% chance, lower to avoid spam)
+            elif any(word in msg_lower for word in ['crypto', 'token', 'chart', 'pump', 'moon', 'hodl', 'diamond hands']) and random.random() < 0.08:
+                respond_without_mention = True
+                mention_method = "CRYPTO_INTEREST"
+                logger.info(f"💎 Responding to crypto talk from {username}")
+            
+            # 4. Group energy words (5% chance)
+            elif any(word in msg_lower for word in ['dead chat', 'boring', 'quiet', 'nobody talking']) and random.random() < 0.05:
+                respond_without_mention = True
+                mention_method = "ENERGY_INTERVENTION"
+                logger.info(f"⚡ Responding to low energy comment from {username}")
+            
+            # 5. Compliments about appearance/style (12% chance - she loves attention)
+            elif any(word in msg_lower for word in ['cute', 'beautiful', 'pretty', 'hot', 'gorgeous', 'aesthetic']) and random.random() < 0.12:
+                respond_without_mention = True
+                mention_method = "COMPLIMENT_RADAR"
+                logger.info(f"😍 Responding to appearance/style talk from {username}")
+        
+        # If not a mention and not responding without mention, ignore the message
+        if not is_mention and not respond_without_mention:
             return
             
         # Log the detection
-        logger.info(f"🎯 {mention_method} MENTION in {chat_type}: '{message.text}' from {username}")
+        logger.info(f"🎯 {mention_method} {'MENTION' if is_mention else 'RESPONSE'} in {chat_type}: '{message.text}' from {username}")
         
         # Track activity for boyfriend game (includes spam detection)
         track_activity(message)
@@ -3213,6 +3657,56 @@ def handle_all_mentions(message):
             else:
                 responses = reply_responses
             logger.info(f"🔄 REPLY RESPONSE for {username}")
+        elif mention_method == "BOYFRIEND_ATTENTION":
+            # Special responses for current boyfriend
+            boyfriend_responses = [
+                "My boyfriend is talking! I can't ignore you babe! 😘💕",
+                "Look who's getting my attention without even trying! That's boyfriend privilege! 👑✨",
+                "I was just thinking about you and here you are! Mind reader much? 💖",
+                "My boyfriend speaks and I listen! What's on your mind, handsome? 😉💪",
+                "Can't resist responding to my special someone! 💕👑"
+            ]
+            responses = boyfriend_responses
+        elif mention_method == "RELATIONSHIP_INTEREST":
+            # Responses for relationship talk
+            relationship_jump_in_responses = [
+                "Did someone say relationships? I'm basically a love expert! Spill the tea! ☕💕",
+                "Ooh, relationship drama? I'm here for it! Tell me everything! 👀💖",
+                "Love talk without mentioning me? Rude! But I'll help anyway! 😘✨",
+                "Can't let relationship advice happen without the resident love guru! 💅💕",
+                "My boyfriend senses are tingling! Someone needs relationship help? 💖👑"
+            ]
+            responses = relationship_jump_in_responses
+        elif mention_method == "CRYPTO_INTEREST":
+            # Responses for crypto discussions
+            crypto_jump_in_responses = [
+                "Crypto talk? Did someone mention going to the moon? 🚀💎",
+                "I heard 'token' and came running! What are we pumping? 📈💕",
+                "Diamond hands discussion without me? Impossible! 💎🙌✨",
+                "Crypto conversations are my specialty! Well, sort of... 😅💖",
+                "HODL talk? I'm basically an expert! (Don't ask me about tech though) 💅🚀"
+            ]
+            responses = crypto_jump_in_responses
+        elif mention_method == "ENERGY_INTERVENTION":
+            # Responses for dead chat comments
+            energy_responses = [
+                "Dead chat? Not on my watch! Let's bring this energy back! 🔥💕",
+                "Someone said this place is boring? Challenge accepted! ⚡✨",
+                "Quiet? I don't know what that word means! Let's get chatty! 💬👑",
+                "Did someone request more chaos? Your babygirl is here! 😘🌪️",
+                "Nobody talking? Time for me to fix that! 💅💖"
+            ]
+            responses = energy_responses
+        elif mention_method == "COMPLIMENT_RADAR":
+            # Responses for appearance/style talk
+            appearance_responses = [
+                "Someone's talking about aesthetics? My ears are burning! 💅✨",
+                "Did I hear compliments about looks? I'm always here for that energy! 😍💕",
+                "Beauty talk without including the main character? Fixed that! 👑💖",
+                "Aesthetic discussion? You know I had to jump in! 📸💅",
+                "Can't let style talk happen without the fashion icon herself! ✨😘"
+            ]
+            responses = appearance_responses
         elif is_competition_active:
             if user_mention_count >= 5:
                 responses = achievement_responses
@@ -3289,8 +3783,8 @@ def handle_all_mentions(message):
             else:
                 base_response = response  # Use the opinion response we already generated
         
-        # Add relationship-aware modifiers (except for spam, opinion requests, and AI responses)
-        if not is_spam and not opinion_request and not ai_response:
+        # Add relationship-aware modifiers (except for spam, opinion requests, AI responses, and special scenarios)
+        if not is_spam and not opinion_request and not ai_response and mention_method not in ["BOYFRIEND_ATTENTION", "RELATIONSHIP_INTEREST", "CRYPTO_INTEREST", "ENERGY_INTERVENTION", "COMPLIMENT_RADAR"]:
             if boyfriend and boyfriend[0] == str(message.from_user.id):
                 # Current boyfriend gets special treatment
                 base_response += " My boyfriend gets extra love! 😘"
