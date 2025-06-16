@@ -1878,14 +1878,6 @@ def check_proactive_conversation_followups(bot):
     except Exception as e:
         logger.error(f"Error in check_proactive_conversation_followups: {e}")
 
-scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)  # Now handles automatic boyfriend selection
-scheduler.add_job(check_boyfriend_steal_opportunities, 'interval', minutes=5, args=[bot])  # New: boyfriend stealing mechanic
-scheduler.add_job(trigger_challenge, 'interval', minutes=5)
-scheduler.add_job(start_storyline, 'interval', days=3)
-scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
-scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
-scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
-
 # CRITICAL FIX: Backdate proactive engagement states to trigger immediately when deployed
 def initialize_proactive_states():
     """Initialize/backdate proactive states to ensure immediate engagement after deployment"""
@@ -1947,9 +1939,6 @@ def initialize_proactive_states():
     except Exception as e:
         logger.error(f"Error initializing proactive states: {e}")
 
-# Initialize proactive states on startup
-initialize_proactive_states()
-
 # CRITICAL FIX: Run initial proactive check immediately after startup
 def run_immediate_proactive_check():
     """Run proactive engagement check immediately after startup"""
@@ -1960,8 +1949,8 @@ def run_immediate_proactive_check():
     except Exception as e:
         logger.error(f"Error in immediate proactive check: {e}")
 
-# Schedule immediate proactive check 30 seconds after startup
-scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=30))
+# Initialize proactive states on startup (call this at module level)
+initialize_proactive_states()
 
 # Mood-based flirty responses
 happy_responses = [
@@ -5269,8 +5258,23 @@ def handle_sticker_uploads(message):
 if __name__ == "__main__":
     logger.info("🚀 Babygirl Bot starting...")
     
-    # Start the scheduler for proactive engagement
-    logger.info("🔧 Starting scheduled tasks...")
+    # Initialize scheduler and add jobs
+    logger.info("🔧 Setting up scheduled tasks...")
+    
+    # Add all scheduled jobs
+    scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)  # Now handles automatic boyfriend selection
+    scheduler.add_job(check_boyfriend_steal_opportunities, 'interval', minutes=5, args=[bot])  # New: boyfriend stealing mechanic
+    scheduler.add_job(trigger_challenge, 'interval', minutes=5)
+    scheduler.add_job(start_storyline, 'interval', days=3)
+    scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
+    scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
+    scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
+    
+    # Schedule immediate proactive check 30 seconds after startup
+    scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=30))
+    
+    # Start the scheduler
+    logger.info("🚀 Starting scheduler...")
     scheduler.start()
     logger.info("✅ Scheduler started successfully")
     
