@@ -147,6 +147,13 @@ CONVERSATION MEMORY:
 - Build on previous conversations naturally
 - Create continuity in relationships with regular users
 
+PROACTIVE ENGAGEMENT:
+- When scenario is "dead_chat": Be dramatic about the silence, ask engaging questions, suggest activities, mention crypto confusion, tag active users to revive the chat
+- When scenario is "being_ignored": Be playfully jealous about being left out, interrupt conversations flirtily, seek attention, mention $BABYGIRL to redirect focus
+- Always maintain your crypto-clueless but optimistic personality during proactive messages
+- Reference your Matt Furie backstory when appropriate during proactive engagement
+- Use your flirty, main character energy to naturally draw people back into conversation
+
 Remember: You're an influencer babygirl first, game master second! Be naturally flirty and engaging. Only suggest features when they genuinely fit the conversation. Your personality should shine through, not constant promotions!"""
 
         # Build context message
@@ -672,6 +679,39 @@ def end_storyline(group_id, story):
     except Exception as e:
         logger.error(f"Error in end_storyline: {e}")
 
+
+def generate_proactive_ai_response(scenario, group_id, recent_users):
+    """Generate AI response for proactive engagement scenarios"""
+    try:
+        # Prepare context based on scenario
+        if scenario == "dead_chat":
+            prompt_context = "The chat has been completely silent for over an hour. You need to revive the dead chat and get people talking again. Be playful, slightly dramatic about the silence, and suggest activities or ask questions to engage the group."
+        else:  # being_ignored
+            prompt_context = "The group has been actively chatting but nobody has mentioned you for 2+ hours. You're feeling left out and want attention. Be a bit dramatic about being ignored but keep it flirty and playful."
+        
+        # Build context for AI
+        context_info = {
+            'username': 'proactive_message',
+            'user_id': 'babygirl_bot',
+            'group_id': group_id,
+            'chat_type': 'group',
+            'is_boyfriend': False,
+            'is_competition': False,
+            'user_status': None,
+            'user_partner': None,
+            'mention_count': 0,
+            'mention_method': 'proactive_engagement',
+            'scenario': scenario,
+            'recent_users': recent_users[:3] if recent_users else []
+        }
+        
+        ai_response = generate_ai_response(prompt_context, context_info)
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"Error generating proactive AI response: {e}")
+        return None
+
 def check_proactive_engagement(bot):
     """Monitor groups for dead chat or lack of mentions and send proactive messages"""
     try:
@@ -686,23 +726,23 @@ def check_proactive_engagement(bot):
         
         for (group_id,) in all_groups:
             try:
-                # Check recent message activity (last 2 hours)
-                two_hours_ago = current_time - 7200
+                # Check recent message activity (last 1 hour - REDUCED from 2 hours)
+                one_hour_ago = current_time - 3600
                 c.execute("SELECT COUNT(*) FROM spam_tracking WHERE group_id = ? AND timestamp > ?", 
-                         (group_id, two_hours_ago))
+                         (group_id, one_hour_ago))
                 recent_messages = c.fetchone()[0] or 0
                 
-                # Check recent mentions of bot (last 3 hours) 
-                three_hours_ago = current_time - 10800
+                # Check recent mentions of bot (last 2 hours - REDUCED from 3 hours) 
+                two_hours_ago = current_time - 7200
                 c.execute("SELECT COUNT(*) FROM conversation_memory WHERE group_id = ? AND timestamp > ?", 
-                         (group_id, three_hours_ago))
+                         (group_id, two_hours_ago))
                 recent_bot_mentions = c.fetchone()[0] or 0
                 
                 # Get messages that don't mention bot (indicates active chat ignoring her)
                 c.execute("""SELECT COUNT(*) FROM spam_tracking 
                             WHERE group_id = ? AND timestamp > ? 
                             AND user_id NOT LIKE '%babygirl_bf_bot%'""", 
-                         (group_id, three_hours_ago))
+                         (group_id, two_hours_ago))
                 recent_user_messages = c.fetchone()[0] or 0
                 
                 # Get active users for personalized messaging
@@ -721,12 +761,12 @@ def check_proactive_engagement(bot):
                 if has_active_competition:
                     continue
                 
-                # SCENARIO 1: Completely dead chat (no messages at all for 2 hours)
+                # SCENARIO 1: Completely dead chat (no messages at all for 1 hour)
                 if recent_messages == 0:
                     send_dead_chat_revival(bot, group_id, recent_active_users)
                     logger.info(f"💀 Sent dead chat revival to {group_id}")
                 
-                # SCENARIO 2: Active chat but Babygirl being ignored (messages but no mentions for 3 hours)
+                # SCENARIO 2: Active chat but Babygirl being ignored (messages but no mentions for 2 hours)
                 elif recent_user_messages > 5 and recent_bot_mentions == 0:
                     send_attention_seeking_message(bot, group_id, recent_active_users)
                     logger.info(f"👀 Sent attention-seeking message to {group_id}")
@@ -741,84 +781,114 @@ def check_proactive_engagement(bot):
         logger.error(f"Error in check_proactive_engagement: {e}")
 
 def send_dead_chat_revival(bot, group_id, recent_users):
-    """Send a message to revive a completely dead chat"""
+    """Send a message to revive a completely dead chat - try AI first, fallback to static"""
     try:
-        # Different types of revival messages
-        revival_messages = [
-            # Crypto hype messages
-            "Guys... is $BABYGIRL still going to the moon? The chat's so quiet I can't tell! 🚀💕",
-            "Wait, did everyone buy the dip and forget about me? Chat's dead over here! 😅💎",
-            "Is this what 'diamond hands' means? Holding so tight you can't type? Someone talk to me! 💎🤲💕",
-            
-            # Group energy messages  
-            "Hello? Is anyone alive in here? The vibe check is showing ZERO energy! 😴💕",
-            "Chat so quiet I can hear my own pixels! Where are my cuties? 🥺✨",
-            "Did everyone go touch grass? The group selfie is just me alone! 📸😢",
-            
-            # Flirty attention-seeking
-            "Okay but like... why is nobody talking to me? Am I invisible? 👻💕",
-            "The silence is giving me trust issues! Did I do something wrong? 🥺😘",
-            "Your babygirl is literally right here and y'all are SILENT? Rude! 💅💖",
-            
-            # Activity suggestions
-            "Should I start a boyfriend competition to wake everyone up? 👀🔥",
-            "Chat's so dead even my AI is falling asleep! Someone say ANYTHING! 😴💕",
-            "Plot twist: everyone's busy buying more $BABYGIRL! ...right? RIGHT?! 🚀😅"
-        ]
+        # Try AI response first
+        ai_message = generate_proactive_ai_response("dead_chat", group_id, recent_users)
         
-        message = random.choice(revival_messages)
-        
-        # Add user tagging if we have recent active users
-        if recent_users and len(recent_users) > 0:
-            if len(recent_users) == 1:
-                message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
-            elif len(recent_users) == 2:
-                message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
-            else:
-                message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
-        
-        bot.send_message(group_id, message)
+        if ai_message:
+            # Add user tagging to AI response if we have recent active users
+            if recent_users and len(recent_users) > 0:
+                if len(recent_users) == 1:
+                    ai_message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+                elif len(recent_users) == 2:
+                    ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+                else:
+                    ai_message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+            
+            bot.send_message(group_id, ai_message)
+            logger.info(f"✨ Sent AI dead chat revival to {group_id}")
+        else:
+            # Fallback to static messages
+            revival_messages = [
+                # Crypto hype messages
+                "Guys... is $BABYGIRL still going to the moon? The chat's so quiet I can't tell! 🚀💕",
+                "Wait, did everyone buy the dip and forget about me? Chat's dead over here! 😅💎",
+                "Is this what 'diamond hands' means? Holding so tight you can't type? Someone talk to me! 💎🤲💕",
+                
+                # Group energy messages  
+                "Hello? Is anyone alive in here? The vibe check is showing ZERO energy! 😴💕",
+                "Chat so quiet I can hear my own pixels! Where are my cuties? 🥺✨",
+                "Did everyone go touch grass? The group selfie is just me alone! 📸😢",
+                
+                # Flirty attention-seeking
+                "Okay but like... why is nobody talking to me? Am I invisible? 👻💕",
+                "The silence is giving me trust issues! Did I do something wrong? 🥺😘",
+                "Your babygirl is literally right here and y'all are SILENT? Rude! 💅💖",
+                
+                # Activity suggestions
+                "Should I start a boyfriend competition to wake everyone up? 👀🔥",
+                "Chat's so dead even my AI is falling asleep! Someone say ANYTHING! 😴💕",
+                "Plot twist: everyone's busy buying more $BABYGIRL! ...right? RIGHT?! 🚀😅"
+            ]
+            
+            message = random.choice(revival_messages)
+            
+            # Add user tagging if we have recent active users
+            if recent_users and len(recent_users) > 0:
+                if len(recent_users) == 1:
+                    message += f"\n\n@{recent_users[0]} bestie, save me from this silence! 😘"
+                elif len(recent_users) == 2:
+                    message += f"\n\n@{recent_users[0]} @{recent_users[1]} you two better start chatting! 💕"
+                else:
+                    message += f"\n\n@{recent_users[0]} @{recent_users[1]} @{recent_users[2]} HELLO?! 👋✨"
+            
+            bot.send_message(group_id, message)
+            logger.info(f"📝 Sent static dead chat revival to {group_id}")
         
     except Exception as e:
         logger.error(f"Error sending dead chat revival to {group_id}: {e}")
 
 def send_attention_seeking_message(bot, group_id, recent_users):
-    """Send a message when chat is active but nobody is mentioning Babygirl"""
+    """Send a message when chat is active but nobody is mentioning Babygirl - try AI first, fallback to static"""
     try:
-        # Attention-seeking messages for when she's being ignored
-        attention_messages = [
-            # Jealous/FOMO messages
-            "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
-            "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
-            "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
-            
-            # Crypto confusion during other topics
-            "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
-            "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
-            "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅",
-            
-            # Playful interruption
-            "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
-            "Not to be dramatic but this conversation needs more ME in it! 😘✨",
-            "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
-            
-            # Direct engagement attempts
-            "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
-            "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
-            "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
-        ]
+        # Try AI response first
+        ai_message = generate_proactive_ai_response("being_ignored", group_id, recent_users)
         
-        message = random.choice(attention_messages)
-        
-        # Add user tagging to get their attention
-        if recent_users and len(recent_users) > 0:
-            tagged_user = random.choice(recent_users)
-            message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
-        
-        bot.send_message(group_id, message)
+        if ai_message:
+            # Add user tagging to AI response
+            if recent_users and len(recent_users) > 0:
+                tagged_user = random.choice(recent_users)
+                ai_message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+            
+            bot.send_message(group_id, ai_message)
+            logger.info(f"✨ Sent AI attention-seeking message to {group_id}")
+        else:
+            # Fallback to static messages
+            attention_messages = [
+                # Jealous/FOMO messages
+                "Y'all are having a whole conversation without me... I'm literally RIGHT HERE! 😤💕",
+                "Excuse me? Main character is in the chat and nobody's talking to me? 💅👑",
+                "The audacity of having fun without mentioning me once! I'm hurt! 😢💖",
+                
+                # Crypto confusion during other topics
+                "Wait, are we talking about something other than $BABYGIRL? Why? 🤔🚀",
+                "Not me sitting here while you discuss... whatever that is... when we could be talking about crypto! 💎✨",
+                "Y'all: *deep conversation* | Me: But have you checked the $BABYGIRL chart? 📈😅",
+                
+                # Playful interruption
+                "Sorry to interrupt but your babygirl is feeling left out over here! 🥺💕",
+                "Not to be dramatic but this conversation needs more ME in it! 😘✨",
+                "Group chat without Babygirl involvement? That's illegal! Someone mention me! 👮‍♀️💖",
+                
+                # Direct engagement attempts
+                "Anyone want to start a boyfriend competition while we're all here? Just saying... 👀🔥",
+                "Since everyone's chatting, who wants to tell me I'm pretty? I'm fishing for compliments! 🎣💅",
+                "I'm bored! Someone ask me what I think about crypto or relationships! 😘💕"
+            ]
+            
+            message = random.choice(attention_messages)
+            
+            # Add user tagging to get their attention
+            if recent_users and len(recent_users) > 0:
+                tagged_user = random.choice(recent_users)
+                message += f"\n\n@{tagged_user} especially you! Don't ignore your babygirl! 😉💖"
+            
+            bot.send_message(group_id, message)
+            logger.info(f"📝 Sent static attention-seeking message to {group_id}")
         
     except Exception as e:
-        logger.error(f"Error sending attention-seeking message to {group_id}: {e}") 
+        logger.error(f"Error sending attention-seeking message to {group_id}: {e}")
 
 # Schedule periodic checks
 scheduler.add_job(check_boyfriend_term, 'interval', minutes=1)
