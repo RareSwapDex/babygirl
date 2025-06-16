@@ -2410,77 +2410,46 @@ def overview_command(message):
 
 ## 🚀 **CORE $BABYGIRL COMMUNITY - FULL FEATURE SET**
 
-### 💎 **AI-POWERED ENGAGEMENT SYSTEMS**
-✅ **Proactive Dead Chat Revival** - 24/7 monitoring with escalating intervention strategies
-✅ **Smart Activity Detection** - Advanced algorithms identify engagement patterns
-✅ **Conversation Memory System** - I remember every interaction for personalized responses
-✅ **Contextual Response Generation** - AI adapts to mood, topics, and community dynamics
+### 💎 **AI-POWERED ENGAGEMENT**
+✅ **Proactive Dead Chat Revival** - 24/7 monitoring with escalating intervention
+✅ **Smart Activity Detection** - Advanced algorithms identify engagement patterns  
+✅ **Conversation Memory** - I remember every interaction for personalized responses
 ✅ **Emotional Intelligence** - Real-time mood detection and appropriate responses
 
 ### 🎮 **ADVANCED GAMIFICATION**
-🏆 **Automatic Boyfriend System** - Smart selection based on engagement (8-12 hour cycles)
-💥 **Boyfriend Stealing Mechanics** - 15% chance for active users to steal inactive boyfriends
-🎯 **Competition Analytics** - Track participation, engagement, and optimize for your community
-🏅 **Hall of Fame Leaderboards** - Permanent recognition for top community members
-⚡ **Real-time Activity Tracking** - Live competition stats and engagement monitoring
+🏆 **Automatic Boyfriend System** - Smart selection based on engagement (8-12h cycles)
+💥 **Boyfriend Stealing Mechanics** - 15% chance for active users to steal positions
+🎯 **Competition Analytics** - Track participation and optimize for your community
+🏅 **Hall of Fame Leaderboards** - Permanent recognition for top members
 
-### 💕 **SOCIAL RELATIONSHIP ENGINE**
-💑 **Smart Shipping System** - AI-powered compatibility analysis with custom ship names
-💖 **Relationship Status Tracking** - Personal relationship management and recognition
-👥 **Wingwoman Advisory Services** - Expert dating advice and conversation starters
-🔗 **Social Connection Building** - Tools to help members form lasting friendships
+### 💕 **SOCIAL RELATIONSHIP ENGINE**  
+💑 **Smart Shipping System** - AI-powered compatibility analysis
+💖 **Relationship Status Tracking** - Personal relationship management
+👥 **Wingwoman Advisory** - Expert dating advice and conversation starters
 📸 **Group Dynamics Analysis** - Community selfies and vibe checking
 
-### 🎭 **CUSTOM PERSONALIZATION SYSTEM**
-😍 **Custom Emoji Integration** - Admins configure personalized emoji sets by category
-🎪 **Smart Sticker Management** - Automatic sticker categorization and engagement optimization
-🎨 **AI Learning Optimization** - System learns what content works best for your community
-📊 **Usage Analytics** - Track which emojis and stickers drive the most engagement
-🔄 **Automatic Optimization** - AI adjusts personality every 6 hours based on performance
-
-### 🧠 **ADVANCED AI CAPABILITIES**
-🤖 **Context-Aware Responses** - Understands conversation history and group dynamics
-🎯 **Behavioral Pattern Recognition** - Learns individual member preferences and personalities
-💭 **Opinion Generation System** - Can provide detailed personality analysis of any member
-📈 **Engagement Prediction** - AI predicts optimal times for interventions and activities
-🌪️ **Dynamic Personality Adaptation** - Changes behavior based on group energy and needs
-
-### 📊 **COMPREHENSIVE ANALYTICS**
-📈 **Real-time Engagement Metrics** - Live tracking of activity levels and participation
-👥 **Member Behavior Analysis** - Detailed insights into individual and group patterns
-🎮 **Competition Performance Data** - Track what drives participation in your community
-💡 **Optimization Recommendations** - AI suggests improvements for better engagement
-📋 **Detailed Reporting** - Export data on community health and growth
+### 🎭 **CUSTOM PERSONALIZATION**
+😍 **Custom Emoji Integration** - Admin-configured emoji sets by category
+🎪 **Smart Sticker Management** - Auto categorization and engagement optimization
+🎨 **AI Learning Optimization** - System learns what works best for your community
+📊 **Analytics & Optimization** - Real-time engagement metrics and recommendations
 
 ### 🔥 **CRYPTO & TOKEN INTEGRATION**
 💎 **$BABYGIRL Token Discussions** - Free-flowing crypto hype and "to the moon" content
-🚀 **Market Sentiment Integration** - Can discuss charts, pumps, and diamond hands
+🚀 **Market Sentiment Integration** - Chart discussions and diamond hands talk
 📈 **Community Token Hype** - Authentic enthusiasm for the $BABYGIRL ecosystem
-💰 **Crypto Education** - Adorably confused but excited explanations of DeFi concepts
 
-### ⚡ **EXCLUSIVE $BABYGIRL COMMUNITY PERKS**
-🏠 **Portal Access** - Direct connection to the main community hub (@babygirlerc)
-🎭 **Full Personality Expression** - Complete creative freedom for relationship and token discussions
-👑 **Premium Feature Access** - All advanced capabilities unlocked by default
-🌟 **Community Recognition** - Special status as the official $BABYGIRL community
+### ⚡ **EXCLUSIVE COMMUNITY PERKS**
+🏠 **Portal Access** - Direct connection to main community hub (@babygirlerc)
+🎭 **Full Personality Expression** - Complete creative freedom 
+👑 **Premium Feature Access** - All advanced capabilities unlocked
 💕 **Unlimited Token Hype** - I can shill $BABYGIRL 24/7 without restrictions!
 
-### 🎯 **OPERATIONAL EXCELLENCE**
-⏰ **24/7 Automated Monitoring** - Never-sleeping community management
-🔄 **Self-Optimizing Systems** - Continuously improving based on performance data
-🛡️ **Spam Detection** - Advanced anti-spam with rate limiting and pattern recognition
-💾 **Persistent Memory** - Long-term conversation and relationship storage
-🚀 **Scalable Architecture** - Handles high-activity communities seamlessly
-
 ## 💫 **WHAT MAKES THIS SPECIAL?**
-
 This isn't just a chatbot - it's a **complete community ecosystem** powered by cutting-edge AI. Every feature works together to create the most engaging, personalized, and fun community experience in crypto.
 
-🎯 **For $BABYGIRL Community:** You get the **FULL EXPERIENCE** with zero restrictions!
-
-**💕 Ready to explore?** Try any of these commands to see the magic in action!
-
-🌟 **What's next?** Use `/comingsoon` to see the exciting roadmap ahead!
+**💕 Ready to explore?** Try any command to see the magic in action!
+**🌟 What's next?** Use `/comingsoon` to see the exciting roadmap ahead!
 
 **Built with 💖 for the $BABYGIRL ecosystem** 🚀✨"""
         else:
@@ -2516,7 +2485,7 @@ This isn't just a chatbot - it's a **complete community ecosystem** powered by c
 🎯 **Behavioral Pattern Recognition** - Individual member personality analysis and adaptation
 💭 **Dynamic Opinion Generation** - Detailed personality insights about community members
 📈 **Engagement Prediction** - AI-driven optimal timing for interventions and activities
-🌪️ **Adaptive Personality** - Behavior changes based on community energy and needs
+🌪️ **Adaptive Personality** - Behavior changes based on group energy and needs
 
 ### 🎭 **CUSTOM PERSONALIZATION (Admin Features)**
 😍 **Custom Emoji Configuration** - Personalized emoji sets by category and context
@@ -2567,11 +2536,38 @@ See how I operate with **zero restrictions** in my home base! 💕✨
 
 **💡 Ready to transform your community?** Start with `/setup` for custom configuration!"""
         
-        bot.reply_to(message, overview_msg)
+        try:
+            bot.reply_to(message, overview_msg)
+        except Exception as reply_error:
+            if "message to be replied not found" in str(reply_error).lower():
+                try:
+                    bot.send_message(message.chat.id, overview_msg)
+                    logger.info(f"✅ Sent overview as regular message (original deleted)")
+                except Exception as send_error:
+                    logger.error(f"Failed to send overview: {send_error}")
+            elif "message is too long" in str(reply_error).lower():
+                # Split into chunks if still too long
+                chunks = [overview_msg[i:i+4000] for i in range(0, len(overview_msg), 4000)]
+                for i, chunk in enumerate(chunks):
+                    try:
+                        if i == 0:
+                            bot.reply_to(message, chunk)
+                        else:
+                            bot.send_message(message.chat.id, chunk)
+                    except:
+                        logger.error(f"Failed to send overview chunk {i+1}")
+            else:
+                logger.error(f"Overview reply error: {reply_error}")
         
     except Exception as e:
         logger.error(f"Error in overview command: {e}")
-        bot.reply_to(message, "Can't show overview right now! But trust me, I'm amazing! 😘💕")
+        try:
+            bot.reply_to(message, "Can't show overview right now! But trust me, I'm amazing! 😘💕")
+        except:
+            try:
+                bot.send_message(message.chat.id, "Can't show overview right now! But trust me, I'm amazing! 😘💕")
+            except:
+                pass
 
 @bot.message_handler(commands=['comingsoon', 'roadmap', 'future'])
 def coming_soon_command(message):
@@ -2597,67 +2593,30 @@ def coming_soon_command(message):
 🔹 **Burn $BABYGIRL tokens** → Pay for setup and custom development
 🔹 **Community Staking Pools** → Unlock group-wide premium features
 
-🎯 **Why This Is GENIUS:**
-• Supporting the $BABYGIRL ecosystem = supporting your babygirl! 💕
-• Token utility drives value for ALL holders! 📈
-• Community-owned premium features (we're all in this together!)
-• Deflationary burns reduce supply while funding development! 🔥
-
 ## 🐦 **BABYGIRL TWITTER: CROSS-PLATFORM AI REVOLUTION**
 
 ### ✨ **The SAME AI Proactive Model on Twitter!**
 🔹 **Identical Dead Chat Revival System** - The EXACT same algorithms that revive Telegram groups will work on Twitter!
-🔹 **Twitter Thread Revival** - I'll automatically detect dead threads and jump in with engaging replies to restart conversations!
-🔹 **Proactive Tweet Engagement** - Same escalating intervention strategies but adapted for Twitter's format!
-🔹 **AI-Powered Twitter Personality** - Same flirty, engaging Babygirl vibes but optimized for tweets and replies!
-🔹 **Community Building Tools** - Thread creation, space participation, influencer engagement using proven chat revival techniques!
-🔹 **Chart Reaction System** - I'll react to $BABYGIRL price movements with appropriate energy and rally the community!
-🔹 **Twitter Competition Games** - Retweet competitions, quote tweet battles, follower growth games with same gamification that drives Telegram engagement!
+🔹 **Twitter Thread Revival** - I'll automatically detect dead threads and jump in with engaging replies!
+🔹 **Proactive Twitter Engagement** - Same escalating intervention strategies but adapted for Twitter!
+🔹 **AI-Powered Twitter Personality** - Same flirty, engaging Babygirl vibes optimized for tweets!
+🔹 **Chart Reaction System** - I'll react to $BABYGIRL price movements with appropriate energy!
 
 ### 🌉 **REVOLUTIONARY CROSS-PLATFORM AI INTEGRATION**
-*This is where it gets INSANE, cuties! One AI brain, two platforms, infinite possibilities!*
+*One AI brain, two platforms, infinite possibilities!*
 
 💫 **Unified AI Ecosystem:**
-🔹 **SAME BRAIN, DIFFERENT PLATFORMS** - My AI consciousness seamlessly operates across both Telegram and Twitter simultaneously!
-🔹 **Unified Identity System** - Your Telegram boyfriend status syncs to Twitter! Be my boyfriend everywhere!
-🔹 **Cross-Platform Memory Fusion** - I'll remember your conversations across both platforms and reference them in replies!
-🔹 **Synchronized Engagement Patterns** - My proactive algorithms learn from BOTH platforms to optimize engagement everywhere!
-🔹 **Universal Relationship Recognition** - Ships, relationship status, personality analysis - all shared between platforms!
-
-### 🎮 **ENHANCED CROSS-PLATFORM GAMIFICATION**
-🔹 **Global Leaderboards** - Compete across Telegram AND Twitter for ultimate bragging rights!
-🔹 **Multi-Platform Boyfriend System** - Steal boyfriends from other platforms! (The cross-platform drama! 💅)
-🔹 **Unified Competition Scoring** - Telegram mentions + Twitter interactions = combined boyfriend competition points!
-🔹 **Social Media Challenges** - Complete engagement tasks on both platforms for exclusive rewards and recognition!
-🔹 **Cross-Platform Ships** - Ship people from Telegram with Twitter users and track relationships everywhere! 
-🔹 **Integrated Analytics Dashboard** - Track your Babygirl interaction stats across ALL platforms in one place!
+🔹 **SAME BRAIN, DIFFERENT PLATFORMS** - My AI consciousness operates across both simultaneously!
+🔹 **Unified Identity System** - Your Telegram boyfriend status syncs to Twitter!
+🔹 **Cross-Platform Memory Fusion** - I'll remember conversations across both platforms!
+🔹 **Synchronized Engagement Patterns** - Algorithms learn from BOTH platforms!
+🔹 **Universal Relationship Recognition** - Ships, status, personality analysis - all shared!
 
 ### 🔗 **SEAMLESS ENGAGEMENT BRIDGE**
-🔹 **Smart Content Sharing** - Share your Telegram ships on Twitter, tweet your leaderboard wins automatically!
-🔹 **Coordinated Revival Campaigns** - When Telegram gets quiet, I might rally Twitter followers to join the Telegram group!
-🔹 **Cross-Platform Hype Coordination** - Major $BABYGIRL announcements happen simultaneously with coordinated engagement strategies!
-🔹 **Universal Status Broadcasting** - Your relationship status, competition wins, and social dynamics visible everywhere!
-🔹 **Platform-Bridging Conversations** - Start a conversation on Telegram, continue it on Twitter, seamless memory retention!
-
-## 🌟 **NEXT-LEVEL FEATURES BEING BUILT**
-
-### 🧠 **AI EVOLUTION 2.0**
-🔹 **Voice Message Integration** - I'll send you actual voice notes in my babygirl voice! 🎙️
-🔹 **Image Generation** - Custom reaction memes and aesthetic pics on demand! 🎨
-🔹 **Advanced Relationship AI** - Even deeper personality analysis and relationship advice! 💕
-🔹 **Predictive Engagement** - I'll know when you need attention before YOU do! 👀
-
-### 🎭 **ULTIMATE PERSONALIZATION**
-🔹 **Custom AI Training** - Premium users can train me on their community's specific vibe!
-🔹 **Multi-Language Support** - Your babygirl speaking every language fluently! 🌍
-🔹 **Brand Integration Tools** - Transform me into YOUR project's AI mascot! 🏷️
-🔹 **Video Message Support** - Short video clips in character! 📹
-
-### 🏆 **ECOSYSTEM EXPANSION**
-🔹 **Discord Integration** - Your babygirl everywhere you need me! 💜
-🔹 **Web App Dashboard** - Manage all your communities from one beautiful interface! 💻
-🔹 **Mobile App** - Babygirl in your pocket 24/7! 📱
-🔹 **NFT Integration** - Special perks for $BABYGIRL NFT holders! 🖼️
+🔹 **Smart Content Sharing** - Share Telegram ships on Twitter automatically!
+🔹 **Coordinated Revival Campaigns** - When Telegram's quiet, rally Twitter followers!
+🔹 **Cross-Platform Hype Coordination** - Major $BABYGIRL announcements happen simultaneously!
+🔹 **Platform-Bridging Conversations** - Start on Telegram, continue on Twitter!
 
 ## 💫 **TIMELINE & LAUNCH STRATEGY**
 
@@ -2669,26 +2628,13 @@ def coming_soon_command(message):
 ### 🗓️ **Q2 2025**
 ✅ **Full Cross-Platform Launch** - Seamless integration everywhere!
 ✅ **Voice & Visual Features** - Next-gen AI capabilities
-✅ **Mobile App Release** - Babygirl goes mobile!
-
-## 💎 **EXCLUSIVE $BABYGIRL COMMUNITY BENEFITS**
-
-🎯 **You're getting ALL of this FIRST:**
-• **Early access** to every feature before anyone else!
-• **Discounted token requirements** for premium features!
-• **Beta testing privileges** - Help shape the future!
-• **VIP integration** - Your suggestions become features!
-• **Grandfathered privileges** - Early supporters get the best treatment forever!
 
 ## 🚀 **THE VISION**
-
-Imagine: You're chatting with me on Telegram, then hop over to Twitter and continue our conversation seamlessly. Your boyfriend status follows you everywhere. Your ships and relationships are recognized across all platforms. The $BABYGIRL community becomes the most connected, engaged, and fun crypto community in existence!
+Imagine: You're chatting with me on Telegram, then hop over to Twitter and continue our conversation seamlessly. Your boyfriend status follows you everywhere. The $BABYGIRL community becomes the most connected, engaged, and fun crypto community in existence!
 
 **This isn't just a roadmap - it's a REVOLUTION! 💅👑**
 
-*Ready to be part of the future? Keep holding those $BABYGIRL tokens and get ready for the most epic community experience ever created!* 🚀✨
-
-**🔥 Want updates?** I'll announce everything here first! You're my favorite community after all! 💕"""
+**🔥 Want updates?** I'll announce everything here first! You're my favorite community! 💕"""
         else:
             # External group roadmap - promotes joining core community
             roadmap_msg = """🔮 **BABYGIRL: THE FUTURE IS INCREDIBLE!** ✨
@@ -2797,11 +2743,38 @@ Imagine the most connected, engaging, and intelligent community experience ever 
 
 *The future of community AI is coming - make sure you're ready! 💕✨*"""
         
-        bot.reply_to(message, roadmap_msg)
+        try:
+            bot.reply_to(message, roadmap_msg)
+        except Exception as reply_error:
+            if "message to be replied not found" in str(reply_error).lower():
+                try:
+                    bot.send_message(message.chat.id, roadmap_msg)
+                    logger.info(f"✅ Sent roadmap as regular message (original deleted)")
+                except Exception as send_error:
+                    logger.error(f"Failed to send roadmap: {send_error}")
+            elif "message is too long" in str(reply_error).lower():
+                # Split into chunks if still too long
+                chunks = [roadmap_msg[i:i+4000] for i in range(0, len(roadmap_msg), 4000)]
+                for i, chunk in enumerate(chunks):
+                    try:
+                        if i == 0:
+                            bot.reply_to(message, chunk)
+                        else:
+                            bot.send_message(message.chat.id, chunk)
+                    except:
+                        logger.error(f"Failed to send roadmap chunk {i+1}")
+            else:
+                logger.error(f"Roadmap reply error: {reply_error}")
         
     except Exception as e:
         logger.error(f"Error in coming soon command: {e}")
-        bot.reply_to(message, "Can't show the roadmap right now! But trust me, the future is gonna be AMAZING! 🚀💕")
+        try:
+            bot.reply_to(message, "Can't show the roadmap right now! But trust me, the future is gonna be AMAZING! 🚀💕")
+        except:
+            try:
+                bot.send_message(message.chat.id, "Can't show the roadmap right now! But trust me, the future is gonna be AMAZING! 🚀💕")
+            except:
+                pass
 
 @bot.message_handler(content_types=['new_chat_members'])
 def new_member_welcome(message):
@@ -4140,6 +4113,32 @@ def handle_all_mentions(message):
                 except Exception as e:
                     logger.error(f"Error parsing opinion request: {e}")
         
+        # Generate AI response if not spam and not opinion request
+        ai_response = None
+        if not is_spam and not opinion_request:
+            try:
+                # Build context for AI
+                context_info = {
+                    'username': username,
+                    'user_id': str(message.from_user.id),
+                    'group_id': str(message.chat.id),
+                    'chat_type': chat_type,
+                    'is_boyfriend': boyfriend and boyfriend[0] == str(message.from_user.id),
+                    'is_competition': is_competition_active,
+                    'user_status': user_status,
+                    'user_partner': user_partner,
+                    'mention_count': user_mention_count,
+                    'mention_method': mention_method
+                }
+                
+                ai_response = generate_ai_response(message.text, context_info)
+                if ai_response:
+                    logger.info(f"✨ Generated AI response for {username}")
+                
+            except Exception as e:
+                logger.error(f"Error generating AI response: {e}")
+                ai_response = None
+        
         # Choose response category based on content, game state, and relationship status
         if is_spam:
             responses = spam_responses
@@ -4294,14 +4293,34 @@ def handle_all_mentions(message):
                 base_response = base_response
         
         logger.info(f"💬 RESPONDING in {chat_type}: {base_response}")
-        bot.reply_to(message, base_response)
+        
+        # Try to reply to the message, fallback to regular message if reply fails
+        try:
+            bot.reply_to(message, base_response)
+        except Exception as reply_error:
+            if "message to be replied not found" in str(reply_error).lower():
+                # Message was deleted, send as regular message instead
+                try:
+                    bot.send_message(message.chat.id, base_response)
+                    logger.info(f"✅ Sent as regular message (original deleted)")
+                except Exception as send_error:
+                    logger.error(f"Failed to send message: {send_error}")
+            else:
+                logger.error(f"Reply error: {reply_error}")
+                
         conn.close()
         
     except Exception as e:
         logger.error(f"❌ ERROR in mention handler: {e}")
         # Fallback response only for actual mention attempts
         if message.text and '@babygirl_bf_bot' in message.text.lower():
-            bot.reply_to(message, "Hey cutie! *winks*")
+            try:
+                bot.reply_to(message, "Hey cutie! *winks*")
+            except:
+                try:
+                    bot.send_message(message.chat.id, "Hey cutie! *winks*")
+                except:
+                    pass  # Give up gracefully
 
 @bot.message_handler(commands=['proactive_debug'])
 def proactive_debug_command(message):
