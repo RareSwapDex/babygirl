@@ -1893,7 +1893,7 @@ Add me to your group and use /start to see immediate results!
 ⚙️ **ADMIN CONFIGURATION (Admins Only):**
 /setup - Configure custom token and group settings  
 /analytics - View engagement metrics and insights
-/upgrade - See premium features and pricing
+/upgrade - See premium features and token requirements
 
 🚀 **Quick Token Setup:** `/setup token YOURTOKEN YTK yourwebsite.com`
 📊 **Track Progress:** `/analytics` for detailed engagement data
@@ -2908,7 +2908,7 @@ def analytics_command(message):
 • {'Your revival frequency is optimal!' if group_settings and group_settings['revival_frequency'] <= 20 else 'Consider reducing revival frequency with /setup revival 15'}
 • {'✅ Token hype active!' if group_settings and group_settings['token_discussions_enabled'] else '🚀 Add token config for more engagement!'}
 
-**🎯 Want more insights?** Premium analytics unlock detailed metrics!"""
+**🎯 Want more insights?** Premium analytics unlock detailed metrics! (Coming soon with $BABYGIRL token integration!)"""
         
         bot.reply_to(message, analytics_msg)
         conn.close()
@@ -2921,10 +2921,11 @@ def analytics_command(message):
 def upgrade_command(message):
     """Show upgrade options and premium features"""
     upgrade_msg = """💎 **PREMIUM UPGRADE OPTIONS** 💎
+*🚧 COMING SOON - Token-Based Upgrades! 🚧*
 
 **🚀 Transform Your Community with Premium Features!**
 
-**✨ Premium Tier ($50/month):**
+**✨ Premium Tier (Hold $BABYGIRL Tokens):**
 • **Custom AI Training** - Personalized responses for your brand
 • **Advanced Analytics** - Detailed engagement insights & trends
 • **Custom Branding** - Your colors, emojis, and personality tweaks
@@ -2933,7 +2934,7 @@ def upgrade_command(message):
 • **White-Label Options** - Remove Babygirl branding
 • **Custom Commands** - Build your own command aliases
 
-**🔥 Enterprise Tier ($200/month):**
+**🔥 Enterprise Tier (Large $BABYGIRL Holdings):**
 • Everything in Premium
 • **Custom Bot Instance** - Your own branded version
 • **API Access** - Integrate with your existing tools  
@@ -2941,16 +2942,22 @@ def upgrade_command(message):
 • **Dedicated Support** - Your own success manager
 • **Multi-Platform** - Discord, web integration options
 
-**🎯 Why Upgrade?**
-• Transform dead chats into thriving communities
-• Increase daily active users by 300%+ 
-• Custom token integration drives engagement
-• Professional community management automation
+**🪙 TOKEN-POWERED UPGRADES:**
+• **Pay with $BABYGIRL** - Support the ecosystem while upgrading!
+• **Hold to Unlock** - Keep tokens in wallet for ongoing benefits
+• **Community Rewards** - Token holders get exclusive features
+• **Deflationary Benefits** - Usage burns tokens, increasing value
 
-**💰 Ready to Upgrade?**
-Contact @YourTeam for setup and pricing!
+**🎯 Why Token-Based Upgrades?**
+• Support the $BABYGIRL ecosystem directly
+• Align community growth with token value
+• Exclusive holder benefits and privileges
+• True community-owned premium features
 
-**🆓 Current Features:** Chat revival, competitions, basic token support remain free! 💕"""
+**🔮 COMING SOON:**
+We're building the token integration system! Follow @babygirlerc for updates on launch!
+
+**🆓 Current Features:** Chat revival, competitions, basic token support remain free forever! 💕"""
     
     bot.reply_to(message, upgrade_msg)
 
@@ -3612,19 +3619,30 @@ This will make me discuss your token with the same enthusiasm as $BABYGIRL! 🚀
         elif setup_args in ['premium', 'upgrade']:
             # Premium upgrade
             bot.reply_to(message, """💎 **PREMIUM UPGRADE AVAILABLE!**
+*🚧 COMING SOON - Token-Based System! 🚧*
 
-**🚀 Premium Features:**
-• Advanced AI responses with custom training
-• Cross-group analytics and insights  
-• Custom branding and personality tweaks
-• Priority support and custom features
-• White-label options for your brand
-• Advanced competition scheduling
-• Custom command aliases
+**🚀 Premium Features (Unlock with $BABYGIRL Holdings):**
+• **Advanced AI Responses** - Custom training for your community
+• **Cross-Group Analytics** - Detailed insights and engagement tracking  
+• **Custom Branding** - Your colors, emojis, and personality tweaks
+• **Priority Support** - Direct access to development team
+• **White-Label Options** - Remove Babygirl branding for your brand
+• **Advanced Competition Scheduling** - Custom game mechanics
+• **Custom Command Aliases** - Build commands that fit your community
 
-**💰 Pricing:** Contact @YourUsername for premium setup!
+**🪙 How Token Upgrades Will Work:**
+• **Hold $BABYGIRL** tokens in your wallet to unlock features
+• **Pay with $BABYGIRL** for setup and custom development
+• **Burn Mechanism** - Usage helps reduce token supply
+• **Community Benefits** - All token holders get ecosystem perks
 
-**🎯 Ready to upgrade?** Premium transforms me into your branded community AI! 🔥💕""")
+**🔮 DEVELOPMENT STATUS:**
+We're building the wallet integration system right now! This will be the first major utility for $BABYGIRL tokens.
+
+**📺 Stay Updated:** 
+Follow @babygirlerc for launch announcements and early access!
+
+**🎯 Ready to be first in line?** Start accumulating $BABYGIRL tokens now! Premium transforms me into your branded community AI! 🔥💕""")
             
         else:
             bot.reply_to(message, """❌ **Unknown setup option!**
