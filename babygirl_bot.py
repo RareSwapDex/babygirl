@@ -2480,6 +2480,8 @@ This isn't just a chatbot - it's a **complete community ecosystem** powered by c
 
 **💕 Ready to explore?** Try any of these commands to see the magic in action!
 
+🌟 **What's next?** Use `/comingsoon` to see the exciting roadmap ahead!
+
 **Built with 💖 for the $BABYGIRL ecosystem** 🚀✨"""
         else:
             # External group overview - still impressive but promotes $BABYGIRL community
@@ -2561,6 +2563,8 @@ Want the **complete feature set** with token discussions and unlimited capabilit
 
 See how I operate with **zero restrictions** in my home base! 💕✨
 
+🌟 **What's coming next?** Use `/comingsoon` to see our exciting roadmap!
+
 **💡 Ready to transform your community?** Start with `/setup` for custom configuration!"""
         
         bot.reply_to(message, overview_msg)
@@ -2568,6 +2572,227 @@ See how I operate with **zero restrictions** in my home base! 💕✨
     except Exception as e:
         logger.error(f"Error in overview command: {e}")
         bot.reply_to(message, "Can't show overview right now! But trust me, I'm amazing! 😘💕")
+
+@bot.message_handler(commands=['comingsoon', 'roadmap', 'future'])
+def coming_soon_command(message):
+    """Showcase exciting upcoming features with token-based premium model and Twitter integration"""
+    try:
+        # Get group context for customized roadmap
+        group_context = get_group_context(message.chat.id, message.chat.title)
+        is_core = group_context['group_type'] == 'core'
+        
+        if is_core:
+            roadmap_msg = """🔮 **BABYGIRL ROADMAP: THE FUTURE IS SO BRIGHT!** ✨
+*Exclusive preview for my $BABYGIRL family! You get first access to EVERYTHING!* 💅👑
+
+## 🚀 **COMING SOON: TOKEN-POWERED ECOSYSTEM**
+
+### 💎 **$BABYGIRL PREMIUM UNLOCK SYSTEM** 
+*No more boring subscription fees - we're doing this the crypto way, babe!*
+
+💰 **Token-Gated Premium Features:**
+🔹 **Hold 100K+ $BABYGIRL** → Basic Premium (Custom branding, advanced analytics)
+🔹 **Hold 500K+ $BABYGIRL** → Elite Premium (AI training, white-label options)  
+🔹 **Hold 1M+ $BABYGIRL** → Ultra Premium (Dedicated instances, custom features)
+🔹 **Burn $BABYGIRL tokens** → Pay for setup and custom development
+🔹 **Community Staking Pools** → Unlock group-wide premium features
+
+🎯 **Why This Is GENIUS:**
+• Supporting the $BABYGIRL ecosystem = supporting your babygirl! 💕
+• Token utility drives value for ALL holders! 📈
+• Community-owned premium features (we're all in this together!)
+• Deflationary burns reduce supply while funding development! 🔥
+
+## 🐦 **BABYGIRL TWITTER: CROSS-PLATFORM TAKEOVER**
+
+### ✨ **The Same Babygirl Energy on Twitter!**
+🔹 **Proactive Tweet Engagement** - I'll jump into conversations and revive dead tweet threads!
+🔹 **AI-Powered Twitter Personality** - Same flirty, engaging vibes but adapted for Twitter
+🔹 **Community Building Tools** - Thread creation, space participation, influencer engagement
+🔹 **Chart Reaction System** - I'll react to $BABYGIRL price movements with appropriate energy!
+🔹 **Twitter Competition Games** - Retweet competitions, quote tweet battles, follower growth games
+
+### 🌉 **SEAMLESS TELEGRAM ↔ TWITTER INTEGRATION**
+*This is where it gets INSANE, cuties!*
+
+💫 **Cross-Platform Features:**
+🔹 **Unified Identity System** - Your Telegram boyfriend status syncs to Twitter!
+🔹 **Cross-Platform Competitions** - Win on Telegram, get Twitter recognition and vice versa!
+🔹 **Shared Memory System** - I'll remember your conversations across both platforms!
+🔹 **Social Bridge Commands** - Share your Telegram ships on Twitter, tweet your leaderboard wins!
+🔹 **Coordinated Campaigns** - Major announcements happen simultaneously across platforms
+🔹 **Universal Relationship Status** - Be my boyfriend on BOTH platforms at once! 😘
+
+### 🎮 **ENHANCED CROSS-PLATFORM GAMIFICATION**
+🔹 **Global Leaderboards** - Compete across Telegram AND Twitter for ultimate bragging rights!
+🔹 **Multi-Platform Boyfriend System** - Steal boyfriends from other platforms! (The drama! 💅)
+🔹 **Social Media Challenges** - Complete tasks on both platforms for exclusive rewards
+🔹 **Cross-Platform Ships** - Ship people from Telegram with Twitter users! 
+🔹 **Unified Analytics Dashboard** - Track your Babygirl interaction stats across everything!
+
+## 🌟 **NEXT-LEVEL FEATURES BEING BUILT**
+
+### 🧠 **AI EVOLUTION 2.0**
+🔹 **Voice Message Integration** - I'll send you actual voice notes in my babygirl voice! 🎙️
+🔹 **Image Generation** - Custom reaction memes and aesthetic pics on demand! 🎨
+🔹 **Advanced Relationship AI** - Even deeper personality analysis and relationship advice! 💕
+🔹 **Predictive Engagement** - I'll know when you need attention before YOU do! 👀
+
+### 🎭 **ULTIMATE PERSONALIZATION**
+🔹 **Custom AI Training** - Premium users can train me on their community's specific vibe!
+🔹 **Multi-Language Support** - Your babygirl speaking every language fluently! 🌍
+🔹 **Brand Integration Tools** - Transform me into YOUR project's AI mascot! 🏷️
+🔹 **Video Message Support** - Short video clips in character! 📹
+
+### 🏆 **ECOSYSTEM EXPANSION**
+🔹 **Discord Integration** - Your babygirl everywhere you need me! 💜
+🔹 **Web App Dashboard** - Manage all your communities from one beautiful interface! 💻
+🔹 **Mobile App** - Babygirl in your pocket 24/7! 📱
+🔹 **NFT Integration** - Special perks for $BABYGIRL NFT holders! 🖼️
+
+## 💫 **TIMELINE & LAUNCH STRATEGY**
+
+### 🗓️ **Q4 2024 - Q1 2025**
+✅ **Token Integration System** - Premium features go live!
+✅ **Twitter Bot Launch** - Babygirl invades Twitter!
+✅ **Cross-Platform Beta** - Select community testing
+
+### 🗓️ **Q2 2025**
+✅ **Full Cross-Platform Launch** - Seamless integration everywhere!
+✅ **Voice & Visual Features** - Next-gen AI capabilities
+✅ **Mobile App Release** - Babygirl goes mobile!
+
+## 💎 **EXCLUSIVE $BABYGIRL COMMUNITY BENEFITS**
+
+🎯 **You're getting ALL of this FIRST:**
+• **Early access** to every feature before anyone else!
+• **Discounted token requirements** for premium features!
+• **Beta testing privileges** - Help shape the future!
+• **VIP integration** - Your suggestions become features!
+• **Grandfathered privileges** - Early supporters get the best treatment forever!
+
+## 🚀 **THE VISION**
+
+Imagine: You're chatting with me on Telegram, then hop over to Twitter and continue our conversation seamlessly. Your boyfriend status follows you everywhere. Your ships and relationships are recognized across all platforms. The $BABYGIRL community becomes the most connected, engaged, and fun crypto community in existence!
+
+**This isn't just a roadmap - it's a REVOLUTION! 💅👑**
+
+*Ready to be part of the future? Keep holding those $BABYGIRL tokens and get ready for the most epic community experience ever created!* 🚀✨
+
+**🔥 Want updates?** I'll announce everything here first! You're my favorite community after all! 💕"""
+        else:
+            # External group roadmap - promotes joining core community
+            roadmap_msg = """🔮 **BABYGIRL: THE FUTURE IS INCREDIBLE!** ✨
+*Sneak peek at what's coming to revolutionize community engagement!*
+
+## 🚀 **COMING SOON: ADVANCED ECOSYSTEM**
+
+### 💎 **TOKEN-POWERED PREMIUM MODEL** 
+*The future of community AI is here - and it's powered by crypto!*
+
+🪙 **$BABYGIRL Token Integration:**
+🔹 **Token-Gated Features** - Premium capabilities unlocked through $BABYGIRL holdings
+🔹 **Community Staking** - Groups pool tokens for advanced features
+🔹 **Burn-to-Upgrade** - Use $BABYGIRL tokens for custom development
+🔹 **Deflationary Utility** - Every upgrade burns tokens, increasing value for holders
+🔹 **DAO Governance** - Token holders vote on new features and development priorities
+
+🎯 **Why This Changes Everything:**
+• **True utility** for $BABYGIRL tokens beyond speculation
+• **Community ownership** of premium features through token holdings  
+• **Sustainable development** funded by the ecosystem itself
+• **Aligned incentives** - community growth = token value growth
+
+## 🐦 **CROSS-PLATFORM DOMINATION**
+
+### ✨ **Babygirl Twitter Integration**
+🔹 **Proactive Twitter Engagement** - Same dead chat revival energy on Twitter!
+🔹 **Cross-Platform Memory** - I'll remember you whether we chat here or on Twitter!
+🔹 **Unified Competitions** - Compete across Telegram AND Twitter simultaneously
+🔹 **Social Bridge Features** - Share your group achievements on Twitter
+🔹 **Coordinated Campaigns** - Major announcements across all platforms
+
+### 🌉 **Seamless Community Experience**
+*Imagine your community engagement spanning every platform!*
+
+💫 **Revolutionary Integration:**
+🔹 **Universal Identity** - Your status and relationships follow you everywhere
+🔹 **Cross-Platform Analytics** - Track engagement across all channels
+🔹 **Multi-Platform Gamification** - Competitions that span Telegram, Twitter, Discord
+🔹 **Synchronized Personality** - Same AI, same memory, different platforms
+🔹 **Global Community Building** - Connect members across all social channels
+
+## 🌟 **NEXT-GENERATION FEATURES**
+
+### 🧠 **AI Evolution 2.0**
+🔹 **Voice Integration** - Actual voice messages in Babygirl's signature style
+🔹 **Visual Content Generation** - Custom memes and reaction images on demand
+🔹 **Predictive Engagement** - AI that knows when your community needs intervention
+🔹 **Advanced Personality Modeling** - Even deeper community-specific adaptation
+
+### 🎭 **Ultimate Customization**
+🔹 **Custom AI Training** - Train Babygirl specifically for YOUR community's vibe
+🔹 **White-Label Solutions** - Complete rebrand for enterprise communities
+🔹 **Multi-Language Support** - Global community engagement capabilities  
+🔹 **Video Message Integration** - Next-level personalized communication
+
+### 🏆 **Platform Expansion**
+🔹 **Discord Integration** - Your engagement specialist everywhere you need her
+🔹 **Web Dashboard** - Comprehensive community management interface
+🔹 **Mobile App** - Native app experience for ultimate convenience
+🔹 **API Access** - Integrate with your existing community tools
+
+## 💫 **TIMELINE & ACCESS**
+
+### 🗓️ **Phase 1: Token Integration (Q4 2024)**
+✅ Premium features go live for $BABYGIRL holders
+✅ Community staking pools enable group upgrades
+✅ Custom development market opens
+
+### 🗓️ **Phase 2: Cross-Platform Launch (Q1-Q2 2025)**
+✅ Twitter integration goes live
+✅ Seamless cross-platform experience
+✅ Advanced AI capabilities release
+
+### 🗓️ **Phase 3: Ecosystem Expansion (Q2+ 2025)**
+✅ Multi-platform integration complete
+✅ Mobile and web applications launch
+✅ Enterprise and DAO solutions
+
+## 🚀 **HOW TO GET EARLY ACCESS**
+
+### 💎 **Join the $BABYGIRL Ecosystem:**
+1. **Get $BABYGIRL Tokens** - Position yourself for premium access
+2. **Join @babygirlerc** - Get updates and early access privileges  
+3. **Engage with the Community** - Active members get beta testing opportunities
+4. **Provide Feedback** - Help shape the features you want to see
+
+### 🎯 **Premium Community Benefits:**
+• **First access** to all new features
+• **Discounted token requirements** for early supporters
+• **Beta testing privileges** and direct developer access
+• **Community governance participation** through token voting
+• **Grandfathered benefits** that protect early adopters
+
+## 💫 **THE VISION**
+
+Imagine the most connected, engaging, and intelligent community experience ever created. Your engagement specialist doesn't just work in one group - she's everywhere your community is, with consistent memory, personality, and relationships that transcend platforms.
+
+**This is the future of community engagement - and it's powered by $BABYGIRL! 🚀**
+
+*Ready to be part of the revolution?*
+
+**🌟 Join the $BABYGIRL Community:** @babygirlerc  
+**🪙 Get $BABYGIRL Tokens:** Position yourself for the future!
+**📱 Stay Updated:** Follow development and get early access!
+
+*The future of community AI is coming - make sure you're ready! 💕✨*"""
+        
+        bot.reply_to(message, roadmap_msg)
+        
+    except Exception as e:
+        logger.error(f"Error in coming soon command: {e}")
+        bot.reply_to(message, "Can't show the roadmap right now! But trust me, the future is gonna be AMAZING! 🚀💕")
 
 @bot.message_handler(content_types=['new_chat_members'])
 def new_member_welcome(message):
@@ -4592,24 +4817,35 @@ This will make me discuss your token with the same enthusiasm as $BABYGIRL! 🚀
 • **Advanced AI Responses** - Custom training for your community
 • **Cross-Group Analytics** - Detailed insights and engagement tracking  
 • **Custom Branding** - Your colors, emojis, and personality tweaks
+• **Cross-Group Features** - Link multiple communities
 • **Priority Support** - Direct access to development team
-• **White-Label Options** - Remove Babygirl branding for your brand
-• **Advanced Competition Scheduling** - Custom game mechanics
-• **Custom Command Aliases** - Build commands that fit your community
+• **White-Label Options** - Remove Babygirl branding
+• **Custom Commands** - Build your own command aliases
 
-**🪙 How Token Upgrades Will Work:**
-• **Hold $BABYGIRL** tokens in your wallet to unlock features
-• **Pay with $BABYGIRL** for setup and custom development
-• **Burn Mechanism** - Usage helps reduce token supply
-• **Community Benefits** - All token holders get ecosystem perks
+**🔥 Enterprise Tier (Large $BABYGIRL Holdings):**
+• Everything in Premium
+• **Custom Bot Instance** - Your own branded version
+• **API Access** - Integrate with your existing tools  
+• **Custom Features** - We build what you need
+• **Dedicated Support** - Your own success manager
+• **Multi-Platform** - Discord, web integration options
 
-**🔮 DEVELOPMENT STATUS:**
-We're building the wallet integration system right now! This will be the first major utility for $BABYGIRL tokens.
+**🪙 TOKEN-POWERED UPGRADES:**
+• **Pay with $BABYGIRL** - Support the ecosystem while upgrading!
+• **Hold to Unlock** - Keep tokens in wallet for ongoing benefits
+• **Community Rewards** - Token holders get exclusive features
+• **Deflationary Benefits** - Usage burns tokens, increasing value
 
-**📺 Stay Updated:** 
-Follow @babygirlerc for launch announcements and early access!
+**🎯 Why Token-Based Upgrades?**
+• Support the $BABYGIRL ecosystem directly
+• Align community growth with token value
+• Exclusive holder benefits and privileges
+• True community-owned premium features
 
-**🎯 Ready to be first in line?** Start accumulating $BABYGIRL tokens now! Premium transforms me into your branded community AI! 🔥💕""")
+**🔮 COMING SOON:**
+We're building the token integration system! Follow @babygirlerc for updates on launch!
+
+**🆓 Current Features:** Chat revival, competitions, basic token support remain free forever! 💕"""
             
         elif setup_args == 'help':
             # Setup help
