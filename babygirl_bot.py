@@ -1296,8 +1296,20 @@ def send_dead_chat_revival(bot, group_id, recent_users, is_followup=False):
         # Modify the scenario context for follow-ups
         scenario = "dead_chat_followup" if is_followup else "dead_chat"
         
-        # Try AI response first
+        # PRIORITY: Always try AI response first  
         ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
+        
+        # CRITICAL FIX: More aggressive AI retry logic
+        if not ai_message:
+            # Retry AI response with simpler context
+            logger.info(f"🔄 Retrying AI response for {group_id} with simplified context")
+            simple_context = {
+                'username': 'proactive_revival',
+                'user_id': 'babygirl_bot', 
+                'group_id': group_id,
+                'scenario': scenario
+            }
+            ai_message = generate_ai_response("The chat has been silent, please send an engaging message to revive it", simple_context)
         
         if ai_message:
             # Add user tagging to AI response if we have recent active users
@@ -1381,8 +1393,20 @@ def send_attention_seeking_message(bot, group_id, recent_users, is_followup=Fals
         # Modify the scenario context for follow-ups
         scenario = "being_ignored_followup" if is_followup else "being_ignored"
         
-        # Try AI response first
+        # PRIORITY: Always try AI response first  
         ai_message = generate_proactive_ai_response(scenario, group_id, recent_users)
+        
+        # CRITICAL FIX: More aggressive AI retry logic
+        if not ai_message:
+            # Retry AI response with simpler context
+            logger.info(f"🔄 Retrying AI response for {group_id} with simplified context")
+            simple_context = {
+                'username': 'proactive_attention',
+                'user_id': 'babygirl_bot', 
+                'group_id': group_id,
+                'scenario': scenario
+            }
+            ai_message = generate_ai_response("The chat is active but nobody is mentioning you, ask for attention playfully", simple_context)
         
         if ai_message:
             # Add user tagging to AI response
@@ -1861,6 +1885,83 @@ scheduler.add_job(start_storyline, 'interval', days=3)
 scheduler.add_job(lambda: check_proactive_engagement(bot), 'interval', minutes=15)  # Check every 15 minutes
 scheduler.add_job(lambda: check_proactive_conversation_followups(bot), 'interval', minutes=30)  # New: conversation follow-ups
 scheduler.add_job(optimize_emoji_sticker_usage, 'interval', hours=6)  # Optimize every 6 hours
+
+# CRITICAL FIX: Backdate proactive engagement states to trigger immediately when deployed
+def initialize_proactive_states():
+    """Initialize/backdate proactive states to ensure immediate engagement after deployment"""
+    try:
+        conn = sqlite3.connect('babygirl.db')
+        c = conn.cursor()
+        current_time = int(time.time())
+        
+        # Get all groups from various tables 
+        all_group_ids = set()
+        
+        # Get groups from spam_tracking
+        c.execute("SELECT DISTINCT group_id FROM spam_tracking")
+        for (group_id,) in c.fetchall():
+            all_group_ids.add(group_id)
+        
+        # Get groups from conversation_memory  
+        c.execute("SELECT DISTINCT group_id FROM conversation_memory")
+        for (group_id,) in c.fetchall():
+            all_group_ids.add(group_id)
+            
+        # Get groups from boyfriend_table
+        c.execute("SELECT DISTINCT group_id FROM boyfriend_table")
+        for (group_id,) in c.fetchall():
+            all_group_ids.add(group_id)
+        
+        logger.info(f"🔄 Initializing proactive states for {len(all_group_ids)} groups")
+        
+        for group_id in all_group_ids:
+            # Check if proactive state exists
+            c.execute("SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?", (group_id,))
+            existing_state = c.fetchone()
+            
+            if not existing_state:
+                # Create new state with backdated timestamp to trigger immediate action
+                backdated_time = current_time - 7200  # 2 hours ago to trigger dead chat detection
+                c.execute("""INSERT INTO proactive_state 
+                             (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                              ignored_active, ignored_last_sent, ignored_interval)
+                             VALUES (?, 0, ?, 3600, 0, ?, 7200)""", 
+                         (group_id, backdated_time, backdated_time))
+                logger.info(f"🆕 Created backdated proactive state for group {group_id}")
+            else:
+                # Update existing state if last sent was more than 4 hours ago
+                last_sent = existing_state[0] or 0
+                if current_time - last_sent > 14400:  # 4 hours
+                    # Backdate to trigger immediate action
+                    backdated_time = current_time - 7200
+                    c.execute("""UPDATE proactive_state 
+                                 SET dead_chat_last_sent = ?, dead_chat_active = 0
+                                 WHERE group_id = ?""", 
+                             (backdated_time, group_id))
+                    logger.info(f"🔄 Backdated proactive state for group {group_id}")
+        
+        conn.commit()
+        conn.close()
+        logger.info("✅ Proactive state initialization complete")
+        
+    except Exception as e:
+        logger.error(f"Error initializing proactive states: {e}")
+
+# Initialize proactive states on startup
+initialize_proactive_states()
+
+# CRITICAL FIX: Run initial proactive check immediately after startup
+def run_immediate_proactive_check():
+    """Run proactive engagement check immediately after startup"""
+    try:
+        logger.info("🚀 Running immediate proactive engagement check...")
+        check_proactive_engagement(bot)
+        logger.info("✅ Immediate proactive check complete")
+    except Exception as e:
+        logger.error(f"Error in immediate proactive check: {e}")
+
+# Schedule immediate proactive check 30 seconds after startup
+scheduler.add_job(run_immediate_proactive_check, 'date', run_date=datetime.now() + timedelta(seconds=30))
 
 # Mood-based flirty responses
 happy_responses = [
@@ -3913,7 +4014,7 @@ def handle_all_mentions(message):
                 except Exception as e:
                     logger.error(f"Error parsing opinion request: {e}")
         
-        # Generate AI response if not spam and not opinion request
+        # CRITICAL FIX: Always prioritize AI responses for all mentions
         ai_response = None
         if not is_spam and not opinion_request:
             try:
@@ -3932,8 +4033,24 @@ def handle_all_mentions(message):
                 }
                 
                 ai_response = generate_ai_response(message.text, context_info)
+                
+                # CRITICAL FIX: Retry AI response if it fails
+                if not ai_response:
+                    logger.info(f"🔄 Retrying AI response for {username} with simplified context")
+                    # Simplified context for retry
+                    simple_context = {
+                        'username': username,
+                        'user_id': str(message.from_user.id),
+                        'group_id': str(message.chat.id),
+                        'chat_type': chat_type,
+                        'mention_method': mention_method
+                    }
+                    ai_response = generate_ai_response(message.text, simple_context)
+                    
                 if ai_response:
                     logger.info(f"✨ Generated AI response for {username}")
+                else:
+                    logger.warning(f"⚠️ AI response failed for {username}, falling back to static")
                 
             except Exception as e:
                 logger.error(f"Error generating AI response: {e}")
@@ -4052,16 +4169,16 @@ def handle_all_mentions(message):
                 else:
                     responses = good_responses
         
-        # Use AI response if available, otherwise fall back to static responses
+        # CRITICAL FIX: Always prioritize AI responses over static ones
         if ai_response and not is_spam and not opinion_request:
             base_response = ai_response
             logger.info(f"🤖 Using AI response for {username}")
         else:
-            # Fall back to static responses
+            # Fall back to static responses ONLY when AI completely fails
             # Select base response (skip if we already have an opinion response)
             if not opinion_request:
                 base_response = random.choice(responses)
-                logger.info(f"📝 Using static fallback response for {username}")
+                logger.info(f"📝 Using static fallback response for {username} (AI failed)")
             else:
                 base_response = response  # Use the opinion response we already generated
         
@@ -5150,15 +5267,28 @@ def handle_sticker_uploads(message):
         logger.error(f"Error handling sticker upload: {e}")
 
 if __name__ == "__main__":
-    logger.info("Babygirl Bot starting...")
+    logger.info("🚀 Babygirl Bot starting...")
+    
+    # Start the scheduler for proactive engagement
+    logger.info("🔧 Starting scheduled tasks...")
+    scheduler.start()
+    logger.info("✅ Scheduler started successfully")
+    
+    # Verify critical systems
+    logger.info("🔍 System verification:")
+    logger.info(f"✅ Database initialized")
+    logger.info(f"✅ Proactive states initialized")
+    logger.info(f"✅ Scheduled jobs active: {len(scheduler.get_jobs())} jobs")
     
     # Option 1: Simple polling (good for testing)
     # bot.polling()
     
     # Option 2: Infinity polling with auto-restart (better for production)
     try:
+        logger.info("🎯 Starting bot polling...")
         bot.infinity_polling(none_stop=True)
     except Exception as e:
-        logger.error(f"Bot crashed: {e}")
+        logger.error(f"❌ Bot crashed: {e}")
         # Restart the bot
+        logger.info("🔄 Restarting bot...")
         bot.infinity_polling(none_stop=True) 
