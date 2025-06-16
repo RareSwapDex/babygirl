@@ -717,14 +717,27 @@ def handle_random_sticker_reply(message):
         # Official $BABYGIRL sticker pack - from https://t.me/addstickers/BABYGIRLCOMMUNITY
         # These are the official stickers created specifically for the $BABYGIRL community
         official_babygirl_stickers = [
-            # TODO: Replace with actual file IDs from the official $BABYGIRL sticker pack
-            # The sticker pack URL is: https://t.me/addstickers/BABYGIRLCOMMUNITY
-            # Need to get the actual file IDs by adding the pack and extracting IDs
-            "PLACEHOLDER_STICKER_1",  # Will be replaced with actual $BABYGIRL sticker IDs
-            "PLACEHOLDER_STICKER_2",
-            "PLACEHOLDER_STICKER_3",
-            "PLACEHOLDER_STICKER_4",
-            "PLACEHOLDER_STICKER_5"
+            # Real sticker IDs from the official $BABYGIRL sticker pack
+            "CAACAgQAAyEFAASlYJ1tAAIWE2hPxj-HOJ5dtR4-6LzMxxRbXIY-AAKjFgACJWyAUhmW5aT55pcPNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWEmhPxjR8pzf2KzDIV4Q-2awDBFKYAALlFwACmG6BUiefHicmrsmBNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWZWhP6YbGbm6Hdg27sKBEFThn2aP7AALgGQACcWZ5Ut-fCriZKJDANgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWl2hQBOaMAAF6bqjk4yLuGUEUZUtH6QACDhQAAm68eVJAfj1rVp1OoDYE",
+            "CAACAgQAAyEFAASlYJ1tAAIWeWhQBMlJcfehFfFb8Dcq-U2XbYFyAAJjFQACEa94UrPN2WeHCAzmNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWk2hQBOE9UJEDDZl0VGc2vnwcSKahAALmGwACKWJ5Uq6CAw0SJYgINgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIVSGhPL7iEVb7JL2BmNuobCxEma7gpAAJeGgAC0pJ5UmQkHc4quAgjNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWimhQBNkq-O2fyVZcS6Qi93GylqpnAAKzGAACNnF5UsMV9l_z7rotNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWV2hP6XZN_cJcEjXirLrPAAEGfW2H2wACQhgAAm55eFLZRg7IuwMi8zYE",
+            "CAACAgQAAyEFAASnWci8AAIIDGhPggs3T-EO04UmI2ci3TR2u3TCAAJ_GAACkMB5Ul7feA0GEGbUNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWZGhP6YWtp1LgUcdZk05-S922UVn2AAKgFwACPPN5UuQtyetenwWtNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWWWhP6XYP9CW4Jq2HQiYemo_6jHBFAAJHGQACZrxwUkEllVm5xpijNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIVjGhPSiHMCaL8FkvMXMPO1qOnuGD_AAL5GAACZtV5UpSCT-Sjboq2NgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIUnmhPHe_La-zHfy73NExKzyPTvL2vAAKpGAAClY14UhYLkXvg-rTBNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWYWhP6YS_JFLdHHrd6NrxpaxgkMA5AALQFwACIh9wUqh9N--V0zm8NgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIU3WhPIq-ss_gqHRPD6j83n0bXY0LJAAJ6FwACOzZ5UilSnltKvLQkNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWYmhP6YXqH6MVmMQP_h89J8hKxyh3AALUFgACY9x5Uk0_2vnFS3s3NgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIVR2hPL1Se4hD-UGAqbqD6imzCfKYZAAJSFwACh2t5Ui_zCJzzjE55NgQ",
+            "CAACAgQAAyEFAASnWci8AAIJIGhP0LzC8Yg-HnpQGXrSleDyEYa5AAKwMAACcCJ5Uigajcl508igNgQ",
+            "CAACAgQAAyEFAASlYJ1tAAIWfGhQBMybVkL3I0mD--bINolQhQkUAALzFwACEIZ5UpPFjITPQBVTNgQ"
         ]
         
         conn = sqlite3.connect('babygirl.db')
@@ -765,16 +778,9 @@ def handle_random_sticker_reply(message):
                 logger.info(f"🎪 Using CUSTOM sticker for group {group_id}")
             else:
                 # Use random official $BABYGIRL sticker
-                if all(sticker.startswith("PLACEHOLDER") for sticker in official_babygirl_stickers):
-                    # If we still have placeholders, skip sticker sending until real IDs are added
-                    logger.info(f"🎪 Official $BABYGIRL stickers not configured yet, skipping sticker for group {group_id}")
-                    conn.commit()
-                    conn.close()
-                    return
-                else:
-                    sticker_file_id = random.choice(official_babygirl_stickers)
-                    sticker_source = "official_babygirl"
-                    logger.info(f"🎪 Using OFFICIAL $BABYGIRL sticker for group {group_id} (no custom stickers found)")
+                sticker_file_id = random.choice(official_babygirl_stickers)
+                sticker_source = "official_babygirl"
+                logger.info(f"🎪 Using OFFICIAL $BABYGIRL sticker for group {group_id} (no custom stickers found)")
             
             # Try to send the sticker as a reply to the current message
             try:
