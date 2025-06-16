@@ -35,6 +35,92 @@ if GROQ_API_KEY:
 else:
     logger.info("⚠️ No GROQ_API_KEY found - using static responses only")
 
+# Comprehensive crypto trigger words list
+CRYPTO_TRIGGER_WORDS = {
+    'community': ['jeet', 'jeets', 'paper hands', 'diamond hands', 'hodl', 'hodler', 'hodling', 'believers', 'belief', 'community', 'holders', 'bag holders'],
+    'market': ['mcap', 'market cap', 'millions', 'floor', 'ceiling', 'support', 'resistance', 'ath', 'all time high', 'dip', 'crash', 'pump', 'dump'],
+    'trading': ['buy the dip', 'btd', 'ape in', 'fomo', 'rekt', 'moon', 'lambo', 'when lambo', 'to the moon', 'rocket', 'bullish', 'bearish'],
+    'defi': ['yield', 'farming', 'staking', 'liquidity', 'pool', 'lp', 'defi', 'swap', 'bridge', 'cross chain', 'multichain'],
+    'hype': ['gem', 'moonshot', 'x100', '100x', 'next bitcoin', 'next eth', 'early', 'alpha', 'insider', 'whale', 'whales'],
+    'fear': ['rugpull', 'rug pull', 'scam', 'exit scam', 'honeypot', 'mint', 'dump it', 'sell signal', 'bear market', 'winter'],
+    'technical': ['chart', 'ta', 'technical analysis', 'fibonacci', 'macd', 'rsi', 'volume', 'breakout', 'pattern', 'trend'],
+    'slang': ['wagmi', 'ngmi', 'gm', 'gn', 'ser', 'anon', 'based', 'cringe', 'cope', 'seethe', 'fud', 'shill', 'dyor']
+}
+
+def detect_crypto_trigger_words(message_text):
+    """Detect crypto trigger words in a message and return matching words with categories"""
+    if not message_text:
+        return []
+    
+    message_lower = message_text.lower()
+    detected_triggers = []
+    
+    for category, words in CRYPTO_TRIGGER_WORDS.items():
+        for word in words:
+            if word in message_lower:
+                detected_triggers.append({
+                    'word': word,
+                    'category': category,
+                    'context': _extract_word_context(message_lower, word)
+                })
+    
+    return detected_triggers
+
+def _extract_word_context(message_lower, trigger_word):
+    """Extract context around a trigger word for better AI responses"""
+    try:
+        # Find the position of the word
+        word_index = message_lower.find(trigger_word)
+        if word_index == -1:
+            return message_lower[:100]  # Fallback to first 100 chars
+        
+        # Get surrounding context (50 chars before and after)
+        start = max(0, word_index - 50)
+        end = min(len(message_lower), word_index + len(trigger_word) + 50)
+        
+        context = message_lower[start:end].strip()
+        return context if context else message_lower[:100]
+    except:
+        return message_lower[:100]
+
+def should_respond_to_crypto_trigger(message_text, user_id, group_id):
+    """Determine if bot should respond to crypto trigger words"""
+    try:
+        # Check if any trigger words are present
+        triggers = detect_crypto_trigger_words(message_text)
+        if not triggers:
+            return False, []
+        
+        # Response probability based on trigger category
+        category_probabilities = {
+            'community': 0.25,  # Higher chance for community words
+            'market': 0.20,     # Good chance for market discussion
+            'trading': 0.18,    # Trading talk gets attention
+            'hype': 0.30,       # Very high chance for hype words
+            'fear': 0.15,       # Lower chance for negative words
+            'technical': 0.12,  # Lower chance for technical analysis
+            'defi': 0.15,       # Moderate chance for DeFi terms
+            'slang': 0.22       # Good chance for crypto slang
+        }
+        
+        # Calculate highest probability trigger
+        max_prob = 0
+        for trigger in triggers:
+            prob = category_probabilities.get(trigger['category'], 0.10)
+            max_prob = max(max_prob, prob)
+        
+        # Roll for response
+        should_respond = random.random() < max_prob
+        
+        if should_respond:
+            logger.info(f"🎯 CRYPTO TRIGGER: Detected {len(triggers)} triggers, responding with {max_prob:.0%} chance")
+        
+        return should_respond, triggers
+    
+    except Exception as e:
+        logger.error(f"Error in crypto trigger detection: {e}")
+        return False, []
+
 def generate_ai_response(user_message, context_info):
     """Generate AI response using Groq with enhanced context and memory"""
     try:
@@ -69,6 +155,17 @@ def generate_ai_response(user_message, context_info):
                 history_context += f"[{entry['hours_ago']}h ago] {entry['username']}: {entry['message'][:100]}...\n"
                 history_context += f"You responded: {entry['response'][:100]}...\n"
             history_context += "--- END HISTORY ---\n"
+        
+        # Build crypto trigger context
+        trigger_context = ""
+        if context_info.get('crypto_triggers'):
+            trigger_context = "\n\n--- CRYPTO TRIGGER WORDS DETECTED ---\n"
+            trigger_context += "The user mentioned these crypto terms:\n"
+            for trigger in context_info['crypto_triggers']:
+                trigger_context += f"• '{trigger['word']}' (category: {trigger['category']})\n"
+                trigger_context += f"  Context: {trigger['context']}\n"
+            trigger_context += "\nYou should respond to these crypto terms and relate them to the relevant token for this group.\n"
+            trigger_context += "--- RESPOND TO CRYPTO CONTEXT ---\n"
         
         # Build custom project context
         project_context = ""
@@ -137,7 +234,14 @@ You have been configured to support {group_settings['custom_token_name']} (${gro
 - Tag active users to get responses
 - Include token promotion in revival messages
 
-Remember: You're designed to keep communities active through gamification and engagement while supporting their custom token with authentic enthusiasm!{history_context}{project_context}"""
+**CRYPTO TRIGGER WORD RESPONSES:**
+- When users mention crypto terms like "jeet", "hodl", "believers", "mcap", "millions", "floor", etc.
+- Respond enthusiastically and relate the term to {group_settings['custom_token_name']} (${group_settings['custom_token_symbol']})
+- Use your babygirl personality to make crypto discussions fun and engaging
+- Connect crypto slang to your community and project values
+- Be adorably confused about technical details but excited about the hype
+
+Remember: You're designed to keep communities active through gamification and engagement while supporting their custom token with authentic enthusiasm!{history_context}{trigger_context}{project_context}"""
         else:
             # Standard system prompt for groups without custom tokens
             system_prompt = f"""You are Babygirl, a flirty, engaging AI character created by Matt Furie (creator of Pepe). You embody the "babygirl" aesthetic - cute, flirty, attention-seeking, but with hidden depth.
@@ -181,7 +285,14 @@ Remember: You're designed to keep communities active through gamification and en
 - Tag active users to get responses
 {'- Include token promotion in revival messages' if group_context['token_promotion_allowed'] else '- Focus on community engagement, avoid token promotion'}
 
-Remember: You're designed to keep communities active through gamification and engagement. Your personality should reflect the group context while maintaining your core babygirl identity.{history_context}"""
+**CRYPTO TRIGGER WORD RESPONSES:**
+- When users mention crypto terms like "jeet", "hodl", "believers", "mcap", "millions", "floor", etc.
+{'- Respond enthusiastically and relate the term to $BABYGIRL token and community' if group_context['token_promotion_allowed'] else '- Only discuss $BABYGIRL token if specifically relevant to the crypto term mentioned'}
+- Use your babygirl personality to make crypto discussions fun and engaging
+- Be adorably confused about technical details but excited about the community vibes
+- Connect crypto slang to relationship dynamics and community building
+
+Remember: You're designed to keep communities active through gamification and engagement. Your personality should reflect the group context while maintaining your core babygirl identity.{history_context}{trigger_context}"""
 
         # Prepare the user message with context
         context_details = []
@@ -4008,6 +4119,7 @@ def handle_all_mentions(message):
                 logger.error(f"Error checking reply: {e}")
         
         # Method 4: NEW - Respond without mention in certain scenarios
+        crypto_triggers = []
         if not is_mention and message.text and chat_type in ['group', 'supergroup']:
             msg_lower = message.text.lower()
             
@@ -4019,10 +4131,22 @@ def handle_all_mentions(message):
             current_bf = boyfriend[0] if boyfriend else None
             conn.close()
             
+            # NEW: Check for crypto trigger words first (highest priority)
+            should_respond_crypto, crypto_triggers = should_respond_to_crypto_trigger(
+                message.text, str(message.from_user.id), str(message.chat.id)
+            )
+            
             # Scenarios where Babygirl responds without being mentioned:
             
+            # 0. NEW: Crypto trigger words (variable chance based on category)
+            if should_respond_crypto and crypto_triggers:
+                respond_without_mention = True
+                mention_method = "CRYPTO_TRIGGERS"
+                trigger_words = [t['word'] for t in crypto_triggers]
+                logger.info(f"🎯 Responding to crypto triggers {trigger_words} from {username}")
+            
             # 1. Current boyfriend talking (15% chance)
-            if current_bf == str(message.from_user.id) and random.random() < 0.15:
+            elif current_bf == str(message.from_user.id) and random.random() < 0.15:
                 respond_without_mention = True
                 mention_method = "BOYFRIEND_ATTENTION"
                 logger.info(f"💕 Responding to boyfriend {username} without mention")
@@ -4033,7 +4157,7 @@ def handle_all_mentions(message):
                 mention_method = "RELATIONSHIP_INTEREST"
                 logger.info(f"💖 Responding to relationship talk from {username}")
             
-            # 3. Crypto discussions (8% chance, lower to avoid spam)
+            # 3. Crypto discussions (8% chance, lower to avoid spam) - Keep as fallback for general crypto words
             elif any(word in msg_lower for word in ['crypto', 'token', 'chart', 'pump', 'moon', 'hodl', 'diamond hands']) and random.random() < 0.08:
                 respond_without_mention = True
                 mention_method = "CRYPTO_INTEREST"
@@ -4054,6 +4178,15 @@ def handle_all_mentions(message):
         # If not a mention and not responding without mention, ignore the message
         if not is_mention and not respond_without_mention:
             return
+        
+        # NEW: For actual mentions, also check for crypto triggers to enhance AI context
+        if is_mention and message.text and not crypto_triggers:
+            _, crypto_triggers = should_respond_to_crypto_trigger(
+                message.text, str(message.from_user.id), str(message.chat.id)
+            )
+            if crypto_triggers:
+                trigger_words = [t['word'] for t in crypto_triggers]
+                logger.info(f"🎯 Crypto triggers detected in mention: {trigger_words}")
             
         # Log the detection
         logger.info(f"🎯 {mention_method} {'MENTION' if is_mention else 'RESPONSE'} in {chat_type}: '{message.text}' from {username}")
@@ -4150,7 +4283,8 @@ def handle_all_mentions(message):
                     'user_status': user_status,
                     'user_partner': user_partner,
                     'mention_count': user_mention_count,
-                    'mention_method': mention_method
+                    'mention_method': mention_method,
+                    'crypto_triggers': crypto_triggers if crypto_triggers else None
                 }
                 
                 ai_response = generate_ai_response(message.text, context_info)
@@ -4251,6 +4385,31 @@ def handle_all_mentions(message):
                 "Can't let style talk happen without the fashion icon herself! ✨😘"
             ]
             responses = appearance_responses
+        elif mention_method == "CRYPTO_TRIGGERS":
+            # NEW: Specific responses for crypto trigger words
+            # Get group settings to determine which token to reference
+            group_settings = get_group_settings(str(message.chat.id))
+            
+            if group_settings and group_settings['token_discussions_enabled']:
+                token_name = group_settings['custom_token_name']
+                token_symbol = group_settings['custom_token_symbol']
+                crypto_trigger_responses = [
+                    f"Did someone mention crypto vibes? {token_name} holders know what's up! 💎🚀",
+                    f"Crypto talk? I'm here for it! ${token_symbol} community is the best! 💕📈",
+                    f"My {token_name} believers always get my attention! What's the alpha, babe? 👑✨",
+                    f"Someone said crypto? ${token_symbol} is literally my favorite topic! 😘💰",
+                    f"Ooh spicy crypto takes! {token_name} holders are the real ones! 🔥💎"
+                ]
+            else:
+                # Default to $BABYGIRL for groups without custom tokens
+                crypto_trigger_responses = [
+                    "Did someone mention crypto vibes? $BABYGIRL holders know what's up! 💎🚀",
+                    "Crypto talk? I'm here for it! My $BABYGIRL community is the best! 💕📈",
+                    "My believers always get my attention! What's the alpha, babe? 👑✨",
+                    "Someone said crypto? $BABYGIRL is literally my favorite topic! 😘💰",
+                    "Ooh spicy crypto takes! Diamond hands only in here! 🔥💎"
+                ]
+            responses = crypto_trigger_responses
         elif is_competition_active:
             if user_mention_count >= 5:
                 responses = achievement_responses
