@@ -1391,21 +1391,41 @@ def get_proactive_state(group_id):
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         
-        c.execute("""SELECT dead_chat_active, dead_chat_last_sent, dead_chat_interval,
-                            ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users
-                     FROM proactive_state WHERE group_id = ?""", (group_id,))
-        result = c.fetchone()
-        
-        if result:
-            return {
-                'dead_chat_active': bool(result[0]),
-                'dead_chat_last_sent': result[1],
-                'dead_chat_interval': result[2],
-                'ignored_active': bool(result[3]),
-                'ignored_last_sent': result[4],
-                'ignored_interval': result[5],
-                'ignored_tagged_users': bool(result[6]) if len(result) > 6 else False
-            }
+        # Try to get the state with the new column, fallback to old schema if it doesn't exist
+        try:
+            c.execute("""SELECT dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                                ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users
+                         FROM proactive_state WHERE group_id = ?""", (group_id,))
+            result = c.fetchone()
+            
+            if result:
+                return {
+                    'dead_chat_active': bool(result[0]),
+                    'dead_chat_last_sent': result[1],
+                    'dead_chat_interval': result[2],
+                    'ignored_active': bool(result[3]),
+                    'ignored_last_sent': result[4],
+                    'ignored_interval': result[5],
+                    'ignored_tagged_users': bool(result[6]) if len(result) > 6 else False
+                }
+        except Exception as e:
+            # Fallback to old schema without ignored_tagged_users column
+            logger.warning(f"Fallback to old schema for group {group_id}: {e}")
+            c.execute("""SELECT dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                                ignored_active, ignored_last_sent, ignored_interval
+                         FROM proactive_state WHERE group_id = ?""", (group_id,))
+            result = c.fetchone()
+            
+            if result:
+                return {
+                    'dead_chat_active': bool(result[0]),
+                    'dead_chat_last_sent': result[1],
+                    'dead_chat_interval': result[2],
+                    'ignored_active': bool(result[3]),
+                    'ignored_last_sent': result[4],
+                    'ignored_interval': result[5],
+                    'ignored_tagged_users': False  # Default to False for old schema
+                }
         else:
             # No state found, return defaults
             return {
@@ -1466,25 +1486,12 @@ def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive
         should_send_message = False
         is_followup = False
         
-        # Get group title to properly identify core groups
-        try:
-            group_info = bot.get_chat(group_id)
-            group_title = group_info.title if group_info else None
-        except:
-            group_title = None
-        
-        # Check if this is a core group to use shorter intervals
-        is_core = is_core_group(group_id, group_title)
+
         
         if not proactive_state['ignored_active']:
-            # First ignored message - use different intervals for core vs external groups
+            # First ignored message
             should_send_message = True
-            if is_core:
-                new_interval = 300  # 5 minutes for $BABYGIRL community (core group)
-                logger.info(f"🎯 CORE GROUP DETECTED: {group_id} ({group_title}) - using 5-minute interval")
-            else:
-                new_interval = 900  # 15 minutes for external groups
-                logger.info(f"🔗 External group: {group_id} ({group_title}) - using 15-minute interval")
+            new_interval = 900  # 15 minutes for all groups
         else:
             # Check if it's time for a follow-up
             time_since_last = current_time - proactive_state['ignored_last_sent']
@@ -1492,18 +1499,16 @@ def handle_ignored_scenario(bot, group_id, recent_users, current_time, proactive
                 should_send_message = True
                 is_followup = True
                 # Reduce interval by 50% with different minimums for core vs external
-                if is_core:
-                    # Core groups: minimum 2 minutes (120 seconds)
-                    new_interval = max(120, proactive_state['ignored_interval'] // 2)
-                    logger.info(f"🎯 CORE GROUP FOLLOW-UP: {group_id} - using {new_interval//60}min interval")
-                else:
-                    # External groups: minimum 5 minutes (300 seconds)
-                    new_interval = max(300, proactive_state['ignored_interval'] // 2)
-                    logger.info(f"🔗 External group follow-up: {group_id} - using {new_interval//60}min interval")
+                # Reduce interval by 50%, minimum 5 minutes (300 seconds) - BACK TO NORMAL MODE
+                new_interval = max(300, proactive_state['ignored_interval'] // 2)
         
         if should_send_message:
-            # Determine if we should tag users (every other message)
-            should_tag_users = not proactive_state.get('ignored_tagged_users', False)
+            # Determine if we should tag users (every other message) - with fallback
+            try:
+                should_tag_users = not proactive_state.get('ignored_tagged_users', False)
+            except:
+                should_tag_users = False  # Fallback to no tagging if there's an error
+            
             success, tagged_users = send_attention_seeking_message(bot, group_id, recent_users, is_followup, should_tag_users)
             if success:
                 update_proactive_state(group_id, 'ignored', current_time, new_interval, tagged_users)
@@ -1518,28 +1523,52 @@ def update_proactive_state(group_id, scenario, timestamp, interval, tagged_users
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         
-        # Insert or update the state
-        if scenario == 'dead_chat':
-            c.execute("""INSERT OR REPLACE INTO proactive_state 
-                         (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
-                          ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users)
-                         VALUES (?, 1, ?, ?, 
-                                COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 900),
-                                COALESCE((SELECT ignored_tagged_users FROM proactive_state WHERE group_id = ?), 0))""", 
-                      (group_id, timestamp, interval, group_id, group_id, group_id, group_id))
-        else:  # ignored
-            tagged_users_int = 1 if tagged_users else 0
-            c.execute("""INSERT OR REPLACE INTO proactive_state 
-                         (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
-                          ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users)
-                         VALUES (?, 
-                                COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
-                                COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 300),
-                                1, ?, ?, ?)""", 
-                      (group_id, group_id, group_id, group_id, timestamp, interval, tagged_users_int))
+        # Try new schema first, fallback to old schema if column doesn't exist
+        try:
+            # Insert or update the state with new schema
+            if scenario == 'dead_chat':
+                c.execute("""INSERT OR REPLACE INTO proactive_state 
+                             (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                              ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users)
+                             VALUES (?, 1, ?, ?, 
+                                    COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 900),
+                                    COALESCE((SELECT ignored_tagged_users FROM proactive_state WHERE group_id = ?), 0))""", 
+                          (group_id, timestamp, interval, group_id, group_id, group_id, group_id))
+            else:  # ignored
+                tagged_users_int = 1 if tagged_users else 0
+                c.execute("""INSERT OR REPLACE INTO proactive_state 
+                             (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                              ignored_active, ignored_last_sent, ignored_interval, ignored_tagged_users)
+                             VALUES (?, 
+                                    COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 300),
+                                    1, ?, ?, ?)""", 
+                          (group_id, group_id, group_id, group_id, timestamp, interval, tagged_users_int))
+        except Exception as schema_error:
+            # Fallback to old schema without ignored_tagged_users column
+            logger.warning(f"Fallback to old schema for update_proactive_state {group_id}: {schema_error}")
+            if scenario == 'dead_chat':
+                c.execute("""INSERT OR REPLACE INTO proactive_state 
+                             (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                              ignored_active, ignored_last_sent, ignored_interval)
+                             VALUES (?, 1, ?, ?, 
+                                    COALESCE((SELECT ignored_active FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT ignored_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT ignored_interval FROM proactive_state WHERE group_id = ?), 900))""", 
+                          (group_id, timestamp, interval, group_id, group_id, group_id))
+            else:  # ignored
+                c.execute("""INSERT OR REPLACE INTO proactive_state 
+                             (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                              ignored_active, ignored_last_sent, ignored_interval)
+                             VALUES (?, 
+                                    COALESCE((SELECT dead_chat_active FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT dead_chat_last_sent FROM proactive_state WHERE group_id = ?), 0),
+                                    COALESCE((SELECT dead_chat_interval FROM proactive_state WHERE group_id = ?), 300),
+                                    1, ?, ?)""", 
+                          (group_id, group_id, group_id, group_id, timestamp, interval))
         
         conn.commit()
         conn.close()
@@ -1553,20 +1582,39 @@ def reset_proactive_state(group_id, scenario):
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         
-        if scenario == 'both':
-            # Reset both scenarios
-            c.execute("""UPDATE proactive_state 
-                         SET dead_chat_active = 0, dead_chat_interval = 300,
-                             ignored_active = 0, ignored_interval = 900, ignored_tagged_users = 0
-                         WHERE group_id = ?""", (group_id,))
-        elif scenario == 'dead_chat':
-            c.execute("""UPDATE proactive_state 
-                         SET dead_chat_active = 0, dead_chat_interval = 300
-                         WHERE group_id = ?""", (group_id,))
-        elif scenario == 'ignored':
-            c.execute("""UPDATE proactive_state 
-                         SET ignored_active = 0, ignored_interval = 900, ignored_tagged_users = 0
-                         WHERE group_id = ?""", (group_id,))
+        try:
+            # Try new schema first
+            if scenario == 'both':
+                # Reset both scenarios
+                c.execute("""UPDATE proactive_state 
+                             SET dead_chat_active = 0, dead_chat_interval = 300,
+                                 ignored_active = 0, ignored_interval = 900, ignored_tagged_users = 0
+                             WHERE group_id = ?""", (group_id,))
+            elif scenario == 'dead_chat':
+                c.execute("""UPDATE proactive_state 
+                             SET dead_chat_active = 0, dead_chat_interval = 300
+                             WHERE group_id = ?""", (group_id,))
+            elif scenario == 'ignored':
+                c.execute("""UPDATE proactive_state 
+                             SET ignored_active = 0, ignored_interval = 900, ignored_tagged_users = 0
+                             WHERE group_id = ?""", (group_id,))
+        except Exception as schema_error:
+            # Fallback to old schema
+            logger.warning(f"Fallback to old schema for reset_proactive_state {group_id}: {schema_error}")
+            if scenario == 'both':
+                # Reset both scenarios
+                c.execute("""UPDATE proactive_state 
+                             SET dead_chat_active = 0, dead_chat_interval = 300,
+                                 ignored_active = 0, ignored_interval = 900
+                             WHERE group_id = ?""", (group_id,))
+            elif scenario == 'dead_chat':
+                c.execute("""UPDATE proactive_state 
+                             SET dead_chat_active = 0, dead_chat_interval = 300
+                             WHERE group_id = ?""", (group_id,))
+            elif scenario == 'ignored':
+                c.execute("""UPDATE proactive_state 
+                             SET ignored_active = 0, ignored_interval = 900
+                             WHERE group_id = ?""", (group_id,))
         
         conn.commit()
         conn.close()
@@ -1709,10 +1757,14 @@ def send_attention_seeking_message(bot, group_id, recent_users, is_followup=Fals
         # Get group context to determine behavior
         group_context = get_group_context(group_id)
         
-        # Get usernames for recent users if we need to tag them
+        # Get usernames for recent users if we need to tag them - with error handling
         recent_usernames = []
         if should_tag_users and recent_users:
-            recent_usernames = get_usernames_for_recent_users(group_id, recent_users)
+            try:
+                recent_usernames = get_usernames_for_recent_users(group_id, recent_users)
+            except Exception as tag_error:
+                logger.warning(f"Failed to get usernames for tagging in {group_id}: {tag_error}")
+                recent_usernames = []
         
         # Modify the scenario context for follow-ups
         scenario = "being_ignored_followup" if is_followup else "being_ignored"
@@ -1772,40 +1824,44 @@ def send_attention_seeking_message(bot, group_id, recent_users, is_followup=Fals
             if group_context.get('token_promotion_allowed'):
                 message += " Don't tell me you're all busy buying $BABYGIRL! 🚀💖"
         
-        # Check if AI already included user tags, if not add them manually
+        # Check if AI already included user tags, if not add them manually - with error handling
         tagged_users_result = should_tag_users
         
-        if should_tag_users and recent_usernames:
-            # Check if AI already included the username tags
-            usernames_in_message = sum(1 for username in recent_usernames if f"@{username}" in message)
-            
-            if usernames_in_message == 0:
-                # AI didn't include tags, add them manually
-                if len(recent_usernames) == 1:
-                    message += f"\n\nEspecially you @{recent_usernames[0]}! Don't ignore your babygirl! 😉💖"
-                elif len(recent_usernames) == 2:
-                    message += f"\n\nEspecially you two @{recent_usernames[0]} and @{recent_usernames[1]}! I see you! 👀💕"
-                elif len(recent_usernames) == 3:
-                    message += f"\n\nLooking at you @{recent_usernames[0]}, @{recent_usernames[1]}, and @{recent_usernames[2]}! 👀✨"
-                else:
-                    # More than 3 users
-                    tagged_users = ", ".join([f"@{username}" for username in recent_usernames[:3]])
-                    message += f"\n\nLooking at you {tagged_users}! Don't ignore me! 😘💖"
+        try:
+            if should_tag_users and recent_usernames:
+                # Check if AI already included the username tags
+                usernames_in_message = sum(1 for username in recent_usernames if f"@{username}" in message)
                 
-                logger.info(f"👤 Added manual user tags: {', '.join(recent_usernames)}")
-            else:
-                logger.info(f"✅ AI already included user tags for: {', '.join([u for u in recent_usernames if f'@{u}' in message])}")
-        
-        elif not should_tag_users:
-            # Check if AI added generic engagement, if not add it
-            generic_phrases = ["lurkers", "you all", "y'all", "everyone"]
-            has_generic_engagement = any(phrase in message.lower() for phrase in generic_phrases)
+                if usernames_in_message == 0:
+                    # AI didn't include tags, add them manually
+                    if len(recent_usernames) == 1:
+                        message += f"\n\nEspecially you @{recent_usernames[0]}! Don't ignore your babygirl! 😉💖"
+                    elif len(recent_usernames) == 2:
+                        message += f"\n\nEspecially you two @{recent_usernames[0]} and @{recent_usernames[1]}! I see you! 👀💕"
+                    elif len(recent_usernames) == 3:
+                        message += f"\n\nLooking at you @{recent_usernames[0]}, @{recent_usernames[1]}, and @{recent_usernames[2]}! 👀✨"
+                    else:
+                        # More than 3 users
+                        tagged_users = ", ".join([f"@{username}" for username in recent_usernames[:3]])
+                        message += f"\n\nLooking at you {tagged_users}! Don't ignore me! 😘💖"
+                    
+                    logger.info(f"👤 Added manual user tags: {', '.join(recent_usernames)}")
+                else:
+                    logger.info(f"✅ AI already included user tags for: {', '.join([u for u in recent_usernames if f'@{u}' in message])}")
             
-            if not has_generic_engagement and recent_users and len(recent_users) > 0:
-                message += f"\n\nEspecially you lurkers! Don't ignore your babygirl! 😉💖"
-                logger.info(f"💬 Added generic engagement message")
-            else:
-                logger.info(f"✅ AI already included generic engagement or no recent users")
+            elif not should_tag_users:
+                # Check if AI added generic engagement, if not add it
+                generic_phrases = ["lurkers", "you all", "y'all", "everyone"]
+                has_generic_engagement = any(phrase in message.lower() for phrase in generic_phrases)
+                
+                if not has_generic_engagement and recent_users and len(recent_users) > 0:
+                    message += f"\n\nEspecially you lurkers! Don't ignore your babygirl! 😉💖"
+                    logger.info(f"💬 Added generic engagement message")
+                else:
+                    logger.info(f"✅ AI already included generic engagement or no recent users")
+        except Exception as tagging_error:
+            logger.warning(f"Error adding manual tags in {group_id}: {tagging_error}")
+            # Continue without tagging - message will still be sent
         
         # Send the message
         bot.send_message(group_id, message)
@@ -2281,34 +2337,23 @@ def initialize_proactive_states():
             # AGGRESSIVE: Backdate ALL groups regardless of their current state
             backdated_time = current_time - 3600  # 1 hour ago (reduced for faster trigger)
             
-            # Check if this is a core group for proper interval setup
-            try:
-                group_info = bot.get_chat(group_id)
-                group_title = group_info.title if group_info else None
-                is_core = is_core_group(group_id, group_title)
-                ignored_interval = 300 if is_core else 900  # 5 min for core, 15 min for external
-                logger.info(f"🔍 Group {group_id} ({group_title}) - Core: {is_core}, Interval: {ignored_interval//60}min")
-            except:
-                ignored_interval = 900  # Default to 15 minutes if can't check
-                logger.warning(f"⚠️ Could not check group {group_id} title, using default interval")
-            
             if not existing_state:
                 # Create new state with backdated timestamp to trigger immediate action
                 c.execute("""INSERT INTO proactive_state 
                              (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
                               ignored_active, ignored_last_sent, ignored_interval)
-                             VALUES (?, 0, ?, 300, 0, ?, ?)""", 
-                         (group_id, backdated_time, backdated_time, ignored_interval))
-                logger.info(f"🆕 CREATED proactive state for group {group_id} with {ignored_interval//60}min ignored interval")
+                             VALUES (?, 0, ?, 300, 0, ?, 900)""", 
+                         (group_id, backdated_time, backdated_time))
+                logger.info(f"🆕 CREATED proactive state for group {group_id}")
             else:
                 # AGGRESSIVE UPDATE: Reset ALL existing groups (no time check)
                 c.execute("""UPDATE proactive_state 
                              SET dead_chat_last_sent = ?, dead_chat_active = 0,
                                  ignored_last_sent = ?, ignored_active = 0,
-                                 dead_chat_interval = 300, ignored_interval = ?
+                                 dead_chat_interval = 300, ignored_interval = 900
                              WHERE group_id = ?""", 
-                         (backdated_time, backdated_time, ignored_interval, group_id))
-                logger.info(f"🔄 RESET proactive state for group {group_id} with {ignored_interval//60}min ignored interval")
+                         (backdated_time, backdated_time, group_id))
+                logger.info(f"🔄 RESET proactive state for group {group_id}")
         
         conn.commit()
         conn.close()
