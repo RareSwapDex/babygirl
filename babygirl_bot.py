@@ -1204,28 +1204,37 @@ def check_proactive_engagement(bot):
         conn = sqlite3.connect('babygirl.db')
         c = conn.cursor()
         
-        # Get all groups from multiple sources to ensure we monitor all active groups
+        # CRITICAL FIX: Get all groups comprehensively
         all_group_ids = set()
         
-        # Get groups from spam_tracking (groups with recent activity)
+        # PRIMARY SOURCE: Get groups from all_group_messages (most reliable)
+        c.execute("SELECT DISTINCT group_id FROM all_group_messages")
+        message_groups = c.fetchall()
+        for (group_id,) in message_groups:
+            all_group_ids.add(group_id)
+        
+        # SECONDARY: Get groups from proactive_state (auto-bootstrapped groups)
+        c.execute("SELECT DISTINCT group_id FROM proactive_state")
+        proactive_groups = c.fetchall()
+        for (group_id,) in proactive_groups:
+            all_group_ids.add(group_id)
+        
+        # FALLBACK: Get groups from other activity tables
         c.execute("SELECT DISTINCT group_id FROM spam_tracking")
         spam_groups = c.fetchall()
         for (group_id,) in spam_groups:
             all_group_ids.add(group_id)
         
-        # Get groups from conversation_memory (groups where bot has responded)
         c.execute("SELECT DISTINCT group_id FROM conversation_memory")
         memory_groups = c.fetchall() 
         for (group_id,) in memory_groups:
             all_group_ids.add(group_id)
             
-        # Get groups from boyfriend_table (groups with game activity)
         c.execute("SELECT DISTINCT group_id FROM boyfriend_table")
         bf_groups = c.fetchall()
         for (group_id,) in bf_groups:
             all_group_ids.add(group_id)
             
-        # Get groups from cooldown_table (groups with competitions)
         c.execute("SELECT DISTINCT group_id FROM cooldown_table")
         cooldown_groups = c.fetchall()
         for (group_id,) in cooldown_groups:
@@ -1284,35 +1293,44 @@ def check_proactive_engagement(bot):
                 # Get current proactive state for this group
                 proactive_state = get_proactive_state(group_id)
                 
-                # CORRECT ADMIN-LEVEL SCENARIO DETECTION:
+                # IMPROVED ADMIN-LEVEL SCENARIO DETECTION WITH BETTER TIMING:
                 
                 # SCENARIO 1: DEAD CHAT - No messages from ANY members for 30+ minutes
                 if all_recent_messages == 0 and total_historical_messages > 0:
-                    logger.info(f"💀 DEAD CHAT in group {group_id} - no messages from anyone for 30+ minutes")
+                    logger.info(f"💀 DEAD CHAT DETECTED in group {group_id} - no messages from anyone for 30+ minutes")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
                 # SCENARIO 2: BEING IGNORED - Group has messages but no bot mentions for 1+ hours
                 elif all_recent_messages > 0 and recent_bot_mentions == 0 and total_historical_mentions > 0:
-                    logger.info(f"👀 BEING IGNORED in group {group_id} - {all_recent_messages} messages but no bot mentions for 1+ hours")
+                    logger.info(f"👀 BEING IGNORED DETECTED in group {group_id} - {all_recent_messages} messages but no bot mentions for 1+ hours")
                     handle_ignored_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 3: NEW GROUP - First time engagement after 30 minutes of any activity
-                elif total_historical_messages <= 3 and total_historical_messages > 0:
+                # SCENARIO 3: NEW GROUP - First time engagement after 20 minutes of any activity (reduced from 30)
+                elif total_historical_messages <= 5 and total_historical_messages > 0:  # Increased threshold
+                    c.execute("SELECT MIN(timestamp) FROM all_group_messages WHERE group_id = ?", (group_id,))
+                    first_message = c.fetchone()[0]
+                    if first_message and (current_time - first_message) >= 1200:  # 20 minutes (reduced from 30)
+                        logger.info(f"🆕 NEW GROUP ENGAGEMENT for {group_id} - sending initial engagement after 20 minutes")
+                        handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
+                
+                # SCENARIO 4: NEVER ENGAGED - Group has been bootstrapped but never sent a proactive message
+                elif proactive_state['dead_chat_last_sent'] == 0 and total_historical_messages > 0:
+                    # Check how long since first message
                     c.execute("SELECT MIN(timestamp) FROM all_group_messages WHERE group_id = ?", (group_id,))
                     first_message = c.fetchone()[0]
                     if first_message and (current_time - first_message) >= 1800:  # 30 minutes
-                        logger.info(f"🆕 NEW GROUP {group_id} - sending initial engagement after 30 minutes")
+                        logger.info(f"🎯 FIRST ENGAGEMENT for {group_id} - never sent proactive message but has activity")
                         handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
-                # SCENARIO 4: RESET - Recent activity detected, reset proactive states
+                # SCENARIO 5: RESET - Recent activity detected, reset proactive states
                 elif all_recent_messages > 0 and recent_bot_mentions > 0:
                     if proactive_state['dead_chat_active'] or proactive_state['ignored_active']:
                         reset_proactive_state(group_id, 'both')
-                        logger.info(f"🔄 Reset proactive state for {group_id} - recent activity and bot mentions detected")
+                        logger.info(f"🔄 RESET proactive state for {group_id} - recent activity and bot mentions detected")
                 
-                # SCENARIO 5: BOOTSTRAP - Group has never received proactive but has historical activity
-                elif proactive_state['dead_chat_last_sent'] == 0 and total_historical_messages > 3:
-                    logger.info(f"🎯 BOOTSTRAP group {group_id} - has activity but never sent proactive message")
+                # SCENARIO 6: LONG SILENCE - Even with activity, if no proactive sent for 4+ hours, send one
+                elif proactive_state['dead_chat_last_sent'] > 0 and (current_time - proactive_state['dead_chat_last_sent']) >= 14400:  # 4 hours
+                    logger.info(f"⏰ LONG SILENCE for {group_id} - no proactive message for 4+ hours")
                     handle_dead_chat_scenario(bot, group_id, recent_active_users, current_time, proactive_state)
                 
             except Exception as group_error:
@@ -4065,6 +4083,22 @@ def handle_all_mentions(message):
                             VALUES (?, ?, ?, ?, ?, ?)''',
                          (message.message_id, str(message.from_user.id), str(message.chat.id), 
                           int(time.time()), message.text[:500], is_bot_mention))  # Limit content to 500 chars
+                
+                # CRITICAL FIX: Auto-bootstrap groups for proactive monitoring
+                group_id = str(message.chat.id)
+                c.execute("SELECT COUNT(*) FROM proactive_state WHERE group_id = ?", (group_id,))
+                has_proactive_state = c.fetchone()[0] > 0
+                
+                if not has_proactive_state:
+                    # Auto-bootstrap this group for proactive monitoring
+                    current_time = int(time.time())
+                    backdated_time = current_time - 3600  # 1 hour ago
+                    c.execute("""INSERT INTO proactive_state 
+                                 (group_id, dead_chat_active, dead_chat_last_sent, dead_chat_interval,
+                                  ignored_active, ignored_last_sent, ignored_interval)
+                                 VALUES (?, 0, ?, 1800, 0, ?, 3600)""", 
+                             (group_id, backdated_time, backdated_time))
+                    logger.info(f"🎯 AUTO-BOOTSTRAPPED group {group_id} for proactive monitoring")
                 
                 # Clean old messages (keep only last 7 days for performance)
                 week_ago = int(time.time()) - 604800
